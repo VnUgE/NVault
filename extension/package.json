@@ -6,7 +6,7 @@
   "type": "module",
   "description": "A @vnuge/nvault-extension nostr identity vault browser extension",
 
-  "output": "bin",
+  "output_dir": "bin",
   "repository": "https://github.com/VnUgE/NVault",
 
   "scripts": {
