@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RootNamespace>NVault.Plugins.Vault</RootNamespace>
+    <AssemblyName>NVault</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>Vaughn Nugent</Authors>
+    <Company>Vaughn Nugent</Company>
+    <Product>Nvault</Product>
+    <Description>A VNLib.Plugins.Essentials framework plugin that provides a nostr vault backend called NVault</Description>
+    <Copyright>Copyright © 2023 Vaughn Nugent</Copyright>
+    <PackageProjectUrl>https://www.vaughnnugent.com/resources/software/modules/NVault</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/VnUgE/NVault/tree/master/</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="11.7.1" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0033" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0033" />
+    <PackageReference Include="VVNLib.Plugins.Extensions.Loading.Sql" Version="0.1.0-ci0033" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\libs\NVault.Crypto.Secp256k1\src\NVault.Crypto.Secp256k1.csproj" />
+    <ProjectReference Include="..\..\..\libs\NVault.VaultExtensions\src\NVault.VaultExtensions.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,27 @@
+
+#This allows the Task build system to run commands to build components of the project
+#You must install Task before executing this file, https://taskfile.dev
+
+version: '3'
+
+tasks:
+
+  #update project source code
+  update:
+    cmds:
+     - git remote update
+     - git reset --hard  
+     - git pull origin {{.BRANCH_NAME}} --verify-signatures
+      #re-write semver for back-end after hard reset
+     - dotnet-gitversion.exe /updateprojectfiles
+
+  build:
+    cmds:
+    
+  #copy artifacts to temp directory
+  postbuild_success:
+    cmds:
+
+  #clean hook
+  clean:
+    cmds:

@@ -1,0 +1,28 @@
+
+#taskfile for building the nvault-extension
+
+version: '3'
+
+tasks:
+
+  build:
+    cmds:
+    #install deps and run build
+    - npm install
+    - npm run build
+    
+  #copy artifacts to temp directory
+  postbuild_success:
+    cmds:
+    - powershell -Command "mkdir bin -Force"
+    #tar the dist output and put it in the output dir
+    - cd dist && tar -czf '../bin/release.tgz' .
+
+  #clean hook
+  clean:
+    ignore_error: true
+    cmds:
+    - cmd: powershell -Command "Remove-Item -Recurse -Force node_modules"
+    - cmd: powershell -Command "Remove-Item -Recurse -Force dist"
+    - cmd: powershell -Command "Remove-Item -Recurse -Force bin"
+    - cmd: powershell -Command "Remove-Item release.tgz"

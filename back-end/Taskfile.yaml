@@ -1,0 +1,48 @@
+
+#taskfile for building the libraries for admin and clients and creating their packages
+
+version: '3'
+
+vars:
+  DOTNET_BUILD_FLAGS: '/p:RunAnalyzersDuringBuild=false /p:BuildInParallel=true /p:MultiProcessorCompilation=true'
+
+tasks:
+
+  build:
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+    #build project
+    -  dotnet publish -c release {{.DOTNET_BUILD_FLAGS}} 
+    
+  #postbuild to package artifaces into the archives for upload
+  postbuild_success:
+   dir: '{{.USER_WORKING_DIR}}'
+   vars:
+     #output directory for the build artifacts
+     OUT_DIR: 'bin/release/{{.TARGET_FRAMEWORK}}/publish'
+   
+   cmds:
+    #pack up source code
+    - task: packsource
+
+    #copy license to output dir
+    - powershell -Command "cp '{{.MODULE_DIR}}/LICENSE' -Destination '{{.OUT_DIR}}/LICENSE.txt'"
+
+    #tar the plugin output and put it in the bin dir
+    - cd {{.OUT_DIR}} && tar -czvf '{{.USER_WORKING_DIR}}/bin/release.tgz' .
+
+  packsource:
+    dir: '{{.USER_WORKING_DIR}}'
+    internal: true
+    cmds:
+    #copy source code to target
+    - powershell -Command "Get-ChildItem -Include *.cs,*.csproj -Recurse | Where { \$_.FullName -notlike '*\obj\*' -and \$_.FullName -notlike '*\bin\*' } | Resolve-Path -Relative | tar --files-from - -cvzf 'bin/src.tgz'"
+ 
+  #clean hook
+  clean:
+    dir: '{{.USER_WORKING_DIR}}'
+    ignore_error: true
+    cmds:
+    - dotnet clean -c release
+    - powershell -Command "Remove-Item -Recurse bin"
+    - powershell -Command "Remove-Item -Recurse obj"

@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NVault", "NVault", "{352C778E-C12D-483D-9C10-7985D81A8E10}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libs", "Libs", "{74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault", "back-end\plugins\nvault\src\NVault.csproj", "{7ADAE9C2-1739-4E91-B59C-DB3B07909C07}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.VaultExtensions", "back-end\libs\NVault.VaultExtensions\src\NVault.VaultExtensions.csproj", "{EF924E63-9FB9-404B-94AB-D273153A917E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.Crypto.Secp256k1", "back-end\libs\NVault.Crypto.Secp256k1\src\NVault.Crypto.Secp256k1.csproj", "{BD10D3C9-6759-454D-AC33-D4546B7E0990}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7ADAE9C2-1739-4E91-B59C-DB3B07909C07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7ADAE9C2-1739-4E91-B59C-DB3B07909C07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7ADAE9C2-1739-4E91-B59C-DB3B07909C07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7ADAE9C2-1739-4E91-B59C-DB3B07909C07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF924E63-9FB9-404B-94AB-D273153A917E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF924E63-9FB9-404B-94AB-D273153A917E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF924E63-9FB9-404B-94AB-D273153A917E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF924E63-9FB9-404B-94AB-D273153A917E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD10D3C9-6759-454D-AC33-D4546B7E0990}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD10D3C9-6759-454D-AC33-D4546B7E0990}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD10D3C9-6759-454D-AC33-D4546B7E0990}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD10D3C9-6759-454D-AC33-D4546B7E0990}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7ADAE9C2-1739-4E91-B59C-DB3B07909C07} = {352C778E-C12D-483D-9C10-7985D81A8E10}
+		{EF924E63-9FB9-404B-94AB-D273153A917E} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
+		{BD10D3C9-6759-454D-AC33-D4546B7E0990} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ACF01A45-B7F0-4055-84F2-A3596713C9BB}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,354 @@
+@tailwind base;
+
+@tailwind components;
+
+@tailwind utilities;
+ 
+#injected-root {
+
+    /* HEADINGS */
+    h1, h2, h3, h4, h5, h6{
+        @apply font-medium leading-tight mt-0 mb-2;
+    }
+    h1{
+        @apply sm:text-5xl text-4xl;
+    }
+    h2{
+        @apply sm:text-4xl text-3xl;
+    }
+    h3{
+        @apply sm:text-3xl text-2xl;
+    }
+    h4{
+        @apply sm:text-2xl text-xl;
+    }
+    h5{
+        @apply sm:text-xl text-lg;
+    }
+    h6{
+        @apply sm:text-base text-sm;
+    }
+
+
+    input.primary,
+    select.primary,
+    textarea.primary {
+        @apply border-2 rounded-md p-2 py-1.5 border-gray-200;
+        @apply dark:bg-dark-800 dark:border-dark-400 dark:text-white;
+
+        &:focus,
+        &::after,
+        &:active{
+            @apply outline-none border-primary-500 dark:border-primary-600;
+        }
+
+        &.error,
+        &.error:focus,
+        &.error::after,
+        &.error:active{
+            @apply outline-none border-red-500 dark:border-red-400;
+        }
+    }
+   
+    /* CHECKBOXES */
+
+    label.checkbox{
+        @apply flex items-center cursor-pointer;
+
+        input[type="checkbox"] {
+            @apply ease-in-out duration-100 w-5 h-5;
+            @apply border-2 rounded-sm border-gray-300 dark:border-dark-500;
+
+            &:checked {
+                @apply text-primary-500 dark:text-primary-600 border-primary-500 dark:border-primary-600;
+            }
+        }
+
+        &.primary  {
+            input[type="checkbox"]{
+                @apply appearance-none;
+                @apply hover:border-primary-500 dark:hover:border-primary-600;
+
+                &:checked {
+                    @apply bg-primary-500 dark:bg-primary-600 border-primary-500 dark:border-primary-600;
+                }
+
+                & + span.check{
+                    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+                    @apply bg-white dark:bg-dark-500;
+                }
+            }
+
+            span.check{
+                margin: 0px 0px 1px 4px;
+                @apply absolute h-3 w-3;
+            }
+        }
+        
+    }
+
+    /*Select */
+
+    select.primary.options{
+        @apply text-current;
+    }
+
+
+    /*Validation inputs*/
+
+    input.primary.dirty.data-valid,
+    select.primary.dirty.data-valid
+    {
+        @apply border-primary-500 dark:border-primary-600;
+    }
+    input.primary.dirty.data-invalid,
+    select.primary.dirty.data-invalid
+    {
+        @apply border-red-600 dark:border-red-500;
+    }
+
+
+    input,
+    input:hover,
+    input:focus,
+    input:active,
+    input::after {
+        @apply duration-100 ease-in-out outline-none;
+    }
+
+    .default-page-template {
+        min-height: 400px;
+        @apply container w-full max-w-4xl px-4 pt-3 mx-auto sm:pt-6 md:px-0;
+    }
+
+    #header-mobile-nav a:hover,
+    #header-desktop-nav a:hover,
+    #header-mobile-nav .router-link-active,
+    #header-desktop-nav .router-link-active,
+    footer .footer-content .router-link-active {
+        @apply text-primary-500 dark:text-primary-600;
+    }
+
+    #header-mobile-nav a {
+        @apply text-xl;
+    }
+
+    a.link {
+        @apply duration-150 ease-in-out;
+        @apply text-purple-500 hover:text-purple-600;
+    }
+
+    .modal-entry {
+        background: #00000077;
+        @apply fixed z-50 flex w-full;
+
+        .modal-content-container {
+            @apply w-full max-w-md p-5 m-auto rounded-md shadow-2xl md:mt-44 mt-28;
+            @apply bg-white border border-transparent dark:bg-dark-600 dark:border-primary-500 dark:text-white;
+
+            .modal-title {
+                @apply text-xl font-bold;
+            }
+
+            .modal-description {
+                @apply text-sm;
+            }
+        }
+
+        .modal-button-container {
+            @apply flex flex-row justify-end pt-3 gap-3;
+        }
+
+        .input-container {
+            @apply pt-5;
+
+            input {
+                @apply w-full;
+            }
+        }
+    }
+
+    .btn {
+        @apply ease-in-out duration-100 border border-transparent px-4 py-2 text-center text-sm font-medium transition-all focus:ring-2;
+
+        @apply bg-white border-gray-300 text-gray-700 shadow-sm hover:bg-gray-100 focus:ring-gray-100;
+
+        .dark & {
+            @apply bg-transparent text-inherit border-dark-300 hover:bg-transparent hover:border-gray-400 focus:ring-gray-300;
+        }
+
+        &.b-0 {
+            @apply border-0 ring-0;
+        }
+
+        &:disabled {
+            @apply cursor-not-allowed border-gray-100 bg-gray-50 text-gray-400;
+            @apply dark:bg-transparent dark:border-dark-400 dark:text-dark-300;
+        }
+
+        &.sm {
+            @apply px-3 py-1.5 text-sm;
+        }
+
+        &.xs {
+            @apply px-2 py-1;
+        }
+
+        &.primary {
+            @apply border-primary-500 bg-primary-500 text-white hover:border-primary-600 hover:bg-primary-600 focus:ring-primary-200;
+
+            &:disabled {
+                @apply bg-primary-300 border-primary-300;
+                @apply dark:bg-transparent dark:border-primary-400;
+            }
+
+            .dark & {
+                @apply border-primary-600 bg-transparent text-primary-600 hover:border-primary-500 hover:text-primary-500 focus:ring-primary-500;
+            }
+        }
+
+        &.secondary {
+            @apply border-secondary-500 bg-secondary-500 text-white hover:border-secondary-600 hover:bg-secondary-600 focus:ring-secondary-200;
+
+            &:disabled {
+                @apply bg-secondary-300 border-secondary-300;
+                @apply dark:bg-transparent dark:border-secondary-400;
+            }
+
+            .dark & {
+                @apply border-secondary-600 bg-transparent text-secondary-600 hover:border-secondary-500 hover:text-secondary-500 focus:ring-secondary-500;
+            }
+        }
+
+        &.red {
+            @apply border-red-500 bg-red-500 text-white hover:border-red-600 hover:bg-red-600 focus:ring-red-200;
+
+            &:disabled {
+                @apply bg-red-300 border-red-300;
+                @apply dark:bg-transparent dark:border-red-400;
+            }
+
+            .dark & {
+                @apply border-red-600 bg-transparent text-red-600 hover:border-red-500 hover:text-red-500 focus:ring-red-500;
+            }
+        }
+
+        &.blue {
+            @apply border-blue-500 bg-blue-500 text-white hover:border-blue-600 hover:bg-blue-600 focus:ring-blue-200;
+
+            &:disabled {
+                @apply bg-blue-300 border-blue-300;
+                @apply dark:bg-transparent dark:border-blue-400;
+            }
+
+            .dark & {
+                @apply border-blue-600 bg-transparent text-blue-600 hover:border-blue-500 hover:text-blue-500 focus:ring-blue-500;
+            }
+        }
+
+        &.green {
+            @apply border-green-500 bg-green-500 text-white hover:border-green-600 hover:bg-green-600 focus:ring-green-200;
+
+            &:disabled {
+                @apply bg-green-300 border-green-300;
+                @apply dark:bg-transparent dark:border-green-400;
+            }
+
+            .dark & {
+                @apply border-green-600 bg-transparent text-green-600 hover:border-green-500 hover:text-green-500 focus:ring-green-500;
+            }
+        }
+
+        &.yellow {
+            @apply border-yellow-500 bg-yellow-500 text-white hover:border-yellow-600 hover:bg-yellow-600 focus:ring-yellow-200;
+
+            &:disabled {
+                @apply bg-yellow-300 border-yellow-300;
+                @apply dark:bg-transparent dark:border-yellow-400;
+            }
+
+            .dark & {
+                @apply border-yellow-400 bg-transparent text-yellow-400 hover:border-yellow-300 hover:text-yellow-300 focus:ring-yellow-300;
+            }
+        }
+
+        &.purple {
+            @apply border-purple-500 bg-purple-500 text-white hover:border-purple-600 hover:bg-purple-600 focus:ring-purple-200;
+
+            &:disabled {
+                @apply bg-purple-300 border-purple-300;
+                @apply dark:bg-transparent dark:border-purple-400;
+            }
+
+            .dark & {
+                @apply border-purple-600 bg-transparent text-purple-600 hover:border-purple-500 hover:text-purple-500 focus:ring-purple-500;
+            }
+        }
+
+        &.pink {
+            @apply border-pink-500 bg-pink-500 text-white hover:border-pink-600 hover:bg-pink-600 focus:ring-pink-200;
+
+            &:disabled {
+                @apply bg-pink-300 border-pink-300;
+                @apply dark:bg-transparent dark:border-pink-400;
+            }
+
+            .dark & {
+                @apply border-pink-600 bg-transparent text-pink-600 hover:border-pink-500 hover:text-pink-500 focus:ring-pink-500;
+            }
+        }
+
+        &.gray {
+            @apply border-gray-500 bg-gray-500 text-white hover:border-gray-600 hover:bg-gray-600 focus:ring-gray-200;
+
+            &:disabled {
+                @apply bg-gray-300 border-gray-300;
+                @apply dark:bg-transparent dark:border-gray-400;
+            }
+
+            .dark & {
+                @apply border-gray-600 bg-transparent text-gray-600 hover:border-gray-500 hover:text-gray-500 focus:ring-gray-500;
+            }
+        }
+
+        &.no-border{
+            @apply border-0 hover:border-0 focus:border-0 ring-0 focus:ring-0 bg-transparent hover:bg-transparent focus:bg-transparent shadow-none hover:shadow-none focus:shadow-none;
+        }
+    }
+
+    .button-group {
+        @apply inline-flex -space-x-0 divide-x overflow-hidden rounded-lg border border-transparent shadow-sm;
+        @apply divide-gray-300 border-gray-300 dark:divide-dark-500 dark:border-dark-500;
+
+        & .btn {
+            @apply border-0 ring-0 focus:ring-0;
+        }
+    }
+
+    .general-toast {
+        .notification-title {
+            font-size: 16px;
+        }
+
+        .notification-content {
+            font-size: 14px;
+        }
+
+        .vue-notification {
+            @apply duration-200 ease-in-out shadow-md hover:shadow-lg;
+        }
+    }
+
+    .form-toast {
+        left: calc(50% - 150px);
+        @apply pt-2 mx-auto mb-3;
+
+        .notification-title {
+            font-size: 14px;
+        }
+
+        .notification-content {
+            font-size: 12px;
+        }
+    }
+}
