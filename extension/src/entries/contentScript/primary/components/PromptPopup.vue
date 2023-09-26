@@ -17,7 +17,7 @@
                             <div class="mt-5 text-center">
                                 <span class="text-primary-500">{{ site }}</span>
                                  would like to access to 
-                                <span class="text-yellow-500">{{ event.msg }}</span>
+                                <span class="text-yellow-500">{{ event?.msg }}</span>
                             </div>
                             <div class="flex gap-2 mt-4">
                                 <div class="">

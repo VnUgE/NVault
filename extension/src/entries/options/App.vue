@@ -6,7 +6,7 @@
     <div class="container flex w-full p-4 mx-auto mt-8 text-gray-800 dark:text-gray-200">
       <div class="w-full max-w-4xl mx-auto">
         <div class="">
-            <h3>Nostr Vault</h3>
+            <h3>NVault</h3>
         </div>
         <TabGroup :selected-index="selectedTab" @change="id => selectedTab = id" >
           <TabList class="flex gap-3 pb-2 border-b border-gray-300 dark:border-dark-500">
