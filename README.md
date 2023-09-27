@@ -4,17 +4,19 @@ Here is what I want this project to be.
 
 The only self-hosted system you need to store your nostr identities where keys can never leave the system. Even if a session gets hijacked, messages can be signed (or stopped), but keys can never be exfiltrated. Security > convenience.  
 
+The server plugin is just one of my [VNLib.Plugins.Essentials](https://github.com/VnUgE/VNLib.Core) framework plugins. Yes this project is build on top of my experimental http framework. 
+
 ## Roadmap
 This project is probably best explained by the features it has an that need to be added. If it gets enough attention, I will probably switch to building a fully featured client library with the server API for others to build actually good browser extensions and UI experiences.  
 
 ### Server plugin
+- ✔ Hashicorp Vault KV storage with user scopes
 - ✔ Built for self-hosting only
 - ✔ Secret key import
 - ✔ Secure random identity creation
 - ✔ SSL and all the basic web security
 - ✔ Multi user support for friends and family
 - ✔ Support loading external random library (native or managed dll)
-- ✔ Hashicorp Vault KV storage with user scopes
 - Note encryption/decryption
 - Support a connected, or network based signing hardware
 - Optionally support network based, event authorization applications
@@ -35,8 +37,6 @@ This project is probably best explained by the features it has an that need to b
 - Chrome and Firefox support (mobile would be nice also)
 - Build fully featured library/API for other extension builders
 
-The server application is just one of my [VNLib.Plugins.Essentials](https://github.com/VnUgE/VNLib.Core) framework plugins. Yes this project is build on top of my experimental http framework. 
-
 ## Motivation
 Nostr is a simple, new, and fun protocol I really wanted to be a part of. NIP-07 seemed like the gateway to securely contribute notes on my terms. When your identity is permanently linked to a 32 byte secret number, imo it must be taken very seriously (I feel the same way for bitcoin). It can never be changed like a password, no whoopsie can occur, or your identity has been stolen forever. At least with bitcoin "wallets" (more 32 byte secp256k1 secret keys) you may have the possibility of transferring your funds if you believe a breach may have occurred or rotate keys like you might passwords. This cannot happen with nostr in the same way.  
 
@@ -55,4 +55,6 @@ Builds or docs are not yet available (I have my own CI pipeline for producing th
 This project is licensed under the GNU AGPL v3 open source license. See LICENSE.txt for more information.  
 
 ## Contributing
-Sorry but right now I am too busy to worry about copyrights, prs and such so I will not be accepting contributions at the moment. Suggestions are MORE than welcome, I prefer contact via email (see my GH profile or my website for my email address). This will change in the future if I get more time or an alternate source of income.  
+Right now I am too busy to worry about copyrights, prs and such so I will not be accepting contributions at the moment. Suggestions are MORE than welcome, I prefer contact via email (see my GH profile or my website for my email address). This will change in the future if I get more time or an alternate source of income.  
+
+Actually, if you are a front-end developer with some good UI/design skils and are intersted in making the UI look better, let me know! 
