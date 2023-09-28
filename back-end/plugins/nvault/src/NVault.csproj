@@ -21,9 +21,9 @@
 
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="11.7.1" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0033" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0033" />
-    <PackageReference Include="VVNLib.Plugins.Extensions.Loading.Sql" Version="0.1.0-ci0033" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0035" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0035" />
+    <PackageReference Include="VVNLib.Plugins.Extensions.Loading.Sql" Version="0.1.0-ci0034" />
   </ItemGroup>
 
   <ItemGroup>
