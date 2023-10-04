@@ -27,7 +27,7 @@ const nip07Enabled = () => getSiteConfig().then(p => p.autoInject);
 
 const ext = '@vnuge/nvault-extension'
 
-let _promptHandler = () => {}
+let _promptHandler = () => Promise.resolve({})
 
 export const usePrompt = (callback) => {
     //Register the callback

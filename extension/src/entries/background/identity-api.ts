@@ -13,42 +13,40 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import { NostrIdentiy } from "../../bg-api/types";
 import { useAuthApi } from "./auth-api";
 import { useSettings } from "./settings";
 
 export const useIdentityApi = (() => {
 
-    const { apiCall, protect } = useAuthApi();
+    const { handleProtectedApicall } = useAuthApi();
     const { currentConfig } = useSettings();
 
-    const onCreateIdentity = protect(async ({data}) => {
+    const onCreateIdentity = handleProtectedApicall<NostrIdentiy>(async (data, { axios }) => {
         //Create a new identity
-        return await apiCall(async ({ axios }) => {
-            const response = await axios.put(`${currentConfig.value.nostrEndpoint}?type=identity`, data)
+        const response = await axios.put(`${currentConfig.value.nostrEndpoint}?type=identity`, data)
 
-            if (response.data.success) {
-                return response.data.result;
-            }
-            //If we get here, the login failed
-            throw { response }
-        })
+        if (response.data.success) {
+            return response.data.result;
+        }
+        
+        //If we get here, the login failed
+        throw { response }
     })
 
-    const onUpdateIdentity = protect(async ({data}) => {
-        return await apiCall(async ({ axios }) => {
+    const onUpdateIdentity = handleProtectedApicall(async (data, { axios }) => {
+        delete data.Created;
+        delete data.LastModified;
 
-            delete data.Created;
-            delete data.LastModified;
+        //Create a new identity
+        const response = await axios.patch(`${currentConfig.value.nostrEndpoint}?type=identity`, data)
 
-            //Create a new identity
-            const response = await axios.patch(`${currentConfig.value.nostrEndpoint}?type=identity`, data)
+        if (response.data.success) {
+            return response.data.result;
+        }
 
-            if (response.data.success) {
-                return response.data.result;
-            }
-            //If we get here, the login failed
-            throw { response }
-        })
+        //If we get here, the login failed
+        throw { response }
     })
 
     return () =>{

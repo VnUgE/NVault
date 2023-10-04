@@ -76,27 +76,27 @@
                     <div class="mt-2">
                         <label class="pl-1">BaseUrl</label>
                         <input class="w-full input" v-model="v$.apiUrl.$model" :class="{'error': v$.apiUrl.$invalid }" />
-                        <p class="pl-1 mt-1 text-xs text-red-500">
+                        <p class="pl-1 mt-1 text-xs text-gray-600 dark:text-gray-400">
                             * The http path to the vault server (must start with http:// or https://)
                         </p>
                     </div>
                     <div class="mt-2">
                         <label class="pl-1">Account endpoint</label>
                         <input class="w-full input" v-model="v$.accountBasePath.$model" :class="{ 'error': v$.accountBasePath.$invalid }" />
-                        <p class="pl-1 mt-1 text-xs text-red-500">
+                        <p class="pl-1 mt-1 text-xs text-gray-600 dark:text-gray-400">
                             * This is the path to the account server endpoint (must start with /)
                         </p>
                     </div>
                     <div class="mt-2">
                         <label class="pl-1">Nostr endpoint</label>
                         <input class="w-full input" v-model="v$.nostrEndpoint.$model" :class="{ 'error': v$.nostrEndpoint.$invalid }" />
-                        <p class="pl-1 mt-1 text-xs text-red-500">
+                        <p class="pl-1 mt-1 text-xs text-gray-600 dark:text-gray-400">
                             * This is the path to the Nostr plugin endpoint path (must start with /)
                         </p>
                     </div>
                 </fieldset>
                 <div class="flex justify-end mt-2">
-                    <button :disabled="!modified || waiting" class="rounded btn sm" :class="{'primary':modified}" @click="onSave">Save</button>
+                    <button :disabled="!modified || waiting" class="rounded btn sm" @click="onSave">Save</button>
                 </div>
             </div>
         </form>
@@ -114,7 +114,7 @@ import{ Switch } from '@headlessui/vue'
 import useVuelidate from '@vuelidate/core'
 
 const { waiting } = useWait();
-const form = useFormToaster();
+const { info } = useFormToaster();
 const { getSiteConfig, saveSiteConfig } = useManagment();
 
 const { apply, data, buffer, modified } = useDataBuffer({
@@ -171,7 +171,7 @@ const onSave = async () => {
         return;
     }
 
-    form.info({
+    info({
         title: 'Reloading in 4 seconds',
         text: 'Your configuration will be saved and the extension will reload in 4 seconds'
     })

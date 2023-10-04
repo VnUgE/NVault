@@ -26,8 +26,17 @@ interface ApiHandle {
 }
 
 export interface ProectedHandler<T extends JsonObject> {
-    (message: BridgeMessage<T>): Promise<any>
+    (message: T): Promise<any>
 }
+
+export interface MessageHandler<T extends JsonObject> {
+    (message: T): Promise<any>
+}
+
+export interface ApiMessageHandler<T extends JsonObject> {
+    (message: T, apiHandle: { axios: AxiosInstance }): Promise<any>
+}
+
 
 export const useAuthApi = (() => {
 
@@ -49,37 +58,51 @@ export const useAuthApi = (() => {
             throw { ...errMsg };
         }
     }
- 
-    const protect = <T extends JsonObject>(cbHandler: ProectedHandler<T>) =>{
-        return (message: BridgeMessage<T>) : Promise<any> => {
+
+    const handleMessage = <T extends JsonObject> (cbHandler: MessageHandler<T>) => {
+        return (message: BridgeMessage<T>): Promise<any> => {
+            return cbHandler(message.data)
+        }
+    }
+
+    const handleProtectedMessage = <T extends JsonObject> (cbHandler: ProectedHandler<T>) => {
+        return (message: BridgeMessage<T>): Promise<any> => {
             if (message.sender.context === 'options' || message.sender.context === 'popup') {
-                return cbHandler(message)
+                return cbHandler(message.data)
             }
             throw new Error('Unauthorized')
         }
     }
 
-    const onLogin = protect(async ({data} : BridgeMessage<LoginMessage>): Promise<any> => {
+    const handleApiCall = <T extends JsonObject>(cbHandler: ApiMessageHandler<T>) => {
+        return (message: BridgeMessage<T>): Promise<any> => {
+            return apiCall((m) => cbHandler(message.data, m))
+        }
+    }
 
+    const handleProtectedApicall = <T extends JsonObject>(cbHandler: ApiMessageHandler<T>) => {
+        return (message: BridgeMessage<T>): Promise<any> => {
+            if (message.sender.context === 'options' || message.sender.context === 'popup') {
+                return apiCall((m) => cbHandler(message.data, m))
+            }
+            throw new Error('Unauthorized')
+        }
+    }
+
+    const onLogin = handleProtectedApicall(async (data : LoginMessage): Promise<any> => {
         //Perform login
-        return await apiCall(async ({ axios }) => {
-            const { login } = usePkiAuth(`${currentConfig.value.accountBasePath}/pki`);
-            await login(data.token)
-            return true;
-        })
+        const { login } = usePkiAuth(`${currentConfig.value.accountBasePath}/pki`);
+        await login(data.token)
+        return true;
     })
 
-    const onLogout = protect(async () : Promise<void> => {
-        return await apiCall(async () => {
-            await logout()
-            //Cleanup after logout
-            clearLoginState()
-        })
+    const onLogout = handleProtectedApicall(async () : Promise<void> => {
+        await logout()
+        //Cleanup after logout
+        clearLoginState()
     })
    
-    const onGetProfile = protect(async () : Promise<any> => {
-        return await apiCall(async () => await getProfile())
-    })
+    const onGetProfile = handleProtectedApicall(() : Promise<any> => getProfile())
 
     const onGetStatus = async (): Promise<ClientStatus> => {
         return {
@@ -124,7 +147,10 @@ export const useAuthApi = (() => {
         return{
             loggedIn,
             apiCall,
-            protect,
+            handleMessage,
+            handleProtectedMessage,
+            handleApiCall,
+            handleProtectedApicall,
             userName,
             onLogin,
             onLogout,

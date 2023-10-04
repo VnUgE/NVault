@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { useStorageAsync } from "@vueuse/core";
-import { find, isEmpty, remove } from "lodash";
+import { find, isEmpty, merge, remove } from "lodash";
 import { storage } from "webextension-polyfill";
 import { useAuthApi } from "./auth-api";
 import { useSettings } from "./settings";
@@ -50,7 +50,7 @@ export const removeAutoAllow = async (origin, mKind, keyId) => {
 
 export const useSitePermissions = (() => {
 
-    const { apiCall, protect } = useAuthApi();
+    const { apiCall, handleProtectedMessage } = useAuthApi();
     const { currentConfig } = useSettings();
     
 
@@ -66,7 +66,7 @@ export const useSitePermissions = (() => {
         return merge(defaultConfig, siteConfig)
     }
 
-    const onIsSiteEnabled = protect(async ({ data }) => {
+    const onIsSiteEnabled = handleProtectedMessage(async (data) => {
 
     })
 

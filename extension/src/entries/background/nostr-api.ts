@@ -18,14 +18,13 @@ import { useAuthApi } from "./auth-api";
 import { computed, ref, watch } from "vue";
 
 import { find, isArray } from "lodash";
-import { BridgeMessage } from "webext-bridge";
-import { NostrRelay, NostrPubKey, EventMessage, NostrEvent } from './types'
 import { Endpoints, initApi } from "./server-api";
+import { NostrRelay, NostrPubKey, EventMessage, NostrEvent } from './types'
 
 export const useNostrApi = (() => {
 
     const { currentConfig } = useSettings();
-    const { apiCall, protect, loggedIn } = useAuthApi();
+    const { handleProtectedApicall, handleApiCall, handleProtectedMessage, loggedIn } = useAuthApi();
 
     const nostrUrl = computed(() => currentConfig.value.nostrEndpoint || '/nostr')
 
@@ -35,70 +34,57 @@ export const useNostrApi = (() => {
     //Get the current selected key
     const selectedKey = ref<NostrPubKey | null>({} as NostrPubKey)
 
-    const onGetPubKey = () => {
-        //Selected key is allowed from content script
-        return { ...selectedKey.value }
-    }
+    //Selected key is allowed from content script
+    const onGetPubKey = () => ({ ...selectedKey.value });
 
-    const onDeleteKey = protect<NostrPubKey>(({ data }) => apiCall(() => execRequest<NostrPubKey>(Endpoints.DeleteKey, data)))
+    const onDeleteKey = handleProtectedApicall<NostrPubKey>(data => execRequest<NostrPubKey>(Endpoints.DeleteKey, data))
 
-    const onSelectKey = protect<NostrPubKey>(async ({ data }) => {
-        //Set the selected key to the value
-        selectedKey.value = data
+    //Set the selected key to the value
+    const onSelectKey = handleProtectedMessage<NostrPubKey>(data => (selectedKey.value = data, Promise.resolve()));
+
+    const onGetAllKeys = handleProtectedApicall(async () => {
+        //Get the keys from the server
+        const data = await execRequest<NostrPubKey[]>(Endpoints.GetKeys);
+
+        //Response must be an array of key objects
+        if (!isArray(data)) {
+            return [];
+        }
+
+        //Make sure the selected keyid is in the list, otherwise unselect the key
+        if (data?.length > 0) {
+            if (!find(data, k => k.Id === selectedKey.value?.Id)) {
+                selectedKey.value = null;
+            }
+        }
+
+        return [...data]
     })
 
-    const onGetAllKeys = protect(async () => {
-        return await apiCall(async () => {
-
-            //Get the keys from the server
-            const data = await execRequest<NostrPubKey[]>(Endpoints.GetKeys);
-
-            //Response must be an array of key objects
-            if (!isArray(data)) {
-                return [];
-            }
-
-            //Make sure the selected keyid is in the list, otherwise unselect the key
-            if (data?.length > 0) {
-                if (!find(data, k => k.Id === selectedKey.value?.Id)) {
-                    selectedKey.value = null;
-                }
-            }
-
-            return [ ...data ]
-        })
-    })
-
-    //Unprotect this handler so it can be called from the content script
-    const onSignEvent = (async ({ data }: BridgeMessage<EventMessage>) => {
+    //Unprotect the signing handler so it can be called from the content script
+    const onSignEvent = handleApiCall<EventMessage>(async (data) => {
         //Set the key id from our current selection
         data.event.KeyId = selectedKey.value?.Id || ''; //Pass key selection error to server
-
         //Sign the event
-        return await apiCall(async () => {
-            //Sign the event
-            const event = await execRequest<NostrEvent>(Endpoints.SignEvent, data.event);
-            return { event };
-        })
+        const event = await execRequest<NostrEvent>(Endpoints.SignEvent, data.event);
+        return { event };
     })
 
-    const onGetRelays = async () => {
-        return await apiCall(async () => {
-            //Get preferred relays for the current user
-            const data = await execRequest<NostrRelay[]>(Endpoints.GetRelays)
-            return [ ...data ]
-        })
-    }
+    const onGetRelays = handleApiCall<any>(async () => {
+        //Get preferred relays for the current user
+        const data = await execRequest<NostrRelay[]>(Endpoints.GetRelays)
+        return [...data]
+    })
+
+    const onSetRelay = handleProtectedApicall<NostrRelay>(data => execRequest<NostrRelay>(Endpoints.SetRelay, data));
 
 
-    const onSetRelay = protect<NostrRelay>(({ data }) => apiCall(() => execRequest<NostrRelay>(Endpoints.SetRelay, data)));
-
-    const onNip04Encrypt = protect(async ({ data }) => {
+    const onNip04Encrypt = handleProtectedMessage(async (data) => {
         console.log('nip04.encrypt', data)
         return { ciphertext: 'ciphertext' }
     })
 
-    const onNip04Decrypt = protect(async ({ data }) => {
+    const onNip04Decrypt = handleProtectedMessage(async (data) => {
         console.log('nip04.decrypt', data)
         return { plaintext: 'plaintext' }
     })

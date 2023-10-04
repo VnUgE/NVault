@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { runtime } from "webextension-polyfill";
-import { HistoryEvent, useHistory } from "./history";
+import { useHistory } from "./history";
 import { useNostrApi } from "./nostr-api";
 import { useIdentityApi } from "./identity-api";
 import { useSettings } from "./settings";
@@ -37,7 +37,7 @@ onMessage('getSiteConfig', onGetSiteConfig);
 onMessage('setSiteConfig', onSetSitConfig);
 
 //Register the api handlers
-const { onGetProfile, onGetStatus, onLogin, onLogout, protect } = useAuthApi();
+const { onGetProfile, onGetStatus, onLogin, onLogout, handleProtectedMessage } = useAuthApi();
 
 onMessage('getProfile', onGetProfile);
 onMessage('getStatus', onGetStatus);
@@ -88,7 +88,7 @@ interface HistoryMessage extends JsonObject {
   event: string
 }
 
-onMessage <HistoryMessage>('history', protect(async ({data}) =>{
+onMessage<HistoryMessage>('history', handleProtectedMessage(async (data) =>{
   switch(data.action){
     case HistoryType.get:
       return getHistory();

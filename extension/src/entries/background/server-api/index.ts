@@ -18,7 +18,8 @@ import { Ref } from "vue"
 import { get } from '@vueuse/core'
 import { WebMessage } from "@vnuge/vnlib.browser"
 import { initEndponts } from "./endpoints"
-import { NostrEvent } from "../types"
+import { NostrEvent, NostrRelay } from "../types"
+import { NostrIdentiy } from "../../../bg-api/types"
 
 export enum Endpoints {
     GetKeys = 'getKeys',
@@ -44,7 +45,7 @@ export const initApi = (nostrUrl: Ref<string>) => {
     registerEndpoint({
         id: Endpoints.DeleteKey,
         method: 'DELETE',
-        path: ([key]) => `${get(nostrUrl)}?type=identity&key_id=${key.Id}`,
+        path: (key:NostrIdentiy) => `${get(nostrUrl)}?type=identity&key_id=${key.Id}`,
         onRequest: () => Promise.resolve(),
         onResponse: (response: WebMessage) => response.getResultOrThrow()
     })
@@ -53,9 +54,11 @@ export const initApi = (nostrUrl: Ref<string>) => {
         id: Endpoints.SignEvent,
         method: 'POST',
         path: () => `${get(nostrUrl)}?type=signEvent`,
-        onRequest: ([event]) => Promise.resolve(event),
+        onRequest: (event) => Promise.resolve(event),
         onResponse: async (response: WebMessage<NostrEvent>) => {
-            return response.getResultOrThrow()
+            const res = response.getResultOrThrow()
+            delete res.KeyId;
+            return res;
         }
     })
 
@@ -71,7 +74,7 @@ export const initApi = (nostrUrl: Ref<string>) => {
         id: Endpoints.SetRelay,
         method: 'POST',
         path: () => `${get(nostrUrl)}?type=relay`,
-        onRequest: ([relay]) => Promise.resolve(relay),
+        onRequest: (relay:NostrRelay) => Promise.resolve(relay),
         onResponse: (response) => Promise.resolve(response)
     })
 

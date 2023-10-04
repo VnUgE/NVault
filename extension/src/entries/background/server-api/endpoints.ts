@@ -19,7 +19,7 @@ import { Method } from "axios";
 
 export interface EndpointDefinition {
     readonly method: Method
-    path(request?: any): string
+    path(...request: any): string
     onRequest: (...request: any) => Promise<any>
     onResponse: (response: any, request?: any) => Promise<any>
 }
@@ -49,11 +49,11 @@ export const initEndponts = () => {
         }
 
         //Compute the path from the request
-        const path = endpoint.path(request);
+        const path = endpoint.path(...request);
 
         //Execute the request handler
         const req = await endpoint.onRequest(...request);
-
+     
         //Get axios
         const axios = useAxios(null);
 
