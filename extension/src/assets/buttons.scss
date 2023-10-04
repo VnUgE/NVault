@@ -1,0 +1,44 @@
+.button-group {
+    @apply inline-flex -space-x-0 divide-x overflow-hidden rounded-lg border border-transparent shadow-sm;
+    @apply divide-gray-300 border-gray-300 dark:divide-dark-500 dark:border-dark-500;
+
+    & .btn {
+        @apply border-0 ring-0 focus:ring-0;
+    }
+}
+
+.btn {
+    @apply ease-in-out duration-100 border px-4 py-2 text-center text-sm font-medium transition-all focus:ring;
+    @apply bg-white border-gray-300 text-gray-700 shadow-sm hover:bg-gray-100 focus:ring-gray-100;
+
+    .dark & {
+        @apply bg-transparent text-inherit border-dark-300 hover:bg-transparent hover:border-gray-400 focus:ring-gray-300;
+    }
+
+    &.borderless,
+    &.no-border,
+    &.b-0{
+        @apply bg-transparent border-0 shadow-none ring-0 focus:ring-0 active:ring-0;
+    }
+
+    &:disabled {
+        @apply cursor-not-allowed border-gray-100 bg-gray-50 text-gray-400;
+        @apply dark:bg-transparent dark:border-dark-400 dark:text-dark-300;
+    }
+
+    &.sm {
+        @apply px-3 py-1.5 text-sm;
+    }
+
+    &.xs {
+        @apply px-2 py-1;
+    }
+
+    &.lg {
+        @apply px-5 py-3 text-lg;
+    }
+
+    &.xl {
+        @apply px-6 py-4 text-xl;
+    }
+}

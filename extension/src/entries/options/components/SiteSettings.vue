@@ -8,32 +8,51 @@
                 </h3>
                 <div class="my-6">
                     <fieldset :disabled="waiting">
-                        <div class="w-full">
-                            <div class="flex flex-row justify-between">
-                                <label class="mr-2">Always on NIP-07</label>
-                                <Switch
-                                    v-model="buffer.autoInject"
-                                    :class="buffer.autoInject ? 'bg-primary-500 dark:bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'"
-                                    class="relative inline-flex items-center h-6 ml-auto rounded-full w-11"
-                                >
-                                    <span class="sr-only">NIP-07</span>
-                                    <span
-                                        :class="buffer.autoInject ? 'translate-x-6' : 'translate-x-1'"
-                                        class="inline-block w-4 h-4 transition transform bg-white rounded-full"
-                                    />
-                                </Switch>
+                        <div class="">
+                            <div class="w-full">
+                                <div class="flex flex-row w-full">
+                                    <Switch
+                                        v-model="buffer.autoInject"
+                                        :class="buffer.autoInject ? 'bg-black dark:bg-gray-50' : 'bg-gray-200 dark:bg-dark-600'"
+                                        class="relative inline-flex items-center h-5 rounded-full w-11"
+                                    >
+                                        <span class="sr-only">NIP-07</span>
+                                        <span
+                                            :class="buffer.autoInject ? 'translate-x-6' : 'translate-x-1'"
+                                            class="inline-block w-4 h-4 transition transform bg-white rounded-full dark:bg-dark-900"
+                                        />
+                                    </Switch>
+                                    <div class="my-auto ml-2 text-sm dark:text-gray-200">
+                                       Always on NIP-07
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <p class="mt-1 text-xs">
-                            Enable auto injection of <code>window.nostr</code> support to all websites. Sites may be able to 
-                            track you if you enable this feature.
-                        </p>
+                        
+                        <div class="mt-3">
+                            <div class="flex flex-row w-fit">
+                                <Switch
+                                    v-model="v$.heartbeat.$model"
+                                    :class="v$.heartbeat.$model ? 'bg-black dark:bg-white' : 'bg-gray-200 dark:bg-dark-600'"
+                                    class="relative inline-flex items-center h-5 mx-auto rounded-full w-11"
+                                >
+                                    <span class="sr-only">Stay logged in</span>
+                                    <span
+                                        :class="v$.heartbeat.$model ? 'translate-x-6' : 'translate-x-1'"
+                                        class="inline-block w-4 h-4 transition transform rounded-full bg-gray-50 dark:bg-dark-900"
+                                    />
+                                </Switch>
+                                <div class="my-auto ml-2 text-sm dark:text-gray-200">
+                                   Stay logged-in
+                                </div>
+                            </div>
+                        </div>
                     </fieldset>
                 </div>
                 <h3 class="text-center">
                     Server settings
                 </h3>
-                <p class="text-sm">
+                <p class="text-xs dark:text-gray-400">
                     You must be careful when editing these settings as you may loose connection to your vault
                     server if you input the wrong values.
                 </p>
@@ -52,43 +71,25 @@
                 </div>
                 <fieldset :disabled="waiting || !editMode">
                     <div class="pl-1 mt-2">
-                        <div class="flex flex-row w-full">
-                            <div>
-                                <label class="mb-2">Stay logged in</label>
-                                <Switch
-                                    v-model="v$.heartbeat.$model"
-                                    :class="v$.heartbeat.$model ? 'bg-primary-500 dark:bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'"
-                                    class="relative inline-flex items-center h-6 mx-auto rounded-full w-11"
-                                >
-                                    <span class="sr-only">Stay logged in</span>
-                                    <span
-                                        :class="v$.heartbeat.$model ? 'translate-x-6' : 'translate-x-1'"
-                                        class="inline-block w-4 h-4 transition transform bg-white rounded-full"
-                                    />
-                                </Switch>
-                            </div>
-                            <div class="my-auto text-xs">
-                                Enables keepalive messages to regenerate credentials when they expire
-                            </div>
-                        </div>
+                        
                     </div>
                     <div class="mt-2">
                         <label class="pl-1">BaseUrl</label>
-                        <input class="w-full primary" v-model="v$.apiUrl.$model" :class="{'error': v$.apiUrl.$invalid }" />
+                        <input class="w-full input" v-model="v$.apiUrl.$model" :class="{'error': v$.apiUrl.$invalid }" />
                         <p class="pl-1 mt-1 text-xs text-red-500">
                             * The http path to the vault server (must start with http:// or https://)
                         </p>
                     </div>
                     <div class="mt-2">
                         <label class="pl-1">Account endpoint</label>
-                        <input class="w-full primary" v-model="v$.accountBasePath.$model" :class="{ 'error': v$.accountBasePath.$invalid }" />
+                        <input class="w-full input" v-model="v$.accountBasePath.$model" :class="{ 'error': v$.accountBasePath.$invalid }" />
                         <p class="pl-1 mt-1 text-xs text-red-500">
                             * This is the path to the account server endpoint (must start with /)
                         </p>
                     </div>
                     <div class="mt-2">
                         <label class="pl-1">Nostr endpoint</label>
-                        <input class="w-full primary" v-model="v$.nostrEndpoint.$model" :class="{ 'error': v$.nostrEndpoint.$invalid }" />
+                        <input class="w-full input" v-model="v$.nostrEndpoint.$model" :class="{ 'error': v$.nostrEndpoint.$invalid }" />
                         <p class="pl-1 mt-1 text-xs text-red-500">
                             * This is the path to the Nostr plugin endpoint path (must start with /)
                         </p>
@@ -155,6 +156,7 @@ const editMode = ref(false);
 const toggleEdit = useToggle(editMode);
 
 const autoInject = computed(() => buffer.autoInject)
+const heartbeat = computed(() => buffer.heartbeat)
 
 const onSave = async () => {
 
@@ -217,16 +219,20 @@ const testConnection = async () =>{
 const loadConfig = async () => {
     const config = await getSiteConfig();
     apply(config);
+}
+
+const init = async () => {
+    await loadConfig();
 
     //Watch for changes to autoinject value and publish changes when it does
-    watchDebounced(autoInject, publishConfig, { debounce: 500 })
+    watchDebounced(autoInject, publishConfig, { debounce: 500, immediate: false })
+    watchDebounced(heartbeat, publishConfig, { debounce: 500, immediate: false })
 }
 
 //If edit mode is toggled off, reload config
 watch(editMode, v => v ? null : loadConfig());
 
-
-loadConfig();
+init();
 
 </script>
 

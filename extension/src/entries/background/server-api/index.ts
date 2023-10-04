@@ -15,9 +15,10 @@
 
 
 import { Ref } from "vue"
+import { get } from '@vueuse/core'
 import { WebMessage } from "@vnuge/vnlib.browser"
 import { initEndponts } from "./endpoints"
-import { NostrEvent, NostrPubKey, NostrRelay } from "../types"
+import { NostrEvent } from "../types"
 
 export enum Endpoints {
     GetKeys = 'getKeys',
@@ -35,7 +36,7 @@ export const initApi = (nostrUrl: Ref<string>) => {
     registerEndpoint({
         id: Endpoints.GetKeys,
         method: 'GET',
-        path: () => `${nostrUrl.value}?type=getKeys`,
+        path: () => `${get(nostrUrl)}?type=getKeys`,
         onRequest: () => Promise.resolve(),
         onResponse: (response) => Promise.resolve(response)
     })
@@ -43,7 +44,7 @@ export const initApi = (nostrUrl: Ref<string>) => {
     registerEndpoint({
         id: Endpoints.DeleteKey,
         method: 'DELETE',
-        path: (key: NostrPubKey) => `${nostrUrl.value}?type=identity&key_id=${key.Id}`,
+        path: ([key]) => `${get(nostrUrl)}?type=identity&key_id=${key.Id}`,
         onRequest: () => Promise.resolve(),
         onResponse: (response: WebMessage) => response.getResultOrThrow()
     })
@@ -51,8 +52,8 @@ export const initApi = (nostrUrl: Ref<string>) => {
     registerEndpoint({
         id: Endpoints.SignEvent,
         method: 'POST',
-        path: () => `${nostrUrl.value}?type=signEvent`,
-        onRequest: (event: NostrEvent) => Promise.resolve(event),
+        path: () => `${get(nostrUrl)}?type=signEvent`,
+        onRequest: ([event]) => Promise.resolve(event),
         onResponse: async (response: WebMessage<NostrEvent>) => {
             return response.getResultOrThrow()
         }
@@ -61,7 +62,7 @@ export const initApi = (nostrUrl: Ref<string>) => {
     registerEndpoint({
         id: Endpoints.GetRelays,
         method: 'GET',
-        path: () => `${nostrUrl.value}?type=getRelays`,
+        path: () => `${get(nostrUrl)}?type=getRelays`,
         onRequest: () => Promise.resolve(),
         onResponse: (response) => Promise.resolve(response)
     })
@@ -69,8 +70,8 @@ export const initApi = (nostrUrl: Ref<string>) => {
     registerEndpoint({
         id: Endpoints.SetRelay,
         method: 'POST',
-        path: () => `${nostrUrl.value}?type=relay`,
-        onRequest: (relay: NostrRelay) => Promise.resolve(relay),
+        path: () => `${get(nostrUrl)}?type=relay`,
+        onRequest: ([relay]) => Promise.resolve(relay),
         onResponse: (response) => Promise.resolve(response)
     })
 

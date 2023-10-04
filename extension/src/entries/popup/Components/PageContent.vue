@@ -5,8 +5,8 @@
     >
       
       <div class="flex flex-row w-full px-1 pl-4">
-        <div class="flex-auto my-auto font-mono text-sm">
-          A nostr credential vault
+        <div class="flex-auto my-auto">
+          <h3>NVault</h3>
         </div>
         <div class="my-auto" v-if="loggedIn">
           <button class="rounded btn sm red" @click.prevent="logout">

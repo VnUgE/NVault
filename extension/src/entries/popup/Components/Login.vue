@@ -3,7 +3,7 @@
         <form class="" @submit.prevent="onSubmit">
             <fieldset class="px-4 input-container">
                 <label class="">Please enter your authentication token</label>
-                <textarea class="w-full primary" v-model="token" rows="5">
+                <textarea class="w-full input" v-model="token" rows="5">
                 </textarea>
             </fieldset>
             <div class="flex justify-end mt-2">

@@ -17,15 +17,15 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 import '@fontsource/noto-sans-masaram-gondi'
-import "~/assets/tailwind.scss";
+import "~/assets/all.scss";
 import Notifications from "@kyvg/vue3-notification";
 
 /* FONT AWESOME CONFIG */
 import { library } from '@fortawesome/fontawesome-svg-core'
-import { faChevronLeft, faCopy, faDownload, faEdit, faExternalLinkAlt, faLock, faLockOpen, faMoon, faSun, faTrash } from '@fortawesome/free-solid-svg-icons'
+import { faChevronLeft, faChevronRight, faCopy, faDownload, faEdit, faExternalLinkAlt, faLock, faLockOpen, faMoon, faSun, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
-library.add(faCopy, faEdit, faChevronLeft, faMoon, faSun, faLock, faLockOpen, faExternalLinkAlt, faTrash, faDownload)
+library.add(faCopy, faEdit, faChevronLeft, faMoon, faSun, faLock, faLockOpen, faExternalLinkAlt, faTrash, faDownload, faChevronRight)
 
 createApp(App)
     .use(Notifications)

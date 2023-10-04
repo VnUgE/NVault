@@ -1,6 +1,6 @@
 <template>
     <div class="sm:px-3">
-        <div class="flex justify-end gap-2">
+        <div class="flex justify-end gap-2 text-black dark:text-white">
              <div class="">
                 <div class="">
                     <button class="rounded btn sm" @click="onNip05Download">
@@ -11,24 +11,26 @@
             </div>
             <div class="mb-2">
                 <Popover class="relative" v-slot="{ open }">
-                    <PopoverButton class="rounded btn primary sm">Create</PopoverButton>
-                    <PopoverOverlay v-if="open" class="fixed inset-0 bg-black opacity-30" />
-                    <PopoverPanel class="absolute z-10 mt-2 md:-left-12" v-slot="{ close }">
-                        <div class="p-4 bg-white border border-gray-200 rounded-md shadow-lg dark:border-dark-300 dark:bg-dark-700">
-                            <div class="text-sm w-72">
+                    <PopoverButton class="rounded btn sm">Create</PopoverButton>
+                    <PopoverOverlay v-if="open" class="fixed inset-0 bg-black opacity-50" />
+                    <PopoverPanel class="absolute z-10 mt-2 md:-right-0" v-slot="{ close }">
+                        <div class="p-3 bg-white border border-gray-200 rounded shadow-lg dark:border-dark-600 dark:bg-dark-900">
+                            <div class="text-sm w-80">
                                 <form @submit.prevent="e => onCreate(e, close)">
-                                    Create new nostr identity
-                                    <div class="mt-2">
-                                        <input class="w-full primary" type="text" name="username" placeholder="User Name"/>
+                                    <span class="text-lg dark:text-gray-200">
+                                        Create keypair
+                                    </span>
+                                    <div class="mt-4">
+                                        <input class="w-full rounded input" type="text" name="username" placeholder="username"/>
                                     </div>
-                                    <div class="mt-2">
-                                        <input class="w-full primary" type="text" name="key" placeholder="Existing key?"/>
-                                        <div class="p-1.5 text-xs text-gray-600 dark:text-gray-300">
+                                    <div class="mt-3">
+                                        <input class="w-full rounded input" type="text" name="key" placeholder="Existing secret key?"/>
+                                        <div class="p-1.5 text-xs text-gray-600 dark:text-gray-400">
                                             Optional, hexadecimal private key (64 characters)
                                         </div>
                                     </div>
                                     <div class="flex justify-end mt-2">
-                                        <button class="rounded btn sm primary" type="submit">Create</button>
+                                        <button class="rounded sm btn" type="submit">Create</button>
                                     </div>
                                 </form>
                             </div>
@@ -38,47 +40,38 @@
             </div>
         </div>
         <div v-for="key in allKeys" :key="key" class="mt-2 mb-3">
-            <div class="id-card" :class="{'selected': isSelected(key)}" @click.self="selectKey(key)">
+            <div class="" :class="{'selected': isSelected(key)}" @click.self="selectKey(key)">
                 
-                <div class="flex flex-col min-w-0" @click="selectKey(key)">
-                    <div class="py-2">
-
-                        <table class="w-full text-sm text-left border-collapse">
-                            <thead class="">
-                                <tr>
-                                    <th scope="col" class="p-2 font-medium">Nip 05</th>
-                                    <th scope="col" class="p-2 font-medium">Modified</th>
-                                    <th scope="col" class="p-2 font-medium"></th>
-                                </tr>
-                            </thead>
-                            <tbody class="border-t border-gray-100 divide-y divide-gray-100 dark:border-dark-500 dark:divide-dark-500">
-                                <tr>
-                                    <th class="p-2 font-medium">{{ key.UserName }}</th>
-                                    <td class="p-2">{{ prettyPrintDate(key) }}</td>
-                                    <td class="flex justify-end p-2 ml-auto text-sm font-medium">
-                                        <div class="ml-auto button-group">
-                                            <button class="btn sm borderless" @click="copy(key.PublicKey)">
-                                                <fa-icon icon="copy"/>
-                                            </button>
-                                            <button class="btn sm borderless" @click="editKey(key)">
-                                                <fa-icon icon="edit"/>
-                                            </button>
-                                            <button class="btn sm red borderless" @click="onDeleteKey(key)">
-                                                <fa-icon icon="trash" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        
+                <div class="mb-8">
+                    <div class="cursor-pointer w-fit" @click="selectKey(key)">
+                        <h3 :class="[ isSelected(key) ? 'underline' : 'dark:hover:text-gray-300 hover:text-gray-700']" class="duration-100 ease-out">
+                           {{ key.UserName }}
+                        </h3>
                     </div>
-                    <div class="py-2 overflow-hidden border-gray-500 border-y dark:border-dark-500 text-ellipsis">
-                        <span class="font-semibold">pub:</span>
-                        <span class="ml-1">{{ key.PublicKey }}</span> 
-                    </div>
-                    <div class="py-2">
-                        <strong>Id:</strong> {{ key.Id }}
+                    <div class="mt-3">
+                        <p class="text-xs text-gray-700 truncate dark:text-gray-300">
+                            {{ key.PublicKey }}
+                        </p>
+                        <div class="flex flex-row gap-3 mt-1 text-xs text-gray-600 dark:text-gray-500">
+                            <div class="">
+                                {{ prettyPrintDate(key) }}
+                            </div>
+                             <div class="">
+                                <button class="text-red-700" @click="onDeleteKey(key)">
+                                    Delete
+                                </button>
+                            </div>
+                            <div class="">
+                                <button class="" @click="editKey(key)">
+                                    Edit
+                                </button>
+                            </div>
+                            <div class="">
+                                <button class="" @click="copy(key.PublicKey)">
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -94,7 +87,8 @@ import { ref, toRefs } from "vue";
 import {
     Popover,
     PopoverButton,
-    PopoverPanel
+    PopoverPanel,
+    PopoverOverlay
 } from '@headlessui/vue'
 import { apiCall, configureNotifier } from '@vnuge/vnlib.browser';
 import { useManagment, useStatus } from '~/bg-api/options.ts';

@@ -1,4 +1,5 @@
 import colors from 'tailwindcss/colors'
+import plugin from 'tailwindcss/plugin'
 
 export default {
   cpurge: ['./*.html', './src/**/*.{vue,js,ts,jsx,tsx,css}'],
@@ -51,5 +52,91 @@ export default {
       }
     },
   },
-  plugins: []
+  plugins: [
+    //Adds button variants for each color
+    plugin(({ theme, addUtilities }) => {
+      const coloredButtons = {}
+
+      for (let color in theme('colors')) {
+
+        //Buttons must also have the .btn class
+        coloredButtons[`.btn.${color}`] = {
+          'color': theme(`colors.white`),
+          'border-color': theme(`colors.${color}.500`),
+          'background-color': theme(`colors.${color}.500`),
+
+          '&:hover': {
+            'border-color': theme(`colors.${color}.600`),
+            'background-color': theme(`colors.${color}.600`),
+          },
+
+          '&:active': {
+            'border-color': theme(`colors.${color}.700`),
+            'background-color': theme(`colors.${color}.700`),
+          },
+
+          '&:focus': {
+            '--tw-ring-color': theme(`colors.${color}.500`),
+          },
+
+          '&:disabled': {
+            'border-color': theme(`colors.${color}.300`),
+            'background-color': theme(`colors.${color}.300`),
+            color: theme(`colors.white`),
+          },
+
+          '&.borderless, &.no-border, &.b-0': {
+            'color': theme(`colors.${color}.500`),
+            '&:hover': {
+              'color': theme(`colors.${color}.600`),
+            },
+            'border': 'none',
+            'background-color': 'transparent',
+          },
+
+          '.dark &': {
+            'border-color': theme(`colors.${color}.600`),
+            'background-color': 'transparent',
+            'color': theme(`colors.${color}.600`),
+
+            '&:hover': {
+              'border-color': theme(`colors.${color}.500`),
+              'color': theme(`colors.${color}.500`),
+            },
+
+            '&:focus': {
+              '--tw-ring-color': theme(`colors.${color}.500`),
+            },
+
+            '&:disabled': {
+              'border-color': theme(`colors.${color}.800`),
+              'color': theme(`colors.${color}.800`),
+            }
+          }
+        }
+      }
+
+      addUtilities(coloredButtons)
+    }),
+
+    //Plugin for input variants
+    plugin(({ theme, addUtilities }) => {
+      const coloredInputs = {}
+
+      for (let color in theme('colors')) {
+        coloredInputs[`.input.${color}`] = {
+          'outline': 'none',
+
+          '&:focus, &:active, &::after, &:focus:hover': {
+            'border-color': theme(`colors.${color}.500`),
+            'dark &': {
+              'border-color': theme(`colors.${color}.600`),
+            }
+          }
+        }
+      }
+
+      addUtilities(coloredInputs)
+    })
+  ]
 }

@@ -1,0 +1,32 @@
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    @apply font-medium leading-tight mt-0 mb-2;
+}
+
+h1 {
+    @apply sm:text-4xl text-3xl;
+}
+
+h2 {
+    @apply sm:text-3xl text-2xl;
+}
+
+h3 {
+    @apply sm:text-2xl text-xl;
+}
+
+h4 {
+    @apply sm:text-xl text-lg;
+}
+
+h5 {
+    @apply sm:text-lg text-base;
+}
+
+h6 {
+    @apply sm:text-base text-sm;
+}

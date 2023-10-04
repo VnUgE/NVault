@@ -2,7 +2,7 @@
     <div class="px-3 text-left">
        <div class="w-full">
             <div class="">
-                <select class="w-full primary" 
+                <select class="w-full input" 
                 :disabled="waiting"
                 :value="selected?.Id"
                 @change.prevent="onSelected"

@@ -20,7 +20,7 @@ import { Method } from "axios";
 export interface EndpointDefinition {
     readonly method: Method
     path(request?: any): string
-    onRequest: (request?: any) => Promise<any>
+    onRequest: (...request: any) => Promise<any>
     onResponse: (response: any, request?: any) => Promise<any>
 }
 
@@ -42,7 +42,7 @@ export const initEndponts = () => {
         return endpoints.get(id);
     }
 
-    const execRequest = async <T>(id: string, request?: any): Promise<T> => {
+    const execRequest = async <T>(id: string, ...request: any): Promise<T> => {
         const endpoint = getEndpoint(id);
         if (!endpoint) {
             throw new Error(`Endpoint ${id} not found`);
@@ -52,7 +52,7 @@ export const initEndponts = () => {
         const path = endpoint.path(request);
 
         //Execute the request handler
-        const req = await endpoint.onRequest(request);
+        const req = await endpoint.onRequest(...request);
 
         //Get axios
         const axios = useAxios(null);

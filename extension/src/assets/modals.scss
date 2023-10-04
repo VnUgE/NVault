@@ -1,0 +1,29 @@
+.modal-entry {
+    background: #00000077;
+    @apply fixed z-50 flex w-full px-6;
+
+    .modal-content-container {
+        @apply w-full max-w-md p-5 m-auto rounded-md shadow-2xl mt-44;
+        @apply bg-white border border-transparent dark:bg-dark-600 dark:border-primary-500 dark:text-white;
+
+        .modal-title {
+            @apply text-xl font-bold;
+        }
+
+        .modal-description {
+            @apply text-sm;
+        }
+    }
+
+    .modal-button-container {
+        @apply flex flex-row justify-end pt-3 gap-3;
+    }
+
+    .input-container {
+        @apply pt-5;
+
+        input {
+            @apply w-full;
+        }
+    }
+}

@@ -56,7 +56,7 @@ namespace NVault.Plugins.Vault
                 }
             }
 
-            string nativePath = config["native_lib"].GetString()!;
+            string nativePath = config.GetRequiredProperty("lib_crypto", p => p.GetString()!);
 
             //Load native library path
             _provider = NativeSecp256k1Library.LoadLibrary(nativePath, random);

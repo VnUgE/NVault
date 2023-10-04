@@ -1,0 +1,26 @@
+.general-toast {
+    .notification-title {
+        font-size: 16px;
+    }
+
+    .notification-content {
+        font-size: 14px;
+    }
+
+    .vue-notification {
+        @apply duration-200 ease-in-out shadow-md hover:shadow-lg;
+    }
+}
+
+.form-toast {
+    left: calc(50% - 150px);
+    @apply pt-2 mx-auto mb-3;
+
+    .notification-title {
+        font-size: 14px;
+    }
+
+    .notification-content {
+        font-size: 12px;
+    }
+}

@@ -21,7 +21,7 @@ import Notification from '@kyvg/vue3-notification'
 import '@fontsource/noto-sans-masaram-gondi'
 
 //We need inline styles to inject into the shadow dom
-import tw from "~/assets/tailwind.scss?inline";
+import tw from "~/assets/all.scss?inline";
 import localStyle from './style.scss?inline'
 
 renderContent([], (appRoot, shadowRoot) => {

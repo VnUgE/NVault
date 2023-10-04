@@ -3,25 +3,25 @@
 
     <notifications class="toaster" group="form" position="top-right" />
 
-    <div class="container flex w-full p-4 mx-auto mt-8 text-gray-800 dark:text-gray-200">
+    <div class="container flex w-full p-4 mx-auto mt-8 text-black dark:text-white">
       <div class="w-full max-w-4xl mx-auto">
         <div class="">
-            <h3>NVault</h3>
+            <h2>NVault</h2>
         </div>
         <TabGroup :selected-index="selectedTab" @change="id => selectedTab = id" >
           <TabList class="flex gap-3 pb-2 border-b border-gray-300 dark:border-dark-500">
             <Tab v-slot="{ selected }">
-              <button class="border-b-2" :class="[selected ? 'border-primary-500' : 'border-transparent']">
+              <button class="tab-title" :class="{ selected }">
                 Identities
               </button>
             </Tab>
             <Tab v-slot="{ selected }">
-              <button class="border-b-2" :class="[selected ? 'border-primary-500' : 'border-transparent']">
+              <button class="tab-title" :class="{ selected }">
                 Privacy
               </button>
             </Tab>
             <Tab v-slot="{ selected }">
-              <button class="border-b-2" :class="[selected ? 'border-primary-500' : 'border-transparent']">
+              <button class="tab-title" :class="{ selected }">
                 Settings
               </button>
             </Tab>
@@ -82,7 +82,7 @@
                   <div class="flex flex-col w-full max-w-md mx-auto mt-3">
                     <div class="">
                       <div class="text-sm">User Name</div>
-                      <input class="w-full primary" type="text" v-model="keyBuffer.UserName"/>
+                      <input class="w-full input" type="text" v-model="keyBuffer.UserName"/>
                     </div>
                     <div class="gap-2 my-3 ml-auto">
                       <button class="rounded btn sm primary" @click="onUpdate">Update</button>
@@ -185,6 +185,14 @@ main {
   right: 0;
   z-index: 9999;
   max-width: 230px;
+}
+
+.tab-title{
+  @apply border-b-2 border-transparent dark:text-gray-200;
+  
+  &.selected{
+    @apply dark:border-gray-200 border-black;
+  }
 }
 
 .id-card{

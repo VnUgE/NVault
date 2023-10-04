@@ -252,8 +252,6 @@ namespace NVault.Plugins.Vault
                 writer.WriteEndArray();
             }
 
-            string raw = System.Text.Encoding.UTF8.GetString(ms.AsSpan());
-
             //Compute the hash
             if (!ManagedHash.ComputeHash(ms.AsSpan(), idHash, HashAlg.SHA256))
             {
