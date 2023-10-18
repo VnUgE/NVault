@@ -15,6 +15,7 @@
 
 using System;
 using System.Security.Cryptography;
+using System.Runtime.InteropServices;
 
 using VNLib.Hashing;
 using VNLib.Utils;
@@ -89,7 +90,8 @@ namespace NVault.Crypto.Secp256k1
 
             try
             {
-                fixed (byte* sigPtr = signature, digestPtr = digest)
+                fixed (byte* sigPtr = &MemoryMarshal.GetReference(signature), 
+                            digestPtr = &MemoryMarshal.GetReference(digest))
                 {
                     //Sign the message hash and write the output to the signature buffer
                     if (context.Lib._signHash(context.Context, sigPtr, digestPtr, &keyPair, random) != 1)
@@ -153,7 +155,7 @@ namespace NVault.Crypto.Secp256k1
                     return ERRNO.E_FAIL;
                 }
 
-                fixed (byte* pubBuffer = pubKeyBuffer)
+                fixed (byte* pubBuffer = &MemoryMarshal.GetReference(pubKeyBuffer))
                 {
                     //Serialize the public key to the buffer as an X-only public key without leading status byte
                     if (context.Lib._serializeXonly(context.Context, pubBuffer, &xOnlyPubKey) != 1)
@@ -170,6 +172,29 @@ namespace NVault.Crypto.Secp256k1
 
             //PubKey length is constant
             return XOnlyPublicKeySize;
+        }
+
+        /// <summary>
+        /// Verifies that a given secret key is valid using the current context
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="secretKey">The secret key to verify</param>
+        /// <returns>A boolean value that indicates if the secret key is valid or not</returns>
+        /// <exception cref="CryptographicException"></exception>
+        public static bool VerifySecretKey(this in Secp256k1Context context, ReadOnlySpan<byte> secretKey)
+        {
+            if (secretKey.Length != SecretKeySize)
+            {
+                throw new CryptographicException($"Your secret key must be exactly {SecretKeySize} bytes long");
+            }
+
+            context.Lib.SafeLibHandle.ThrowIfClosed();
+
+            //Get sec key ref and verify
+            fixed(byte* ptr = &MemoryMarshal.GetReference(secretKey))
+            {
+                return context.Lib._secKeyVerify.Invoke(context.Context, ptr) == 1;
+            }
         }
     }
 }

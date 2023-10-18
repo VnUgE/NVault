@@ -93,11 +93,26 @@ namespace NVault.Plugins.Vault
             privateKey = privateKey[..LibSecp256k1.SecretKeySize];
             publicKey = publicKey[..LibSecp256k1.XOnlyPublicKeySize];
 
-            //Create the secret key
-            _lib.CreateSecretKey(privateKey);
+            Check();
+
+            //Init new context
+            using Secp256k1Context context = _lib.CreateContext();
+
+            //Randomize context
+            if (!context.Randomize())
+            {
+                return false;
+            }
+
+            do
+            {
+                //Create the secret key and verify
+                _lib.CreateSecretKey(privateKey);
+            }
+            while(context.VerifySecretKey(privateKey) == false);
 
             //Create the public key
-            return RecoverPublicKey(privateKey, publicKey);
+            return context.GeneratePubKeyFromSecret(privateKey, publicKey) == LibSecp256k1.XOnlyPublicKeySize;
         }
 
         ///<inheritdoc/>

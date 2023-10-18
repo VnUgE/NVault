@@ -83,7 +83,7 @@ namespace NVault.Crypto.Secp256k1
             _library.ThrowIfClosed();
 
             //Fix buffer and call unmanaged method
-            fixed(byte* ptr = buffer)
+            fixed(byte* ptr = &MemoryMarshal.GetReference(buffer))
             {
                 _getRandomBytes(ptr, buffer.Length);
             }

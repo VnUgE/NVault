@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 using System;
+using System.Runtime.InteropServices;
 
 using VNLib.Utils.Extensions;
 using VNLib.Utils.Memory;
@@ -57,7 +58,7 @@ namespace NVault.Crypto.Secp256k1
         {
             Lib.SafeLibHandle.ThrowIfClosed();
 
-            fixed (byte* sk = secretKey)
+            fixed (byte* sk = &MemoryMarshal.GetReference(secretKey))
             {
                 //Create the keypair from the secret key
                 return Lib._createKeyPair(Context, keyPair, sk) == 1;

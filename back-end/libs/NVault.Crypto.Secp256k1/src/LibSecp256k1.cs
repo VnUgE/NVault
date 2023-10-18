@@ -72,6 +72,9 @@ namespace NVault.Crypto.Secp256k1
         [SafeMethodName("secp256k1_schnorrsig_sign32")]
         internal delegate int SignHash(IntPtr ctx, byte* sig64, byte* msg32, KeyPair* keypair, byte* aux_rand32);
 
+        [SafeMethodName("secp256k1_ec_seckey_verify")]
+        internal delegate int SecKeyVerify(IntPtr ctx, in byte* seckey);
+
         /// <summary>
         /// Loads the Secp256k1 library from the specified path and creates a wrapper class (loads methods from the library)
         /// </summary>
@@ -118,6 +121,7 @@ namespace NVault.Crypto.Secp256k1
         internal readonly KeypairXOnlyPub _createXonly;
         internal readonly XOnlyPubkeySerialize _serializeXonly;
         internal readonly SignHash _signHash;
+        internal readonly SecKeyVerify _secKeyVerify;
         private readonly IRandomSource _randomSource;
 
         /// <summary>
@@ -143,6 +147,7 @@ namespace NVault.Crypto.Secp256k1
             _createXonly = handle.DangerousGetMethod<KeypairXOnlyPub>();
             _serializeXonly = handle.DangerousGetMethod<XOnlyPubkeySerialize>();
             _signHash = handle.DangerousGetMethod<SignHash>();
+            _secKeyVerify = handle.DangerousGetMethod<SecKeyVerify>();
             
             //Store random source
             _randomSource = randomSource;
@@ -161,6 +166,9 @@ namespace NVault.Crypto.Secp256k1
 
         /// <summary>
         /// Generates a new secret key and writes it to the specified buffer. The buffer size must be exactly <see cref="SecretKeySize"/> bytes long
+        /// <para>
+        /// NOTE: You should verify this validity of the key against the library with a new <see cref="Secp256k1Context"/>
+        /// </para>
         /// </summary>
         /// <param name="buffer">The secret key buffer</param>
         /// <exception cref="ArgumentException"></exception>
