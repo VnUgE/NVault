@@ -1,0 +1,32 @@
+{
+  "debug": false,
+
+  "endpoint": {
+    "path": "/nostr",
+
+    //Allow deleting identities
+    "allow_delete": true
+  },
+
+  //Nostr vault extends hashicorp vault
+  "nostr_vault": {
+    "url": "https://my.hashicorpvault.server",
+    "token": "vault token",
+
+    //The path within the kv store that stores nostr secret keys (may be null)
+    "entry": "nostr",
+    //Vault mount point (usually kv unless changed)
+    "mount": "kv"
+  },
+
+  "crypto": {
+    //Load native lbirary
+    "lib_crypto": "/path/to/secp256k1.dll",
+
+    //Specify the library for random number generation
+    "disabled lib_random": {
+      "lib_type": "managed | native",
+      "lib_path": "path to dll"
+    }
+  }
+}

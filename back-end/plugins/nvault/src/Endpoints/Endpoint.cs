@@ -114,60 +114,54 @@ namespace NVault.Plugins.Vault.Endpoints
                 ValErrWebMessage webm = new();
 
                 //Get the event
-                NostrEvent? ev = await entity.GetJsonFromFileAsync<NostrEvent>();
+                NostrEvent? nEvent = await entity.GetJsonFromFileAsync<NostrEvent>();
 
-                if(webm.Assert(ev != null, "Bad request"))
+                if(webm.Assert(nEvent != null, "Bad request"))
                 {
-                    entity.CloseResponseJson(HttpStatusCode.BadRequest, webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webm, HttpStatusCode.BadRequest);
                 }
 
                 //Basic validate the message
-                if(!EventValidator.Validate(ev, webm))
+                if(!EventValidator.Validate(nEvent, webm))
                 {
-                    entity.CloseResponse(webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webm, HttpStatusCode.UnprocessableEntity);
                 }
 
                 //Get the key metadata
-                NostrKeyMeta? keyMeta = await _publicKeyStore.GetSingleUserRecordAsync(ev.KeyId, entity.Session.UserID);
+                NostrKeyMeta? keyMeta = await _publicKeyStore.GetSingleUserRecordAsync(nEvent.KeyId, entity.Session.UserID);
                 if(webm.Assert(keyMeta != null, "Key not found"))
                 {
-                    entity.CloseResponseJson(HttpStatusCode.NotFound, webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webm, HttpStatusCode.NotFound);
                 }
 
                 //If no public key is set, use the key metadata
-                if(string.IsNullOrWhiteSpace(ev.PublicKey))
+                if(string.IsNullOrWhiteSpace(nEvent.PublicKey))
                 {
-                    ev.PublicKey = keyMeta.Value;
+                    nEvent.PublicKey = keyMeta.Value;
                 }
 
                 //Event public key must match the key metadata
-                if(webm.Assert(keyMeta.Value.Equals(ev.PublicKey, StringComparison.OrdinalIgnoreCase), "Key mismatch"))
+                if(webm.Assert(keyMeta.Value.Equals(nEvent.PublicKey, StringComparison.OrdinalIgnoreCase), "Key mismatch"))
                 {
-                    entity.CloseResponse(webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualOk(entity, webm);
                 }
 
                 //Create user scope
                 VaultUserScope scope = new(entity.Session.UserID);
 
                 //try to sign the event
-                bool result = await _vault.SignEventAsync(scope, keyMeta, ev, entity.EventCancellation);
+                bool result = await _vault.SignEventAsync(scope, keyMeta, nEvent, entity.EventCancellation);
 
                 if(webm.Assert(result, "Failed to sign nostr event"))
                 {
-                    entity.CloseResponse(webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualOk(entity, webm);
                 }
 
-                webm.Result = ev;
+                webm.Result = nEvent;
                 webm.Success = true;
 
                 //Return the signed event
-                entity.CloseResponse(webm);
-                return VfReturnType.VirtualSkip;
+                return VirtualOk(entity, webm);
             }
 
             return VfReturnType.NotFound;
@@ -185,15 +179,13 @@ namespace NVault.Plugins.Vault.Endpoints
 
                 if(webm.Assert(relay != null, "No relay specified"))
                 {
-                    entity.CloseResponseJson(HttpStatusCode.BadRequest, webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webm, HttpStatusCode.BadRequest);
                 }
 
                 //Validate 
                 if (!RelayValidator.Validate(relay, webm))
                 {
-                    entity.CloseResponse(webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webm, HttpStatusCode.UnprocessableEntity);
                 }
 
                 //Cleanup relay message
@@ -204,13 +196,13 @@ namespace NVault.Plugins.Vault.Endpoints
                 {
                     webm.Result = "Successfully updated relay";
                     webm.Success = true;
-                    entity.CloseResponse(webm);
-                    return VfReturnType.VirtualSkip;
+                }
+                else
+                {
+                    webm.Result = "Failed to update relay";
                 }
 
-                webm.Result = "Failed to update relay";
-                entity.CloseResponse(webm);
-                return VfReturnType.VirtualSkip;
+                return VirtualOk(entity, webm);
             }
 
             //Allow updating key metdata
@@ -221,15 +213,13 @@ namespace NVault.Plugins.Vault.Endpoints
 
                 if(webm.Assert(meta != null, "No key metadata specified"))
                 {
-                    entity.CloseResponseJson(HttpStatusCode.BadRequest, webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webm, HttpStatusCode.BadRequest);
                 }
 
                 //Validate the key metadata
                 if(!KeyMetaValidator.Validate(meta, webm))
                 {
-                    entity.CloseResponse(webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webm, HttpStatusCode.UnprocessableEntity);
                 }
 
                 meta.CleanupFromUser();
@@ -239,8 +229,7 @@ namespace NVault.Plugins.Vault.Endpoints
 
                 if(webm.Assert(original != null, "Key metadata not found"))
                 {
-                    entity.CloseResponse(webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webm, HttpStatusCode.NotFound);
                 }
 
                 //Merge the metadata
@@ -251,13 +240,13 @@ namespace NVault.Plugins.Vault.Endpoints
                 {
                     webm.Result = "Successfully updated key metadata";
                     webm.Success = true;
-                    entity.CloseResponse(webm);
-                    return VfReturnType.VirtualSkip;
+                }
+                else
+                {
+                    webm.Result = "Failed to update key metadata";
                 }
 
-                webm.Result = "Failed to update key metadata";
-                entity.CloseResponse(webm);
-                return VfReturnType.VirtualSkip;
+                return VirtualOk(entity, webm);
             }
 
             return VfReturnType.NotFound;
@@ -274,14 +263,12 @@ namespace NVault.Plugins.Vault.Endpoints
 
                 if(webm.Assert(request != null, "Invalid key request"))
                 {
-                    entity.CloseResponseJson(HttpStatusCode.BadRequest, webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webm, HttpStatusCode.BadRequest);
                 }
 
                 if(!CreateKeyRequestValidator.Validate(request, webm))
                 {
-                    entity.CloseResponse(webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webm, HttpStatusCode.UnprocessableEntity);
                 }
 
                 //try to create the record for the user first
@@ -298,8 +285,7 @@ namespace NVault.Plugins.Vault.Endpoints
                 {
                     //Failed to create key metadata record
                     webm.Result = "Failed to create key";
-                    entity.CloseResponse(webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualOk(entity, webm);
                 }
 
                 //Create new user scope
@@ -324,8 +310,7 @@ namespace NVault.Plugins.Vault.Endpoints
                     await _publicKeyStore.DeleteUserRecordAsync(newKey.Id, entity.Session.UserID);
 
                     webm.Result = "Failed to create new identity";
-                    entity.CloseResponse(webm);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualOk(entity, webm);
                 }
 
                 /*
@@ -341,8 +326,7 @@ namespace NVault.Plugins.Vault.Endpoints
                 webm.Success = true;
 
                 //Return the new key info
-                entity.CloseResponse(webm);
-                return VfReturnType.VirtualSkip;
+                return VirtualOk(entity, webm);
             }
 
             return VfReturnType.NotFound;
@@ -356,15 +340,13 @@ namespace NVault.Plugins.Vault.Endpoints
             {
                 if (webMessage.Assert(AllowDelete, "Deleting identies are now allowed"))
                 {
-                    entity.CloseResponseJson(HttpStatusCode.Forbidden, webMessage);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webMessage, HttpStatusCode.Forbidden);
                 }
 
                 if (!entity.QueryArgs.TryGetNonEmptyValue("key_id", out string? keyId))
                 {
                     webMessage.Result = "No key id specified";
-                    entity.CloseResponseJson(HttpStatusCode.BadRequest, webMessage);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webMessage, HttpStatusCode.BadRequest);
                 }
 
                 //Get the key metadata
@@ -372,8 +354,7 @@ namespace NVault.Plugins.Vault.Endpoints
 
                 if (webMessage.Assert(meta != null, "Key metadata not found"))
                 {
-                    entity.CloseResponseJson(HttpStatusCode.NotFound, webMessage);
-                    return VfReturnType.VirtualSkip;
+                    return VirtualClose(entity, webMessage, HttpStatusCode.NotFound);
                 }
 
                 //Delete the key from the vault
@@ -387,8 +368,7 @@ namespace NVault.Plugins.Vault.Endpoints
 
                 webMessage.Result = "Successfully deleted identity";
                 webMessage.Success = true;
-                entity.CloseResponseJson(HttpStatusCode.OK, webMessage);
-                return VfReturnType.VirtualSkip;
+                return VirtualOk(entity, webMessage);
             }
 
             return VfReturnType.NotFound;

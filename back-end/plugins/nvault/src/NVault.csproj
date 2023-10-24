@@ -20,15 +20,20 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentValidation" Version="11.7.1" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0035" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0035" />
+    <PackageReference Include="FluentValidation" Version="11.8.0" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0037" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0037" />
     <PackageReference Include="VVNLib.Plugins.Extensions.Loading.Sql" Version="0.1.0-ci0034" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\libs\NVault.Crypto.Secp256k1\src\NVault.Crypto.Secp256k1.csproj" />
     <ProjectReference Include="..\..\..\libs\NVault.VaultExtensions\src\NVault.VaultExtensions.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="example.NVault.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
