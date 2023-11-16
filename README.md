@@ -36,6 +36,7 @@ This project is probably best explained by the features it has an that need to b
 - A good looking UI
 - Chrome and Firefox support (mobile would be nice also)
 - Build fully featured library/API for other extension builders
+- Stip metadata tags in events such as [#7f57800e](https://github.com/nostr-protocol/nips/pull/884/commits/7f27800e27c437ce17d223799f37631105d1ae5f)
 
 ## Motivation
 Nostr is a simple, new, and fun protocol I really wanted to be a part of. NIP-07 seemed like the gateway to securely contribute notes on my terms. When your identity is permanently linked to a 32 byte secret number, imo it must be taken very seriously (I feel the same way for bitcoin). It can never be changed like a password, no whoopsie can occur, or your identity has been stolen forever. At least with bitcoin "wallets" (more 32 byte secp256k1 secret keys) you may have the possibility of transferring your funds if you believe a breach may have occurred or rotate keys like you might passwords. This cannot happen with nostr in the same way.  
