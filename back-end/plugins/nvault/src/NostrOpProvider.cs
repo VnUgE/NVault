@@ -14,8 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 using System;
+using System.Text;
 using System.Threading;
 using System.Text.Json;
+using System.Buffers.Text;
 using System.Threading.Tasks;
 using System.Text.Encodings.Web;
 using System.Security.Cryptography;
@@ -32,10 +34,13 @@ using VNLib.Plugins.Extensions.Loading;
 
 using NVault.Plugins.Vault.Model;
 
+
 namespace NVault.Plugins.Vault
 {
     internal sealed class NostrOpProvider : INostrOperations
     {
+        const int NIP04_RANDOM_IV_SIZE = 16;
+
         private static JavaScriptEncoder _encoder { get; } = GetJsEncoder();
 
         readonly IKvVaultStore _vault;
@@ -155,12 +160,12 @@ namespace NVault.Plugins.Vault
         public async Task<bool> SignEventAsync(VaultUserScope scope, NostrKeyMeta keyMeta, NostrEvent evnt, CancellationToken cancellation)
         {
             //Get key data from the vault
-            PrivateString? secret = await _vault.GetSecretAsync(scope, keyMeta.Id, cancellation);
+            using PrivateString? secret = await _vault.GetSecretAsync(scope, keyMeta.Id, cancellation);
 
             return secret != null && SignMessage(secret, evnt);
         }
 
-        private bool SignMessage(PrivateString vaultKey, NostrEvent ev)
+        private bool SignMessage(ReadOnlySpan<char> vaultKey, NostrEvent ev)
         {
             //Decode the key
             int keyBufSize = _keyEncoder.GetKeyBufferSize(vaultKey);
@@ -206,7 +211,6 @@ namespace NVault.Plugins.Vault
             {
                 //Zero the key buffer and key
                 MemoryUtil.InitializeBlock(buffHandle.Span);
-                vaultKey.Erase();
             }
         }
 
@@ -266,6 +270,174 @@ namespace NVault.Plugins.Vault
             s.AllowCharacters('+');
 
             return JavaScriptEncoder.Create(s);
+        }
+
+        ///<inheritdoc/>
+        public async Task<string?> DecryptNoteAsync(VaultUserScope scope, NostrKeyMeta keyMeta, string targetPubKeyHex, string nip04Ciphertext, CancellationToken cancellation)
+        {
+            //Recover target public key
+            byte[] targetPubkey = Convert.FromHexString(targetPubKeyHex);
+
+            //Get key data from the vault
+            using PrivateString? secret = await _vault.GetSecretAsync(scope, keyMeta.Id, cancellation);
+
+            if(secret == null)
+            {
+                return null;
+            }
+
+            string? outText = null, ivText = null;
+
+            //Call decipher method
+            bool result = Nip04Cipher(secret.ToReadOnlySpan(), nip04Ciphertext.AsSpan(), targetPubkey, ref outText, ref ivText, false);
+
+            if (result)
+            {
+                return outText;
+            }
+            else
+            {
+                throw new CryptographicException("Failed to decipher the target data");
+            }
+        }
+
+        ///<inheritdoc/>
+        public async Task<EncryptionResult> EncryptNoteAsync(VaultUserScope scope, NostrKeyMeta keyMeta, string targetPubKeyHex, string plainText, CancellationToken cancellation)
+        {
+            //Recover target public key
+            byte[] targetPubkey = Convert.FromHexString(targetPubKeyHex);
+
+            //Get key data from the vault
+            using PrivateString? secret = await _vault.GetSecretAsync(scope, keyMeta.Id, cancellation);
+
+            string? outputText = null,
+                ivText = null;
+
+            //Call decipher method
+            bool result = Nip04Cipher(secret.ToReadOnlySpan(), plainText, targetPubkey, ref outputText, ref ivText, true);
+
+            if (result)
+            {
+                return new()
+                {
+                    CipherText = outputText,
+                    Iv = ivText
+                };
+            }
+            else
+            {
+                throw new CryptographicException("Failed to encipher the target data");
+            }
+        }
+
+        private bool Nip04Cipher(
+            ReadOnlySpan<char> vaultKey, 
+            ReadOnlySpan<char> text, 
+            ReadOnlySpan<byte> pubKey,
+            ref string? outputText,
+            ref string? ivText,
+            bool encipher
+        )
+        {
+            //Decode the key
+            int keyBufSize = _keyEncoder.GetKeyBufferSize(vaultKey);
+
+            int maxCtBufferSize = Base64.GetMaxEncodedToUtf8Length(text.Length);
+
+            //Alloc heap buffers for encoding/decoding plaintext
+            using UnsafeMemoryHandle<byte> ctBuffer = MemoryUtil.UnsafeAllocNearestPage(maxCtBufferSize, true);
+            using UnsafeMemoryHandle<byte> outputBuffer = MemoryUtil.UnsafeAllocNearestPage(maxCtBufferSize, true);
+
+            //Small buffers for private key and raw iv
+            Span<byte> privKeyBytes = stackalloc byte[keyBufSize];
+            Span<byte> ivBuffer = stackalloc byte[encipher ? NIP04_RANDOM_IV_SIZE : 64];
+
+            try
+            {
+                //Decode the key
+                ERRNO keySize = _keyEncoder.DecodeKey(vaultKey, privKeyBytes);
+
+                if (encipher)
+                {
+                    //Fill IV with randomness
+                    _cryptoProvider.GetRandomBytes(ivBuffer);
+
+                    //encode to utf8 before ecryption
+                    int encodedSize = Encoding.UTF8.GetBytes(text, ctBuffer.Span);
+
+                    //Encrypt the message
+                    ERRNO outputSize = _cryptoProvider.EncryptMessage(
+                        privKeyBytes[..(int)keySize],
+                        pubKey,
+                        ivBuffer,
+                        ctBuffer.AsSpan(0, encodedSize),
+                        outputBuffer.Span
+                    );
+
+                    if (outputSize < 1)
+                    {
+                        throw new CryptographicException("Failed to encipher message");
+                    }
+
+                    //Output text is the ciphertext base64 utf8 encoded
+                    outputText = Convert.ToBase64String(outputBuffer.AsSpan(0, outputSize));
+                    ivText = Convert.ToBase64String(ivBuffer);
+
+                    return true;
+                }
+                else
+                {
+                    //Text parameter is nostr encoded
+                    ReadOnlySpan<char> cipherText = text.SliceBeforeParam("?iv=");
+                    ReadOnlySpan<char> ivSegment = text.SliceAfterParam("?iv=");
+
+                    if (ivSegment.Length > 128)
+                    {
+                        throw new ArgumentException("initialization vector is larger than allowed");
+                    }
+
+                    //Decode initialziation vector
+                    ERRNO ivSize= VnEncoding.TryFromBase64Chars(ivSegment, ivBuffer);
+                    if (ivSize < 1)
+                    {
+                        return false;
+                    }
+
+                    //Decode ciphertext
+                    ERRNO ctSize = VnEncoding.TryFromBase64Chars(cipherText, ctBuffer.Span);
+                    if (ctSize < 1)
+                    {
+                        return false;
+                    }
+
+                    //Decrypt the message
+                    ERRNO outputSize = _cryptoProvider.DecryptMessage(
+                        privKeyBytes, 
+                        pubKey, 
+                        ivBuffer.Slice(0, ivSize), 
+                        ctBuffer.AsSpan(0, ctSize), 
+                        outputBuffer.Span
+                    );
+
+                    if (outputSize < 1)
+                    {
+                        return false;
+                    }
+
+                    //Store the output text (deciphered text)
+                    outputText = Encoding.UTF8.GetString(outputBuffer.AsSpan(0, outputSize));
+
+                    return true;
+                }
+            }
+            finally
+            {
+                //Zero the key buffer and key
+                MemoryUtil.InitializeBlock(ctBuffer.Span);
+                MemoryUtil.InitializeBlock(outputBuffer.Span);
+                MemoryUtil.InitializeBlock(privKeyBytes);
+                MemoryUtil.InitializeBlock(ivBuffer);
+            }
         }
 
         readonly record struct EvBuffer(IMemoryHandle<byte> Handle, int KeySize, int SigSize, int HashSize)

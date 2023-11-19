@@ -60,6 +60,16 @@ namespace NVault.Plugins.Vault
         /// <param name="pubKey">The recovered public key</param>
         /// <returns>True if the operation succeeded, false otherwise</returns>
         bool RecoverPublicKey(ReadOnlySpan<byte> privateKey, Span<byte> pubKey);
+
+        ERRNO DecryptMessage(ReadOnlySpan<byte> secretKey, ReadOnlySpan<byte> targetKey, ReadOnlySpan<byte> aseIv, ReadOnlySpan<byte> cyphterText, Span<byte> outputBuffer);
+
+        ERRNO EncryptMessage(ReadOnlySpan<byte> secretKey, ReadOnlySpan<byte> targetKey, ReadOnlySpan<byte> aesIv, ReadOnlySpan<byte> plainText, Span<byte> cipherText);
+
+        /// <summary>
+        /// Fill a buffer with secure randomness/entropy
+        /// </summary>
+        /// <param name="bytes">A span of memory to fill with random data</param>
+        void GetRandomBytes(Span<byte> bytes);
     }
 
     readonly record struct KeyBufferSizes(int PrivateKeySize, int PublicKeySize);

@@ -13,32 +13,30 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { 
-  useHistoryApi,
-  useNostrApi,
-  useIdentityApi,
-  useSettingsApi,
-  useAuthApi,
-  useLocalPki,
-  useAppSettings,
-  usePkiApi,
-  useEventTagFilterApi,
-  useInjectAllowList
-} from "../../features";
-import { useBackgroundFeatures } from "../../features/framework";
+import { ref } from "vue";
+import {  } from "./types";
+import { FeatureApi, BgRuntime, IFeatureExport } from "./framework";
+import { AppSettings } from "./settings";
 
-const settings = useAppSettings();
-const { register } = useBackgroundFeatures(settings)
+export interface HistoryEvent extends Object{
 
-//Resgiter background features
-register([
-  useSettingsApi,
-  useAuthApi,
-  useIdentityApi,
-  useHistoryApi,
-  useNostrApi,
-  useLocalPki,
-  usePkiApi,
-  useEventTagFilterApi,
-  useInjectAllowList
-])
+}
+
+export interface HistoryApi extends FeatureApi{
+
+}
+
+export const useHistoryApi = () : IFeatureExport<AppSettings, HistoryApi> => {
+    return{
+        background: ({ }: BgRuntime<AppSettings>): HistoryApi =>{
+            const evHistory = ref([]);
+
+            return{ }
+        },
+        foreground: (): HistoryApi =>{
+            return { }
+        }
+    }
+}
+
+//Listen for messages

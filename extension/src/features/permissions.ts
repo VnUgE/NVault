@@ -17,7 +17,7 @@ import { useStorageAsync } from "@vueuse/core";
 import { find, isEmpty, merge, remove } from "lodash";
 import { storage } from "webextension-polyfill";
 import { useAuthApi } from "./auth-api";
-import { useSettings } from "./settings";
+import { useSettingsApi } from "./settings";
 
 const permissions = useStorageAsync("permissions", [], storage.local);
 
@@ -51,7 +51,7 @@ export const removeAutoAllow = async (origin, mKind, keyId) => {
 export const useSitePermissions = (() => {
 
     const { apiCall, handleProtectedMessage } = useAuthApi();
-    const { currentConfig } = useSettings();
+    const { currentConfig } = useSettingsApi();
     
 
     const getCurrentPerms = async () => {

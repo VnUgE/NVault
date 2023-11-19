@@ -1,5 +1,5 @@
 <template>
-    <div class="px-3 text-left">
+    <div class="text-left">
        <div class="w-full">
             <div class="">
                 <select class="w-full input" 
@@ -19,28 +19,22 @@
 <script setup lang="ts">
 import { find } from 'lodash'
 import { computed } from "vue";
-import { useStatus, useManagment, NostrPubKey } from "~/bg-api/popup.ts";
+import { useStore } from "../../store";
 import { useWait } from '@vnuge/vnlib.browser'
-import { computedAsync } from '@vueuse/core';
+import { storeToRefs } from 'pinia';
 
-const { selectedKey } = useStatus();
 const { waiting } = useWait();
-const { getAllKeys, selectKey } = useManagment();
-
-const allKeys = computedAsync<NostrPubKey[]>(async () => await getAllKeys(), []);
+const store = useStore();
+const { selectedKey, allKeys } = storeToRefs(store);
 
 const onSelected = async ({target}) =>{
     //Select the key of the given id
     const selected = find(allKeys.value, {Id: target.value})
     if(selected){
-        await selectKey(selected)
+        await store.selectKey(selected)
     }
 }
 
-const selected = computed(() => selectedKey?.value || { Id:"0" })
+const selected = computed(() => selectedKey?.value || { Id:"" })
 
 </script>
-
-<style lang="scss">
-
-</style>

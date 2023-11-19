@@ -19,18 +19,24 @@
 </template>
 
 <script setup lang="ts">
-import { useWait } from "@vnuge/vnlib.browser";
+import { apiCall, useWait } from "@vnuge/vnlib.browser";
 import { ref } from "vue";
-import { useManagment } from "~/bg-api/popup.ts";
+import { useStore } from "../../store";
 
-const { login } = useManagment()
+const { login } = useStore()
 const { waiting } = useWait()
 
 const token = ref('')
 
 const onSubmit = async () => {
-  //console.log(token.value)
-  await login(token.value)
+    await apiCall(async ({ toaster }) => {
+        await login(token.value)
+        toaster.general.success({
+            'title': 'Login successful',
+            'text': 'Successfully logged into your profile'
+        })
+    })
+ 
 }
 
 </script>

@@ -54,7 +54,7 @@ namespace NVault.VaultExtensions
             string? value = result.Data.Data.GetValueOrDefault(property)?.ToString();
 
             //Return the secret value as a private string
-            return value == null ? null : new PrivateString(value);
+            return value == null ? null : PrivateString.ToPrivateString(value, true);
         }
 
         /// <summary>

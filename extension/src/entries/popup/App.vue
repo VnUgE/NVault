@@ -17,6 +17,6 @@ main {
   text-align: center;
   color: #2c3e50;
   
-   @apply dark:bg-dark-800 bg-white dark:text-gray-200;
+   @apply dark:bg-dark-900 bg-white dark:text-gray-200;
 }
 </style>

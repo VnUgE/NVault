@@ -11,11 +11,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     preview: {
-      port: 8080,
+      port: 6896,
     },
     server: {
       host: '0.0.0.0',
-      port: 8080,
+      port: 6896,
       strictPort: true,
       proxy: {
         '/public': {

@@ -10,8 +10,8 @@
                                 Identity:
                             </div>
                             <div class="p-2 mt-1 text-center border rounded border-dark-400 bg-dark-600">
-                                <div :class="[selectedKey?.UserName ? '' : 'text-red-500']">
-                                    {{ selectedKey?.UserName ?? 'Select Identity' }}
+                                <div :class="[keyName ? '' : 'text-red-500']">
+                                    {{ keyName ?? 'Select Identity' }}
                                 </div>
                             </div>
                             <div class="mt-5 text-center">
@@ -65,14 +65,17 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { usePrompt } from '~/entries/contentScript/nostr-shim'
+import { usePrompt } from '../../nostr-shim.js'
 import { computed } from '@vue/reactivity';
-import { onClickOutside } from '@vueuse/core';
-import { useStatus } from '~/bg-api/content-script.ts';
+import {  } from '@vueuse/core';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
 import { first } from 'lodash';
+import { useStore } from '../../../store';
+import { storeToRefs } from 'pinia';
 
-const { loggedIn, selectedKey } = useStatus()
+const store = useStore()
+const { loggedIn, selectedKey } = storeToRefs(store)
+const keyName = computed(() => selectedKey.value?.UserName)
 
 const prompt = ref(null)
 
@@ -110,7 +113,7 @@ const allow = () => {
 //Listen for events
 usePrompt(async (ev: PopupEvent) => {
 
-    console.log('usePrompt', ev)
+    console.log('[usePrompt] =>', ev)
 
     switch(ev.type){
         case 'getPublicKey':
@@ -130,7 +133,7 @@ usePrompt(async (ev: PopupEvent) => {
             break;
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         evStack.value.push({
             ...ev,
             allow: () => resolve(true),

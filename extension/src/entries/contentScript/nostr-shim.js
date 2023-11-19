@@ -13,42 +13,37 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
-import { runtime } from "webextension-polyfill";
-import { isEqual, isNil, isEmpty } from 'lodash' 
-import { sendMessage } from 'webext-bridge/content-script'
+import { runtime } from "webextension-polyfill"
+import { isEqual, isNil, isEmpty } from 'lodash'
 import { apiCall } from '@vnuge/vnlib.browser'
-import { useManagment } from './../../bg-api/content-script'
+import { useScriptTag, watchOnce } from "@vueuse/core"
+import { createPort } from '../../webext-bridge/'
+import { useStore } from '../store'
+import { storeToRefs } from 'pinia'
 
-const { getSiteConfig } = useManagment()
-const nip07Enabled = () => getSiteConfig().then(p => p.autoInject);
-
-//Setup listener for the content script to process nostr messages
-
-const ext = '@vnuge/nvault-extension'
-
-let _promptHandler = () => Promise.resolve({})
-
-export const usePrompt = (callback) => {
-    //Register the callback
-    _promptHandler = async (event) => {
-        return new Promise((resolve, reject) => {
-            callback(event).then(resolve).catch(reject)
-        })
+const _promptHandler = (() => {
+    let _handler = undefined;
+    return{
+        invoke: (event) => _handler(event),
+        set: (handler) => _handler = handler
     }
-    return {}
-}
+})()
 
-//Only inject the script if the site has autoInject enabled
-nip07Enabled().then(enabled => {
-    console.log('Nip07 enabled:', enabled)
-    if (enabled) {
-        // inject the script that will provide window.nostr
-        let script = document.createElement('script');
-        script.setAttribute('async', 'false');
-        script.setAttribute('type', 'text/javascript');
-        script.setAttribute('src', runtime.getURL('src/entries/nostr-provider.js'));
-        document.head.appendChild(script);
+export const usePrompt = (callback) => _promptHandler.set(callback);
+
+
+export const onLoad = async () =>{
+
+    const injectHandler = () => {
+
+        //Setup listener for the content script to process nostr messages
+        const ext = '@vnuge/nvault-extension'
+        const { sendMessage } = createPort('content-script')
+
+        const scriptUrl = runtime.getURL('src/entries/nostr-provider.js')
+
+        //setup script tag
+        useScriptTag(scriptUrl, undefined, { manual: false, defer: true })
 
         //Only listen for messages if injection is enabled
         window.addEventListener('message', async ({ source, data, origin }) => {
@@ -72,9 +67,9 @@ nip07Enabled().then(enabled => {
                     case 'nip04.encrypt':
                     case 'nip04.decrypt':
                         //await propmt for user to allow the request
-                        const allow = await _promptHandler({ ...data, origin })
+                        const allow = await _promptHandler.invoke({ ...data, origin })
                         //send request to background
-                        response = allow ? await sendMessage(data.type, { ...data.payload, origin }) : { error: 'User denied permission' }
+                        response = allow ? await sendMessage(data.type, { ...data.payload, origin }, 'background') : { error: 'User denied permission' }
                         break;
                     default:
                         throw new Error('Unknown nostr message type')
@@ -84,4 +79,18 @@ nip07Enabled().then(enabled => {
             window.postMessage({ ext, id: data.id, response }, origin);
         });
     }
-})
+
+    const store = useStore()
+    const { isTabAllowed } = storeToRefs(store)
+    
+    //Make sure the origin is allowed
+    if (store.isTabAllowed === false){
+        //If not allowed yet, wait for the store to update
+        watchOnce(isTabAllowed, val => val ? injectHandler() : undefined);
+        return;
+    }
+    else{
+        injectHandler();
+    }
+
+}

@@ -53,7 +53,7 @@
           </TabList>
           <TabPanels>
             <TabPanel class="mt-4">
-             <Identities :all-keys="allKeys" @edit-key="editKey" @update-all="reloadKeys"/>
+             <Identities :all-keys="allKeys" @edit-key="editKey"/>
             </TabPanel>
             <TabPanel>
               <Privacy/>
@@ -107,23 +107,24 @@ import {
   TabPanels,
   TabPanel,
 } from '@headlessui/vue'
-import { configureNotifier } from '@vnuge/vnlib.browser';
-import { useManagment, useStatus, NostrPubKey } from '~/bg-api/options.ts';
+import { apiCall, configureNotifier } from '@vnuge/vnlib.browser';
+import { storeToRefs } from "pinia";
+import { type NostrPubKey } from '../../features/';
 import { notify } from "@kyvg/vue3-notification";
-import { watchDebounced } from '@vueuse/core';
 import SiteSettings from './components/SiteSettings.vue';
 import Identities from './components/Identities.vue';
 import Privacy from "./components/Privacy.vue";
+import { useStore } from "../store";
+
 
 //Configure the notifier to use the notification library
 configureNotifier({ notify, close: notify.close })
 
-const { userName, darkMode } = useStatus()
-const { getAllKeys, updateIdentity, getSiteConfig, saveSiteConfig } = useManagment()
+const store = useStore()
+const { allKeys, darkMode, userName } = storeToRefs(store)
 
 const selectedTab = ref(0)
-const allKeys = ref([])
-const keyBuffer = ref(null)
+const keyBuffer = ref<NostrPubKey>({} as NostrPubKey)
 
 const editKey = (key: NostrPubKey) =>{
   //Goto hidden tab
@@ -140,31 +141,24 @@ const doneEditing = () =>{
 }
 
 const onUpdate = async () =>{
-  //Update identity
-  await updateIdentity(keyBuffer.value)  
+  
+  await apiCall(async ({ toaster }) => {
+    //Update identity
+    await store.updateIdentity(keyBuffer.value)
+    //Show success
+    toaster.general.success({
+      'title':'Success',
+      'text': `Successfully updated ${keyBuffer.value!.UserName}`
+    })
+  })
+  
   //Goto hidden tab
   selectedTab.value = 0
   //Set selected key
   keyBuffer.value = null
 }
 
-const reloadKeys = async () =>{
-  //Load all keys (identities)
-  const keys = await getAllKeys()
-  allKeys.value = keys;
-}
-
-const toggleDark = async () => {
-  const config = await getSiteConfig();
-  config.darkMode = !config.darkMode;
-  await saveSiteConfig(config);
-}
-
-//Initial load
-reloadKeys();
-
-//If the tab changes to the identities tab, reload the keys
-watchDebounced(selectedTab, id => id == 0 ? reloadKeys() : null, { debounce: 100 })
+const toggleDark = () => store.toggleDarkMode()
 
 //Watch for dark mode changes and update the body class
 watchEffect(() => darkMode.value ? document.body.classList.add('dark') : document.body.classList.remove('dark'));

@@ -24,9 +24,46 @@ using VNLib.Utils.Extensions;
 
 using static NVault.Crypto.Secp256k1.LibSecp256k1;
 
-
 namespace NVault.Crypto.Secp256k1
 {
+    public delegate int Secp256k1EcdhHashFunc(in Secp256HashFuncState state);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe readonly ref struct Secp256HashFuncState
+    {
+
+        /// <summary>
+        /// The opaque pointer passed to the hash function
+        /// </summary>
+        public readonly IntPtr Opaque { get; }
+
+        private readonly byte* _output;
+        private readonly byte* _xCoord;
+        private readonly int _outputLength;
+        private readonly int _xCoordLength;
+
+        internal Secp256HashFuncState(byte* output, int outputLength, byte* xCoord, int xCoordLength, IntPtr opaque)
+        {
+            Opaque = opaque;
+            _output = output;
+            _outputLength = outputLength;
+            _xCoord = xCoord;
+            _xCoordLength = xCoordLength;
+        }
+
+        /// <summary>
+        /// Gets the output buffer as a span
+        /// </summary>
+        /// <returns>The output buffer span</returns>
+        public readonly Span<byte> GetOutput() => new(_output, _outputLength);
+
+        /// <summary>
+        /// Gets the x coordinate argument as a span
+        /// </summary>
+        /// <returns>The xcoordinate buffer span</returns>
+        public readonly ReadOnlySpan<byte> GetXCoordArg() => new(_xCoord, _xCoordLength);
+    }
+
     public static unsafe class ContextExtensions
     {
         /// <summary>
@@ -138,7 +175,7 @@ namespace NVault.Crypto.Secp256k1
             context.Lib.SafeLibHandle.ThrowIfClosed();
 
             //Stack allocated keypair and x-only public key
-            XOnlyPubKey xOnlyPubKey = new();
+            Secp256k1PublicKey xOnlyPubKey = new();
             KeyPair keyPair = new();
 
             try
@@ -194,6 +231,75 @@ namespace NVault.Crypto.Secp256k1
             fixed(byte* ptr = &MemoryMarshal.GetReference(secretKey))
             {
                 return context.Lib._secKeyVerify.Invoke(context.Context, ptr) == 1;
+            }
+        }
+
+
+        [StructLayout(LayoutKind.Sequential)]
+        private readonly ref struct EcdhHashFuncState
+        {
+            public readonly IntPtr HashFunc { get; init; }
+            public readonly IntPtr Opaque { get; init; }
+            public readonly int OutLen { get; init; }
+        }
+
+        /// <summary>
+        /// Verifies that a given secret key is valid using the current context
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="secretKey">The secret key to verify</param>
+        /// <returns>A boolean value that indicates if the secret key is valid or not</returns>
+        /// <exception cref="ArgumentException"></exception>
+        public static bool ComputeSharedKey(this in Secp256k1Context context, Span<byte> data, ReadOnlySpan<byte> xOnlyPubKey, ReadOnlySpan<byte> secretKey, Secp256k1EcdhHashFunc callback, IntPtr opaque)
+        {
+            if (secretKey.Length != SecretKeySize)
+            {
+                throw new ArgumentException($"Your public key buffer must be exactly {SecretKeySize} bytes long");
+            }
+
+            //Init callback state struct
+            EcdhHashFuncState state = new()
+            {
+                HashFunc = Marshal.GetFunctionPointerForDelegate(callback),
+                Opaque = opaque,
+                OutLen = data.Length
+            };
+
+            //Stack allocated keypair and x-only public key
+            Secp256k1PublicKey pubKeyStruct = new();
+            //Recover the x-only public key structure
+            MemoryUtil.CopyStruct(xOnlyPubKey, &pubKeyStruct);
+
+            context.Lib.SafeLibHandle.ThrowIfClosed();
+
+            fixed (byte* dataPtr = &MemoryMarshal.GetReference(data),
+                    secKeyPtr = &MemoryMarshal.GetReference(secretKey))
+            {
+                return context.Lib._ecdh.Invoke(context.Context, dataPtr, &pubKeyStruct, secKeyPtr, UmanagedEcdhHashFuncCallback, &state) == 1;
+            }
+
+            /*
+             * Umanaged wrapper function for invoking the safe user callback 
+             * from the unmanaged lib
+             */
+            static int UmanagedEcdhHashFuncCallback(byte* output, byte* x32, byte* y32, void* opaque)
+            {
+                //Recover the callback
+                if (opaque == null)
+                {
+                    return 0;
+                }
+
+                EcdhHashFuncState* state = (EcdhHashFuncState*)opaque;
+
+                //Init user-state structure
+                Secp256HashFuncState userState = new(output, state->OutLen, x32, 32, new(opaque));
+
+                //Recover the function pointer
+                Secp256k1EcdhHashFunc callback = Marshal.GetDelegateForFunctionPointer<Secp256k1EcdhHashFunc>(state->HashFunc);
+
+                //Invoke the callback 
+                return callback(in userState);
             }
         }
     }

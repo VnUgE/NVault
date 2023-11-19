@@ -7,23 +7,23 @@
                     Extension settings
                 </h3>
                 <div class="my-6">
-                    <fieldset :disabled="waiting">
+                    <fieldset :disabled="waiting.value">
                         <div class="">
                             <div class="w-full">
                                 <div class="flex flex-row w-full">
                                     <Switch
-                                        v-model="buffer.autoInject"
-                                        :class="buffer.autoInject ? 'bg-black dark:bg-gray-50' : 'bg-gray-200 dark:bg-dark-600'"
+                                        v-model="originProtection"
+                                        :class="originProtection ? 'bg-black dark:bg-gray-50' : 'bg-gray-200 dark:bg-dark-600'"
                                         class="relative inline-flex items-center h-5 rounded-full w-11"
                                     >
-                                        <span class="sr-only">NIP-07</span>
+                                        <span class="sr-only">Origin protection</span>
                                         <span
-                                            :class="buffer.autoInject ? 'translate-x-6' : 'translate-x-1'"
+                                            :class="originProtection ? 'translate-x-6' : 'translate-x-1'"
                                             class="inline-block w-4 h-4 transition transform bg-white rounded-full dark:bg-dark-900"
                                         />
                                     </Switch>
                                     <div class="my-auto ml-2 text-sm dark:text-gray-200">
-                                       Always on NIP-07
+                                       Tracking protection
                                     </div>
                                 </div>
                             </div>
@@ -69,27 +69,42 @@
                         </a>
                     </div>
                 </div>
-                <fieldset :disabled="waiting || !editMode">
+                <fieldset>
                     <div class="pl-1 mt-2">
                         
                     </div>
                     <div class="mt-2">
                         <label class="pl-1">BaseUrl</label>
-                        <input class="w-full input" v-model="v$.apiUrl.$model" :class="{'error': v$.apiUrl.$invalid }" />
+                        <input 
+                            class="w-full input" 
+                            :class="{'error': v$.apiUrl.$invalid }"
+                            v-model="v$.apiUrl.$model"
+                            :readonly="!editMode"
+                        />
                         <p class="pl-1 mt-1 text-xs text-gray-600 dark:text-gray-400">
                             * The http path to the vault server (must start with http:// or https://)
                         </p>
                     </div>
                     <div class="mt-2">
                         <label class="pl-1">Account endpoint</label>
-                        <input class="w-full input" v-model="v$.accountBasePath.$model" :class="{ 'error': v$.accountBasePath.$invalid }" />
+                        <input 
+                            class="w-full input" 
+                            v-model="v$.accountBasePath.$model" 
+                            :class="{ 'error': v$.accountBasePath.$invalid }" 
+                            :readonly="!editMode"
+                        />
                         <p class="pl-1 mt-1 text-xs text-gray-600 dark:text-gray-400">
                             * This is the path to the account server endpoint (must start with /)
                         </p>
                     </div>
                     <div class="mt-2">
                         <label class="pl-1">Nostr endpoint</label>
-                        <input class="w-full input" v-model="v$.nostrEndpoint.$model" :class="{ 'error': v$.nostrEndpoint.$invalid }" />
+                        <input 
+                            class="w-full input" 
+                            v-model="v$.nostrEndpoint.$model" 
+                            :class="{ 'error': v$.nostrEndpoint.$invalid }"
+                            :readonly="!editMode"
+                        />
                         <p class="pl-1 mt-1 text-xs text-gray-600 dark:text-gray-400">
                             * This is the path to the Nostr plugin endpoint path (must start with /)
                         </p>
@@ -104,25 +119,31 @@
 </template>
 
 <script setup lang="ts">
-import { apiCall, useDataBuffer, useFormToaster, useVuelidateWrapper, useWait } from '@vnuge/vnlib.browser';
-import { computed, ref, watch } from 'vue';
-import { useManagment } from '~/bg-api/options.ts';
+import { apiCall, useDataBuffer, useVuelidateWrapper, useWait } from '@vnuge/vnlib.browser';
+import { computed, watch } from 'vue';
 import { useToggle, watchDebounced } from '@vueuse/core';
 import { maxLength, helpers, required } from '@vuelidate/validators'
-import { clone, isNil } from 'lodash';
-import{ Switch } from '@headlessui/vue'
+import { Switch } from '@headlessui/vue'
+import { useStore } from '../../store';
+import { storeToRefs } from 'pinia';
 import useVuelidate from '@vuelidate/core'
 
 const { waiting } = useWait();
-const { info } = useFormToaster();
-const { getSiteConfig, saveSiteConfig } = useManagment();
+const store = useStore()
+const { settings, isOriginProtectionOn } = storeToRefs(store)
 
-const { apply, data, buffer, modified } = useDataBuffer({
-    apiUrl: '',
-    accountBasePath: '',
-    nostrEndpoint:'',
-    heartbeat:false,
-    autoInject:true,
+const { apply, data, buffer, modified, update } = useDataBuffer(settings.value, async sb =>{
+    const newConfig = await store.saveSiteConfig(sb.buffer)
+    apply(newConfig)
+    return newConfig;
+})
+
+//Watch for store settings changes and apply them
+watch(settings, v => apply(v.value))
+
+const originProtection = computed({
+    get: () => isOriginProtectionOn.value,
+    set: v => store.setOriginProtection(v)
 })
 
 const url = (val : string) => /^https?:\/\/[a-zA-Z0-9\.\:\/-]+$/.test(val);
@@ -145,15 +166,13 @@ const vRules = {
         alphaNum: helpers.withMessage('Nostr path is not a valid endpoint path that begins with /', path)
     },
     heartbeat: {},
-    darkMode:{}
 }
 
 //Configure validator and validate function
 const v$ = useVuelidate(vRules, buffer)
-const { validate } = useVuelidateWrapper(v$);
+const { validate } = useVuelidateWrapper(v$ as any);
 
-const editMode = ref(false);
-const toggleEdit = useToggle(editMode);
+const [ editMode, toggleEdit ] = useToggle(false);
 
 const autoInject = computed(() => buffer.autoInject)
 const heartbeat = computed(() => buffer.heartbeat)
@@ -171,24 +190,12 @@ const onSave = async () => {
         return;
     }
 
-    info({
-        title: 'Reloading in 4 seconds',
-        text: 'Your configuration will be saved and the extension will reload in 4 seconds'
-    })
-
-    await new Promise(r => setTimeout(r, 4000));
-
-    publishConfig();
+    await update();
 
     //disable dit
     toggleEdit();
 }
 
-const publishConfig = async () =>{
-    const c = clone(buffer);
-    await saveSiteConfig(c);
-    await loadConfig();
-}
 
 const testConnection = async () =>{
     return await apiCall(async ({axios, toaster}) =>{
@@ -201,38 +208,17 @@ const testConnection = async () =>{
             return true;
         }
         catch(e){
-            if(isNil(e.response?.status)){
-                toaster.form.error({
-                    title: 'Network error',
-                    text: `Please verify your vault server address`
-                });
-            }
-
             toaster.form.error({
                 title: 'Warning',
-                text: `Failed to connect to the vault server. Status code: ${e.response.status}`
+                text: `Failed to connect to the vault server. Status code: ${(e as any).response?.status}`
             });
         }
     })
 }
 
-const loadConfig = async () => {
-    const config = await getSiteConfig();
-    apply(config);
-}
-
-const init = async () => {
-    await loadConfig();
-
-    //Watch for changes to autoinject value and publish changes when it does
-    watchDebounced(autoInject, publishConfig, { debounce: 500, immediate: false })
-    watchDebounced(heartbeat, publishConfig, { debounce: 500, immediate: false })
-}
-
-//If edit mode is toggled off, reload config
-watch(editMode, v => v ? null : loadConfig());
-
-init();
+//Watch for changes to autoinject value and publish changes when it does
+watchDebounced(autoInject, update, { debounce: 500, immediate: false })
+watchDebounced(heartbeat, update, { debounce: 500, immediate: false })
 
 </script>
 

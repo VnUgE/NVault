@@ -1,7 +1,7 @@
 input.input,
 select.input,
 textarea.input {
-    @apply duration-100 ease-in-out outline-none border px-2 py-1.5;
+    @apply duration-100 ease-in-out outline-none border px-1.5 py-1;
     @apply border-gray-200 bg-inherit dark:border-dark-400 dark:text-white hover:border-gray-300 hover:dark:border-dark-200;
 }
 

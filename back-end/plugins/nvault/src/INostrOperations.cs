@@ -22,6 +22,7 @@ using NVault.VaultExtensions;
 
 namespace NVault.Plugins.Vault
 {
+
     internal interface INostrOperations
     {
         Task<bool> SignEventAsync(VaultUserScope scope, NostrKeyMeta keyMeta, NostrEvent evnt, CancellationToken cancellation);
@@ -31,5 +32,9 @@ namespace NVault.Plugins.Vault
         Task<bool> CreateFromExistingAsync(VaultUserScope scope, NostrKeyMeta newKey, string hexKey, CancellationToken cancellation);
 
         Task DeleteCredentialAsync(VaultUserScope scope, NostrKeyMeta key, CancellationToken cancellation);
+
+        Task<string?> DecryptNoteAsync(VaultUserScope scope, NostrKeyMeta key, string targetPubKeyHex, string nip04Ciphertext, CancellationToken cancellation);
+
+        Task<EncryptionResult> EncryptNoteAsync(VaultUserScope scope, NostrKeyMeta meta, string targetPubKey, string plainText, CancellationToken cancellation);
     }
 }

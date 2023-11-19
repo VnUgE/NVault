@@ -5,10 +5,8 @@
   "author": "Vaughn Nugent",
   "type": "module",
   "description": "A @vnuge/nvault-extension nostr identity vault browser extension",
-
   "output_dir": "bin",
   "repository": "https://github.com/VnUgE/NVault",
-
   "scripts": {
     "build": "vite build",
     "watch": "vite build --watch --mode development --minify false",
@@ -16,7 +14,6 @@
     "serve:firefox": "web-ext run --start-url \"about:debugging#/runtime/this-firefox\"  --source-dir ./dist/ --verbose",
     "serve:chrome": "web-ext run -t chromium --start-url \"https://google.com\" --source-dir ./dist/"
   },
-
   "license": "AGPL3",
   "devDependencies": {
     "@samrum/vite-plugin-web-extension": "^5.0.0",
@@ -47,19 +44,22 @@
     "@fortawesome/vue-fontawesome": "^3.0.3",
     "@headlessui/vue": "^1.7.x",
     "@kyvg/vue3-notification": "^3.0.x",
-    "@vnuge/vnlib.browser": "https://www.vaughnnugent.com/public/resources/software/builds/vnlib.browser/7a2920c7c3e7f43d5fa46857808c857ad91df966/@vnuge-vnlib.browser/release.tgz",
+    "@vnuge/vnlib.browser": "../../vnlib.browser/vnlib.browser",
     "@vuelidate/core": "^2.0.0",
     "@vuelidate/validators": "^2.0.0",
     "@vueuse/core": "^10.3.2",
     "@vueuse/integrations": "^10.3.2",
     "base32-encode": "^2.0.0",
-    "jose": "^4.13.1",
+    "jose": "^5.0.x",
     "lodash-es": "^4.17.21",
+    "nanoevents": "^8.0.0",
+    "pinia": "^2.1.7",
     "sass": "^1.56.1",
+    "serialize-error": "^11.0.0",
+    "tiny-uid": "^1.1.1",
     "universal-cookie": "^6.1.x",
     "vite-plugin-web-extension": "^3.0.2",
     "vue": "^3.2.47",
-    "webext-bridge": "^6.0.1",
     "webextension-polyfill": "^0.10.0"
   }
 }

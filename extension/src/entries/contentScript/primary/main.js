@@ -15,6 +15,8 @@
 
 
 import { createApp } from "vue";
+import { createPinia } from 'pinia';
+import { useBackgroundPiniaPlugin, identityPlugin, originPlugin } from '../../store'
 import renderContent from "../renderContent";
 import App from "./App.vue";
 import Notification from '@kyvg/vue3-notification'
@@ -23,11 +25,26 @@ import '@fontsource/noto-sans-masaram-gondi'
 //We need inline styles to inject into the shadow dom
 import tw from "~/assets/all.scss?inline";
 import localStyle from './style.scss?inline'
+import { onLoad } from "../nostr-shim";
+import { defer } from "lodash";
 
 renderContent([], (appRoot, shadowRoot) => {
+
+  //Create the background feature wiring
+  const bgPlugins = useBackgroundPiniaPlugin('content-script')
+  //Init store and add plugins
+  const store = createPinia()
+    .use(bgPlugins)
+    .use(identityPlugin)
+    .use(originPlugin)
+
   createApp(App)
+  .use(store)
   .use(Notification)
   .mount(appRoot);
+
+  //Load the nostr shim
+  defer(onLoad)
 
   //Add tailwind styles just to the shadow dom element
   const style = document.createElement('style')

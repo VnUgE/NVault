@@ -39,7 +39,7 @@
                 </Popover>
             </div>
         </div>
-        <div v-for="key in allKeys" :key="key" class="mt-2 mb-3">
+        <div v-for="key in allKeys" :key="key.Id" class="mt-2 mb-3">
             <div class="" :class="{'selected': isSelected(key)}" @click.self="selectKey(key)">
                 
                 <div class="mb-8">
@@ -83,7 +83,7 @@
 <script setup lang="ts">
 
 import { isEqual, map } from 'lodash'
-import { ref, toRefs } from "vue";
+import { ref } from "vue";
 import {
     Popover,
     PopoverButton,
@@ -91,30 +91,26 @@ import {
     PopoverOverlay
 } from '@headlessui/vue'
 import { apiCall, configureNotifier } from '@vnuge/vnlib.browser';
-import { useManagment, useStatus } from '~/bg-api/options.ts';
+import { NostrPubKey } from '../../../features';
 import { notify } from "@kyvg/vue3-notification";
-import { useClipboard } from '@vueuse/core';
-import { NostrIdentiy } from '~/bg-api/bg-api';
-import { NostrPubKey } from '../../background/types';
+import { get, useClipboard } from '@vueuse/core';
+import { useStore } from '../../store';
+import { storeToRefs } from 'pinia';
 
-const emit = defineEmits(['edit-key', 'update-all'])
-const props = defineProps<{
-    allKeys:NostrIdentiy[]
-}>()
-
-const { allKeys } = toRefs(props)
+const emit = defineEmits(['edit-key'])
 
 //Configre the notifier to use the toaster
 configureNotifier({ notify, close: notify.close })
 
 const downloadAnchor = ref<HTMLAnchorElement>()
-const { selectedKey } = useStatus()
-const { selectKey, createIdentity, deleteIdentity, getAllKeys } = useManagment()
+const store = useStore()
+const { selectedKey, allKeys } = storeToRefs(store)
 const { copy } = useClipboard()
 
-const isSelected = (me : NostrIdentiy) => isEqual(me, selectedKey.value)
 
-const editKey = (key : NostrIdentiy) => emit('edit-key', key);
+const isSelected = (me : NostrPubKey) => isEqual(me, selectedKey.value)
+const editKey = (key : NostrPubKey) => emit('edit-key', key);
+const selectKey = (key: NostrPubKey) => store.selectKey(key)
 
 const onCreate = async (e: Event, onClose : () => void) => {
 
@@ -123,35 +119,39 @@ const onCreate = async (e: Event, onClose : () => void) => {
     //try to get existing key field
     const ExistingKey = e.target['key']?.value as string
 
-    //Create new identity
-    await createIdentity({ UserName, ExistingKey })
-    //Update keys
-    emit('update-all');
+    await apiCall(async () => {
+           //Create new identity
+        await store.createIdentity({ UserName, ExistingKey })
+    })
+   
     onClose()
 }
 
-const prettyPrintDate = (key : NostrIdentiy) => {
+const prettyPrintDate = (key : NostrPubKey) => {
     const d = new Date(key.LastModified)
     return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`
 }
 
-const onDeleteKey = async (key : NostrIdentiy) => {
+const onDeleteKey = async (key : NostrPubKey) => {
     
     if(!confirm(`Are you sure you want to delete ${key.UserName}?`)){
         return;
     } 
 
-    //Delete identity
-    await deleteIdentity(key)
-
-    //Update keys
-    emit('update-all');
+    apiCall(async ({ toaster }) => {
+        //Delete identity
+        await store.deleteIdentity(key)
+        toaster.general.success({
+            'title': 'Success',
+            'text': `${key.UserName} has been deleted`
+        })
+    })
 }
 
 const onNip05Download = () => {
     apiCall(async () => {
           //Get all public keys from the server
-        const keys = await getAllKeys() as NostrPubKey[]
+        const keys = get(allKeys)
         const nip05 = {}
         //Map the keys to the NIP-05 format
         map(keys, k => nip05[k.UserName] = k.PublicKey)

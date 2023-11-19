@@ -32,15 +32,16 @@ export const initEndponts = () => {
 
     const endpoints = new Map<string, EndpointDefinition>();
 
+    //Get local axios
+    const axios = useAxios(null);
+
     const registerEndpoint = <T extends string>(def: EndpointDefinitionReg<T>) => {
         //Store the handler by its id
         endpoints.set(def.id, def);
         return def;
     }
 
-    const getEndpoint = <T extends string>(id: T): EndpointDefinition | undefined => {
-        return endpoints.get(id);
-    }
+    const getEndpoint = <T extends string>(id: T): EndpointDefinition | undefined => endpoints.get(id);
 
     const execRequest = async <T>(id: string, ...request: any): Promise<T> => {
         const endpoint = getEndpoint(id);
@@ -53,12 +54,9 @@ export const initEndponts = () => {
 
         //Execute the request handler
         const req = await endpoint.onRequest(...request);
-     
-        //Get axios
-        const axios = useAxios(null);
 
         //Exec the request
-        const { data } = await axios({ method: endpoint.method, url: path, data: req });
+        const { data } = await axios.request({ method: endpoint.method, url: path, data: req });
 
         //exec the response handler and return its result
         return await endpoint.onResponse(data, request);

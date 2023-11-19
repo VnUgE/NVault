@@ -22,12 +22,23 @@ import Notifications from "@kyvg/vue3-notification";
 
 /* FONT AWESOME CONFIG */
 import { library } from '@fortawesome/fontawesome-svg-core'
-import { faChevronLeft, faChevronRight, faCopy, faDownload, faEdit, faExternalLinkAlt, faLock, faLockOpen, faMoon, faSun, faTrash } from '@fortawesome/free-solid-svg-icons'
+import { faChevronLeft, faChevronRight, faCopy, faDownload, faEdit, faExternalLinkAlt, faLock, faLockOpen, faMoon, faPlus, faSun, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { createPinia } from "pinia";
+import { identityPlugin, originPlugin, useBackgroundPiniaPlugin } from "../store";
 
-library.add(faCopy, faEdit, faChevronLeft, faMoon, faSun, faLock, faLockOpen, faExternalLinkAlt, faTrash, faDownload, faChevronRight)
+library.add(faCopy, faEdit, faChevronLeft, faMoon, faSun, faLock, faLockOpen, faExternalLinkAlt, faTrash, faDownload, faChevronRight, faPlus)
+
+//Create the background feature wiring
+const bgPlugins = useBackgroundPiniaPlugin('options')
+
+const pinia = createPinia()
+    .use(bgPlugins) //Add the background pinia plugin
+    .use(identityPlugin) //Add the identity plugin
+    .use(originPlugin) //Add the origin plugin
 
 createApp(App)
     .use(Notifications)
+    .use(pinia)
     .component('fa-icon', FontAwesomeIcon)
     .mount("#app");

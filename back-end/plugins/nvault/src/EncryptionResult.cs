@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Vaughn Nugent
+﻿// Copyright (C) 2023 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -13,32 +13,16 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { 
-  useHistoryApi,
-  useNostrApi,
-  useIdentityApi,
-  useSettingsApi,
-  useAuthApi,
-  useLocalPki,
-  useAppSettings,
-  usePkiApi,
-  useEventTagFilterApi,
-  useInjectAllowList
-} from "../../features";
-import { useBackgroundFeatures } from "../../features/framework";
+using System.Text.Json.Serialization;
 
-const settings = useAppSettings();
-const { register } = useBackgroundFeatures(settings)
+namespace NVault.Plugins.Vault
+{
+    internal class EncryptionResult
+    {
+        [JsonPropertyName("ciphertext")]
+        public string? CipherText { get; set; }
 
-//Resgiter background features
-register([
-  useSettingsApi,
-  useAuthApi,
-  useIdentityApi,
-  useHistoryApi,
-  useNostrApi,
-  useLocalPki,
-  usePkiApi,
-  useEventTagFilterApi,
-  useInjectAllowList
-])
+        [JsonPropertyName("iv")]
+        public string? Iv { get; set; }
+    }
+}

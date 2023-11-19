@@ -19,7 +19,7 @@ import pkg from "../package.json";
 const sharedManifest = {
   content_scripts: [
     {
-      js: ["src/entries/contentScript/primary/main.js", "src/entries/contentScript/nostr-shim.js"],
+      js: ["src/entries/contentScript/primary/main.js"],
       matches: ["*://*/*"]
     },
   ],
@@ -37,7 +37,8 @@ const sharedManifest = {
     browser_style:false
   },
   permissions: [
-    'storage'
+    'storage',
+    'activeTab',
   ],
 
 

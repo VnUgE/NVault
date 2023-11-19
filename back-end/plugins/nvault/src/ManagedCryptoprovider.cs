@@ -44,7 +44,7 @@ namespace NVault.Plugins.Vault
                 if (isManaged)
                 {
                     //Load managed assembly, plugin will manage lifetime
-                    random = plugin.LoadAssembly<IRandomSource>(path).Resource;
+                    random = plugin.CreateServiceExternal<IRandomSource>(path);
                 }
                 else
                 {
@@ -77,5 +77,23 @@ namespace NVault.Plugins.Vault
 
         ///<inheritdoc/>
         public bool RecoverPublicKey(ReadOnlySpan<byte> privateKey, Span<byte> pubKey) => _provider.RecoverPublicKey(privateKey, pubKey);
+
+        ///<inheritdoc/>
+        public ERRNO DecryptMessage(ReadOnlySpan<byte> secretKey, ReadOnlySpan<byte> targetKey, ReadOnlySpan<byte> aseIv, ReadOnlySpan<byte> cyphterText, Span<byte> outputBuffer)
+        {
+            return _provider.DecryptMessage(secretKey, targetKey, aseIv, cyphterText, outputBuffer);
+        }
+
+        ///<inheritdoc/>
+        public ERRNO EncryptMessage(ReadOnlySpan<byte> secretKey, ReadOnlySpan<byte> targetKey, ReadOnlySpan<byte> aesIv, ReadOnlySpan<byte> plainText, Span<byte> cipherText)
+        {
+            return _provider.EncryptMessage(secretKey, targetKey, aesIv, plainText, cipherText);
+        }
+
+        ///<inheritdoc/>
+        public void GetRandomBytes(Span<byte> bytes)
+        {
+            _provider.GetRandomBytes(bytes);
+        }
     }
 }

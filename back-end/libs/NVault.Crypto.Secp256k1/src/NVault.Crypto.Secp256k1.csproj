@@ -20,8 +20,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="VNLib.Hashing.Portable" Version="0.1.0-ci0088" />
-    <PackageReference Include="VNLib.Utils" Version="0.1.0-ci0088" />
+    <PackageReference Include="VNLib.Hashing.Portable" Version="0.1.0-ci0096" />
+    <PackageReference Include="VNLib.Utils" Version="0.1.0-ci0096" />
   </ItemGroup>
 
 </Project>

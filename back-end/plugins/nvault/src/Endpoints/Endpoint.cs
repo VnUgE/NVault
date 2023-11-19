@@ -18,6 +18,8 @@ using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text.Json.Serialization;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -25,6 +27,7 @@ using FluentValidation;
 
 using NVault.VaultExtensions;
 
+using VNLib.Utils.Extensions;
 using VNLib.Plugins;
 using VNLib.Plugins.Essentials;
 using VNLib.Plugins.Essentials.Endpoints;
@@ -36,6 +39,7 @@ using VNLib.Plugins.Extensions.Data.Extensions;
 
 using NVault.Plugins.Vault.Model;
 
+
 namespace NVault.Plugins.Vault.Endpoints
 {
 
@@ -46,6 +50,8 @@ namespace NVault.Plugins.Vault.Endpoints
         private static IValidator<NostrRelay> RelayValidator { get; } = NostrRelay.GetValidator();
         private static IValidator<NostrKeyMeta> KeyMetaValidator { get; } = NostrKeyMeta.GetValidator();
         private static IValidator<CreateKeyRequest> CreateKeyRequestValidator { get; } = CreateKeyRequest.GetValidator();
+        private static IValidator<Nip04DecryptRequest> DecrptMessageValidator { get; } = Nip04DecryptRequest.GetValidator();
+        private static IValidator<Nip04EncryptRequest> EncryptMessageValidator { get; } = Nip04EncryptRequest.GetValidator();
 
         private readonly INostrOperations _vault;
         private readonly NostrRelayStore _relays;
@@ -106,13 +112,12 @@ namespace NVault.Plugins.Vault.Endpoints
         }
 
         protected override async ValueTask<VfReturnType> PostAsync(HttpEntity entity)
-        {            
+        {
+            ValErrWebMessage webm = new();
 
             //Get the operation argument
-            if(entity.QueryArgs.IsArgumentSet("type", "signEvent"))
+            if (entity.QueryArgs.IsArgumentSet("type", "signEvent"))
             {
-                ValErrWebMessage webm = new();
-
                 //Get the event
                 NostrEvent? nEvent = await entity.GetJsonFromFileAsync<NostrEvent>();
 
@@ -161,6 +166,92 @@ namespace NVault.Plugins.Vault.Endpoints
                 webm.Success = true;
 
                 //Return the signed event
+                return VirtualOk(entity, webm);
+            }
+
+            //Decryption
+            if (entity.QueryArgs.IsArgumentSet("type", "decrypt"))
+            {
+                //Recover the decryption request
+                Nip04DecryptRequest? request = await entity.GetJsonFromFileAsync<Nip04DecryptRequest>();
+
+                if (webm.Assert(request != null, "No decryption request received"))
+                {
+                    return VirtualClose(entity, webm, HttpStatusCode.BadRequest);
+                }
+
+                if (!DecrptMessageValidator.Validate(request, webm))
+                {
+                    return VirtualClose(entity, webm, HttpStatusCode.UnprocessableEntity);
+                }
+
+                //Recover the current users key metadata
+                NostrKeyMeta? key = await _publicKeyStore.GetSingleUserRecordAsync(request.KeyId!, entity.Session.UserID);
+
+                if (webm.Assert(key != null, "Key metadata not found"))
+                {
+                    return VirtualClose(entity, webm, HttpStatusCode.NotFound);
+                }
+
+                VaultUserScope scope = new(entity.Session.UserID);
+
+                //Try to decrypt the message
+                webm.Result = await _vault.DecryptNoteAsync(
+                    scope, 
+                    key, 
+                    request.OtherPubKey!, 
+                    request.Ciphertext!, 
+                    entity.EventCancellation
+                );
+                
+                webm.Success = true;
+
+                return VirtualOk(entity, webm);
+            }
+
+            //Encryption
+            if (entity.QueryArgs.IsArgumentSet("type", "encrypt"))
+            {
+                //Recover the decryption request
+                Nip04EncryptRequest? request = await entity.GetJsonFromFileAsync<Nip04EncryptRequest>();
+
+                if (webm.Assert(request != null, "No decryption request received"))
+                {
+                    return VirtualClose(entity, webm, HttpStatusCode.BadRequest);
+                }
+
+                if (!EncryptMessageValidator.Validate(request, webm))
+                {
+                    return VirtualClose(entity, webm, HttpStatusCode.UnprocessableEntity);
+                }
+
+                //Recover the current user's key metadata
+                NostrKeyMeta? key = await _publicKeyStore.GetSingleUserRecordAsync(request.KeyId!, entity.Session.UserID);
+
+                if (webm.Assert(key != null, "Key metadata not found"))
+                {
+                    return VirtualClose(entity, webm, HttpStatusCode.NotFound);
+                }
+
+                VaultUserScope scope = new(entity.Session.UserID);
+                try
+                {
+                    //Try to encrypt the message
+                    webm.Result = await _vault.EncryptNoteAsync(
+                        scope,
+                        key,
+                        request.OtherPubKey!,
+                        request.PlainText!,
+                        entity.EventCancellation
+                    );
+
+                    webm.Success = true;
+                }
+                catch (CryptographicException)
+                {
+                    webm.Result = "Failed to encrypt the ciphertext";
+                }
+
                 return VirtualOk(entity, webm);
             }
 
@@ -398,6 +489,79 @@ namespace NVault.Plugins.Vault.Endpoints
                 });
 
                 return val;
+            }
+        }
+ 
+
+        sealed class Nip04DecryptRequest
+        {
+            [JsonPropertyName("KeyId")]
+            public string? KeyId { get; set; }
+
+            [JsonPropertyName("content")]
+            public string? Ciphertext { get; set; }
+
+            [JsonPropertyName("pubkey")]
+            public string? OtherPubKey { get; set; }
+
+            public static IValidator<Nip04DecryptRequest> GetValidator()
+            {
+                InlineValidator<Nip04DecryptRequest> validationRules = new();
+
+                validationRules.RuleFor(p => p.KeyId)
+                    .NotEmpty()!
+                    .AlphaNumericOnly()
+                    .Length(1, 100);
+
+                validationRules.RuleFor(p => p.Ciphertext)
+                    .NotEmpty()
+                    .Length(0, 10000)
+                    //Make sure iv exists
+                    .Must(ct => ct.Contains("iv?=", StringComparison.OrdinalIgnoreCase))
+                    //Check iv is not too long
+                    .Must(ct => ct.AsSpan().SliceAfterParam("iv?=").Length < 28);
+
+                //Pubpkey must be 64 hex characters
+                validationRules.RuleFor(p => p.OtherPubKey)
+                    .NotEmpty()
+                    .Length(64)
+                    .AlphaNumericOnly();
+
+                return validationRules;
+            }
+        }
+
+        sealed class Nip04EncryptRequest
+        {
+            [JsonPropertyName("KeyId")]
+            public string? KeyId { get; set; }
+
+            [JsonPropertyName("content")]
+            public string? PlainText { get; set; }
+
+            [JsonPropertyName("pubkey")]
+            public string? OtherPubKey { get; set; }
+
+            public static IValidator<Nip04EncryptRequest> GetValidator()
+            {
+                InlineValidator<Nip04EncryptRequest> validationRules = new();
+
+                validationRules.RuleFor(p => p.KeyId)
+                    .NotEmpty()!
+                    .AlphaNumericOnly()
+                    .Length(1, 100);
+
+                validationRules.RuleFor(p => p.PlainText)
+                    .NotEmpty()
+                    .Length(0, 10000);
+
+                //Pubpkey must be 64 hex characters
+                validationRules.RuleFor(p => p.OtherPubKey)
+                    .NotEmpty()
+                    .Length(64)
+                    .AlphaNumericOnly();
+
+                return validationRules;
             }
         }
     }

@@ -1,0 +1,18 @@
+
+.toaster {
+    position: fixed;
+    top: 15px;
+    right: 0;
+    z-index: 9999;
+    max-width: 230px;
+}
+
+.active-badge{
+    @apply text-white;
+    &.active{
+        @apply bg-primary-500 dark:bg-primary-600;
+    }
+    &.inactive{
+        
+    }
+}

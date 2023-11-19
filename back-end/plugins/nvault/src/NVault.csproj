@@ -21,8 +21,8 @@
 
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="11.8.0" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0037" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0037" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0042" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0042" />
     <PackageReference Include="VVNLib.Plugins.Extensions.Loading.Sql" Version="0.1.0-ci0034" />
   </ItemGroup>
 
@@ -31,9 +31,10 @@
     <ProjectReference Include="..\..\..\libs\NVault.VaultExtensions\src\NVault.VaultExtensions.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="example.NVault.json">
+    <None Update="NVault.example.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
 
 </Project>

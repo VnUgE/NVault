@@ -23,32 +23,36 @@ using VNLib.Utils.Extensions;
 
 namespace NVault.Crypto.Secp256k1
 {
+    
+    internal unsafe delegate int EcdhHasFunc(byte* output, byte* x32, byte* y32, void* data);
 
     public unsafe class LibSecp256k1 : VnDisposeable
     {
         public const int SecretKeySize = 32;
-        public const int XOnlyPublicKeySize = 32;
         public const int SignatureSize = 64;
-        public const int KeyPairSize = 96;
         public const int RandomBufferSize = 32;
+        public const int XOnlyPublicKeySize = 32;
 
         /*
          * Unsafe structures that represent the native keypair and x-only public key
          * structures. They hold character arrays
          */
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Size = 96)]
         internal struct KeyPair
         {
-            public fixed byte data[Length];
-            public const int Length = KeyPairSize;
+            public fixed byte data[96];
         }
 
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct XOnlyPubKey
+        /// <summary>
+        /// 1:1 with the secp256k1_pubkey structure
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential, Size = 64)]
+        internal struct Secp256k1PublicKey
         {
-            public fixed byte data[Length];
-            public const int Length = 64;
+            public fixed byte data[64];
         }
+
+      
 
         //Native methods
         [SafeMethodName("secp256k1_context_create")]
@@ -64,16 +68,31 @@ namespace NVault.Crypto.Secp256k1
         internal delegate int KeypairCreate(IntPtr context, KeyPair* keyPair, byte* secretKey);
 
         [SafeMethodName("secp256k1_keypair_xonly_pub")]
-        internal delegate int KeypairXOnlyPub(IntPtr ctx, XOnlyPubKey* pubkey, int pk_parity, KeyPair* keypair);
+        internal delegate int KeypairXOnlyPub(IntPtr ctx, Secp256k1PublicKey* pubkey, int pk_parity, KeyPair* keypair);
 
         [SafeMethodName("secp256k1_xonly_pubkey_serialize")]
-        internal delegate int XOnlyPubkeySerialize(IntPtr ctx, byte* output32, XOnlyPubKey* pubkey);
+        internal delegate int XOnlyPubkeySerialize(IntPtr ctx, byte* output32, Secp256k1PublicKey* pubkey);
 
         [SafeMethodName("secp256k1_schnorrsig_sign32")]
         internal delegate int SignHash(IntPtr ctx, byte* sig64, byte* msg32, KeyPair* keypair, byte* aux_rand32);
 
         [SafeMethodName("secp256k1_ec_seckey_verify")]
         internal delegate int SecKeyVerify(IntPtr ctx, in byte* seckey);
+
+        [SafeMethodName("secp256k1_ec_pubkey_serialize")]
+        internal delegate int PubKeySerialize(IntPtr ctx, byte* outPubKey, ulong* outLen, Secp256k1PublicKey* pubKey, uint flags);
+
+        [SafeMethodName("secp256k1_ecdh")]
+        internal delegate int Ecdh(
+            IntPtr ctx, 
+            byte* output, 
+            Secp256k1PublicKey* pubkey, 
+            byte* scalar,
+            EcdhHasFunc hashFunc, 
+            void* dataPtr
+        );
+
+        
 
         /// <summary>
         /// Loads the Secp256k1 library from the specified path and creates a wrapper class (loads methods from the library)
@@ -122,6 +141,8 @@ namespace NVault.Crypto.Secp256k1
         internal readonly XOnlyPubkeySerialize _serializeXonly;
         internal readonly SignHash _signHash;
         internal readonly SecKeyVerify _secKeyVerify;
+        internal readonly PubKeySerialize _pubKeySerialize;
+        internal readonly Ecdh _ecdh;
         private readonly IRandomSource _randomSource;
 
         /// <summary>
@@ -148,6 +169,8 @@ namespace NVault.Crypto.Secp256k1
             _serializeXonly = handle.DangerousGetMethod<XOnlyPubkeySerialize>();
             _signHash = handle.DangerousGetMethod<SignHash>();
             _secKeyVerify = handle.DangerousGetMethod<SecKeyVerify>();
+            _pubKeySerialize = handle.DangerousGetMethod<PubKeySerialize>();
+            _ecdh = handle.DangerousGetMethod<Ecdh>();
             
             //Store random source
             _randomSource = randomSource;

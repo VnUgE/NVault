@@ -14,10 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 using System;
+using System.Security.Cryptography;
+using System.Runtime.InteropServices;
 
 using NVault.Crypto.Secp256k1;
 
 using VNLib.Utils;
+using VNLib.Utils.Memory;
 
 namespace NVault.Plugins.Vault
 {
@@ -38,8 +41,90 @@ namespace NVault.Plugins.Vault
         /// <returns>The loaded <see cref="NativeSecp256k1Library"/></returns>
         public static NativeSecp256k1Library LoadLibrary(string libFilePath, IRandomSource? random)
         {
-            LibSecp256k1 lib = LibSecp256k1.LoadLibrary(libFilePath, System.Runtime.InteropServices.DllImportSearchPath.SafeDirectories, random);
+            LibSecp256k1 lib = LibSecp256k1.LoadLibrary(libFilePath, DllImportSearchPath.SafeDirectories, random);
             return new(lib);
+        }
+
+        ///<inheritdoc/>
+        public ERRNO DecryptMessage(ReadOnlySpan<byte> secretKey, ReadOnlySpan<byte> targetKey, ReadOnlySpan<byte> aesIv, ReadOnlySpan<byte> ciphterText, Span<byte> outputBuffer)
+        {
+            Check();
+            //Start with new context
+            using Secp256k1Context context = _lib.CreateContext();
+
+            //Randomize context
+            if (!context.Randomize())
+            {
+                return false;
+            }
+
+            //Get shared key
+            byte[] sharedKeyBuffer = new byte[32];
+
+            try
+            {
+                //Get the Secp256k1 shared key
+                context.ComputeSharedKey(sharedKeyBuffer, targetKey, secretKey, HashFuncCallback, IntPtr.Zero);
+
+                //Init the AES cipher
+                using Aes aes = Aes.Create();
+                aes.Key = sharedKeyBuffer;
+                aes.Mode = CipherMode.CBC;
+
+                return aes.DecryptCbc(ciphterText, aesIv, outputBuffer, PaddingMode.None);
+            }
+            finally
+            {
+                //Zero out buffers
+                MemoryUtil.InitializeBlock(sharedKeyBuffer.AsSpan());
+            }
+        }
+
+        ///<inheritdoc/>
+        public ERRNO EncryptMessage(ReadOnlySpan<byte> secretKey, ReadOnlySpan<byte> targetKey, ReadOnlySpan<byte> aesIv, ReadOnlySpan<byte> plainText, Span<byte> cipherText)
+        {
+            Check();
+            //Start with new context
+            using Secp256k1Context context = _lib.CreateContext();
+
+            //Randomize context
+            if (!context.Randomize())
+            {
+                return false;
+            }
+
+            //Get shared key
+            byte[] sharedKeyBuffer = new byte[32];
+
+            try
+            {
+                //Get the Secp256k1 shared key
+                context.ComputeSharedKey(sharedKeyBuffer, targetKey, secretKey, HashFuncCallback, IntPtr.Zero);
+
+                //Init the AES cipher
+                using Aes aes = Aes.Create();
+                aes.Key = sharedKeyBuffer;
+                aes.Mode = CipherMode.CBC;
+
+                return aes.EncryptCbc(plainText, aesIv, cipherText, PaddingMode.None);
+            }
+            finally
+            {
+                //Zero out buffers
+                MemoryUtil.InitializeBlock(sharedKeyBuffer.AsSpan());
+            }
+        }
+
+        static int HashFuncCallback(in Secp256HashFuncState state)
+        {
+            //Get function args
+            Span<byte> sharedKey = state.GetOutput();
+            ReadOnlySpan<byte> xCoord = state.GetXCoordArg();
+
+            //Nostr literally just uses the shared x coord as the shared key
+            xCoord.CopyTo(sharedKey);
+
+            return xCoord.Length;
         }
 
         //Key sizes are constant
@@ -87,6 +172,9 @@ namespace NVault.Plugins.Vault
         }
 
         ///<inheritdoc/>
+        public void GetRandomBytes(Span<byte> bytes) => _lib.GetRandomBytes(bytes);
+
+        ///<inheritdoc/>
         public bool TryGenerateKeyPair(Span<byte> publicKey, Span<byte> privateKey)
         {
             //Trim buffers to the exact size required to avoid exceptions in the native lib
@@ -120,5 +208,7 @@ namespace NVault.Plugins.Vault
         {
             _lib.Dispose();
         }
+
+        
     }
 }
