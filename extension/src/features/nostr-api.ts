@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Endpoints, useServerApi } from "./server-api";
+import { Endpoints } from "./server-api";
 import { type FeatureApi, type BgRuntime, type IFeatureExport, optionsOnly, exportForegroundApi } from "./framework";
 import { type AppSettings } from "./settings";
 import { useTagFilter } from "./tagfilter-api";
@@ -38,8 +38,8 @@ export const useNostrApi = (): IFeatureExport<AppSettings, NostrApi> => {
     return{
         background: ({ state }: BgRuntime<AppSettings>) =>{
            
-            const { execRequest } = useServerApi(state);
-            const { filterTags } = useTagFilter()
+            const { execRequest } = state.useServerApi();
+            const { filterTags } = useTagFilter(state)
 
             return {
                 getRelays: async (): Promise<NostrRelay[]> => {

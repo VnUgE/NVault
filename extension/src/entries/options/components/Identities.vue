@@ -158,11 +158,10 @@ const onNip05Download = () => {
         //create file blob
         const blob = new Blob([JSON.stringify({ names:nip05 })], { type: 'application/json' })
        
-        //Download the file
-        downloadAnchor.value!.href = URL.createObjectURL(blob);
-        downloadAnchor.value?.setAttribute('download', 'nostr.json')
-        downloadAnchor.value?.click();
-        
+        const anchor = get(downloadAnchor);
+        anchor!.href = URL.createObjectURL(blob);
+        anchor!.setAttribute('download', 'nip05.json')
+        anchor!.click();
     })
 }
 

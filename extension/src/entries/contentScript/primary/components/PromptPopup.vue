@@ -75,7 +75,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { usePrompt } from '../../nostr-shim.js'
+import { usePrompt, type UserPermissionRequest } from '../../util'
 import { computed } from 'vue';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
 import { clone, first } from 'lodash';
@@ -88,11 +88,7 @@ const keyName = computed(() => selectedKey.value?.UserName)
 
 const prompt = ref(null)
 
-interface PopupEvent{
-    type: string
-    msg: string
-    origin: string
-    data: any
+interface PopupEvent extends UserPermissionRequest {
     allow: () => void
     close: () => void
 }
@@ -117,7 +113,7 @@ const allow = () => {
 }
 
 //Listen for events
-usePrompt(async (ev: PopupEvent) => {
+usePrompt((ev: UserPermissionRequest):Promise<boolean> => {
 
     ev = clone(ev)
 

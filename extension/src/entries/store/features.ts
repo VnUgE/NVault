@@ -13,10 +13,10 @@ import {
     useSettingsApi,
     useForegoundFeatures,
     useEventTagFilterApi,
-    useInjectAllowList
+    useInjectAllowList,
+    onWatchableChange
 } from "../../features"
 
-import { onWatchableChange } from '../../features/types'
 import { ChannelContext } from '../../messaging'
 
 export type BgPlugins = ReturnType<typeof usePlugins>

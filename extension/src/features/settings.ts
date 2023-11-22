@@ -14,13 +14,15 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { storage } from "webextension-polyfill"
-import { isEmpty, merge } from 'lodash'
+import { } from 'lodash'
 import { configureApi, debugLog } from '@vnuge/vnlib.browser'
-import { readonly, ref, Ref } from "vue";
+import { MaybeRefOrGetter, readonly, Ref, shallowRef, watch } from "vue";
 import { JsonObject } from "type-fest";
-import { Watchable, useSingleSlotStorage } from "./types";
+import { Watchable } from "./types";
 import { BgRuntime, FeatureApi, optionsOnly, IFeatureExport, exportForegroundApi, popupAndOptionsOnly } from './framework'
-import { get, watchOnce } from "@vueuse/core";
+import { get, set, toRefs } from "@vueuse/core";
+import { waitForChangeFn, useStorage } from "./util";
+import { ServerApi, useServerApi } from "./server-api";
 
 export interface PluginConfig extends JsonObject {
     readonly apiUrl: string;
@@ -42,9 +44,9 @@ const defaultConfig : PluginConfig = {
 };
 
 export interface AppSettings{
-    getCurrentConfig: () => Promise<PluginConfig>;
-    restoreApiSettings: () => Promise<void>;
-    saveConfig: (config: PluginConfig) => Promise<void>;
+    saveConfig(config: PluginConfig): void;
+    useStorageSlot<T>(slot: string, defaultValue: MaybeRefOrGetter<T>): Ref<T>;
+    useServerApi(): ServerApi,
     readonly currentConfig: Readonly<Ref<PluginConfig>>;
 }
 
@@ -56,27 +58,11 @@ export interface SettingsApi extends FeatureApi, Watchable {
 }
 
 export const useAppSettings = (): AppSettings => {
-    const currentConfig = ref<PluginConfig>({} as PluginConfig);
-    const store = useSingleSlotStorage<PluginConfig>(storage.local, 'siteConfig', defaultConfig);
 
-    const getCurrentConfig = async () => {
+    const _storageBackend = storage.local;
+    const store = useStorage<PluginConfig>(_storageBackend, 'siteConfig', defaultConfig);
 
-        const siteConfig = await store.get()
-
-        //Store a default config if none exists
-        if (isEmpty(siteConfig)) {
-            await store.set(defaultConfig);
-        }
-
-        //Merge the default config with the site config
-        return merge(defaultConfig, siteConfig)
-    }
-
-    const restoreApiSettings = async () => {
-        //Set the current config
-        const current = await getCurrentConfig();
-        currentConfig.value = current;
-
+    watch(store, (config, _) => {
         //Configure the vnlib api
         configureApi({
             session: {
@@ -84,74 +70,58 @@ export const useAppSettings = (): AppSettings => {
                 browserIdSize: 32,
             },
             user: {
-                accountBasePath: current.accountBasePath,
+                accountBasePath: config.accountBasePath,
             },
             axios: {
-                baseURL: current.apiUrl,
+                baseURL: config.apiUrl,
                 tokenHeader: import.meta.env.VITE_WEB_TOKEN_HEADER,
             },
             storage: localStorage
         })
-    }
 
-    const saveConfig = async (config: PluginConfig) => {
-        //Save the config and update the current config
-        await store.set(config);
-        currentConfig.value = config;
-    }
+    }, { deep: true })
+
+    //Save the config and update the current config
+    const saveConfig = (config: PluginConfig) => set(store, config);
+
+    //Reactive urls for server api
+    const { accountBasePath, nostrEndpoint } = toRefs(store)
+    const serverApi = useServerApi(nostrEndpoint, accountBasePath)
 
     return {
-        getCurrentConfig,
-        restoreApiSettings,
         saveConfig,
-        currentConfig:readonly(currentConfig)
+        currentConfig: readonly(store),
+        useStorageSlot: <T>(slot: string, defaultValue: MaybeRefOrGetter<T>) => {
+            return useStorage<T>(_storageBackend, slot, defaultValue)
+        },
+        useServerApi: () => serverApi
     }
 }
 
 export const useSettingsApi = () : IFeatureExport<AppSettings, SettingsApi> =>{
 
     return{
-        background: ({ state, onConnected, onInstalled }: BgRuntime<AppSettings>) => {
+        background: ({ state }: BgRuntime<AppSettings>) => {
 
-            const _darkMode = ref(false);
-
-            onInstalled(async () => {
-                await state.restoreApiSettings();
-                debugLog('Server settings restored from storage');
-            })
-
-            onConnected(async () => {
-                //refresh the config on connect
-                await state.restoreApiSettings();
-            })
+            const _darkMode = shallowRef(false);
 
             return {
-
-                getSiteConfig: () => state.getCurrentConfig(),
-
+                waitForChange: waitForChangeFn([state.currentConfig, _darkMode]),
+                getSiteConfig: () => Promise.resolve(state.currentConfig.value),
                 setSiteConfig: optionsOnly(async (config: PluginConfig): Promise<PluginConfig> => {
 
                     //Save the config
-                    await state.saveConfig(config);
-
-                    //Restore the api settings
-                    await state.restoreApiSettings();
+                    state.saveConfig(config);
 
                     debugLog('Config settings saved!');
 
                     //Return the config
-                    return state.currentConfig.value
+                    return get(state.currentConfig)
                 }),
-
                 setDarkMode: popupAndOptionsOnly(async (darkMode: boolean) => {
-                    console.log('Setting dark mode to', darkMode, 'from', _darkMode.value)
                     _darkMode.value = darkMode 
                 }),
                 getDarkMode: async () => get(_darkMode),
-
-                waitForChange: () => {
-                    return new Promise((resolve) => watchOnce([state.currentConfig, _darkMode] as any, () => resolve()))
-                },
             }
         },
         foreground: exportForegroundApi([

@@ -7,7 +7,7 @@
                     Extension settings
                 </h3>
                 <div class="my-6">
-                    <fieldset :disabled="waiting.value">
+                    <fieldset :disabled="waiting">
                         <div class="">
                             <div class="w-full">
                                 <div class="flex flex-row w-full">
@@ -139,7 +139,7 @@ const { apply, data, buffer, modified, update } = useDataBuffer(settings.value, 
 })
 
 //Watch for store settings changes and apply them
-watch(settings, v => apply(v.value))
+watch(settings, v => apply(v))
 
 const originProtection = computed({
     get: () => isOriginProtectionOn.value,
@@ -195,7 +195,6 @@ const onSave = async () => {
     //disable dit
     toggleEdit();
 }
-
 
 const testConnection = async () =>{
     return await apiCall(async ({axios, toaster}) =>{

@@ -14,12 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import { computed } from "vue"
+import { Ref } from "vue"
 import { get } from '@vueuse/core'
 import { type WebMessage, type UserProfile } from "@vnuge/vnlib.browser"
 import { initEndponts } from "./endpoints"
 import { cloneDeep } from "lodash"
-import { type AppSettings } from "../settings"
 import type { EncryptionRequest, NostrEvent, NostrPubKey, NostrRelay } from "../types"
 
 export enum Endpoints {
@@ -48,12 +47,12 @@ export interface ExecRequestHandler{
     (id: Endpoints.UpdateProfile, profile: UserProfile):Promise<string>
 }
 
-export const useServerApi = (settings: AppSettings): { execRequest: ExecRequestHandler } => {
-    const { registerEndpoint, execRequest } = initEndponts()
+export interface ServerApi{
+    execRequest: ExecRequestHandler
+}
 
-    //ref to nostr endpoint url
-    const nostrUrl = computed(() => settings.currentConfig.value.nostrEndpoint || '/nostr');
-    const accUrl = computed(() => settings.currentConfig.value.accountBasePath || '/account');
+export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): ServerApi => {
+    const { registerEndpoint, execRequest } = initEndponts()
 
     registerEndpoint({
         id: Endpoints.GetKeys,

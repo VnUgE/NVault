@@ -13,36 +13,39 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { storage } from "webextension-polyfill";
-import { NostrEvent, TaggedNostrEvent, useSingleSlotStorage } from "./types";
+import { TaggedNostrEvent, Watchable } from "./types";
 import { filter, isEmpty, isEqual, isRegExp } from "lodash";
 import { BgRuntime, FeatureApi, IFeatureExport, exportForegroundApi } from "./framework";
 import { AppSettings } from "./settings";
+import { get, toRefs } from "@vueuse/core";
+import { waitForChangeFn } from "./util";
 
 interface EventTagFilteStorage {
     filters: string[];
+    enabled: boolean;
 }
 
-export interface EventTagFilterApi extends FeatureApi {
+export interface EventTagFilterApi extends FeatureApi, Watchable {
     filterTags(event: TaggedNostrEvent): Promise<void>;
     addFilter(tag: string): Promise<void>;
     removeFilter(tag: string): Promise<void>;
     addFilters(tags: string[]): Promise<void>;
+    isEnabled(): Promise<boolean>;
+    enable(value:boolean): Promise<void>;
 }
 
-export const useTagFilter = () => {
+export const useTagFilter = (settings: AppSettings): EventTagFilterApi => {
     //use storage
-    const { get, set } = useSingleSlotStorage<EventTagFilteStorage>(storage.local, 'tag-filter-struct', { filters: [] });
+    const store = settings.useStorageSlot<EventTagFilteStorage>('tag-filter-struct', { filters: [], enabled: false });
+    const { filters, enabled } = toRefs(store)
 
     return {
+        waitForChange: waitForChangeFn([filters, enabled]),
         filterTags: async (event: TaggedNostrEvent): Promise<void> => {
 
             if(!event.tags){
                 return;
             }
-
-            //Load latest filter list
-            const data = await get();
 
             if(isEmpty(event.tags)){
                 return;
@@ -58,13 +61,13 @@ export const useTagFilter = () => {
                     return false;
                 }
 
-                if(!data.filters.length){
+                if(!filters.value.length){
                     return true;
                 }
 
                 const asString = tagName.toString();
 
-                for (const filter of data.filters) {
+                for (const filter of get(filters)) {
                     //if the filter is a regex, test it, if it fails, its allowed
                     if (isRegExp(filter)) {
                         if (filter.test(asString)) {
@@ -85,35 +88,32 @@ export const useTagFilter = () => {
             event.tags = allowedTags;
         },
         addFilter: async (tag: string) => {
-            const data = await get();
             //add new filter to list
-            data.filters.push(tag);
-            //save new config
-            await set(data);
+            filters.value.push(tag);
         },
         removeFilter: async (tag: string) => {
-            const data = await get();
             //remove filter from list
-            data.filters = filter(data.filters, (t) => !isEqual(t, tag));
-            //save new config
-            await set(data);
+            filters.value = filter(filters.value, t => !isEqual(t, tag));
         },
         addFilters: async (tags: string[]) => {
-            const data = await get();
             //add new filters to list
-            data.filters.push(...tags);
-            //save new config
-            await set(data);
+            filters.value.push(...tags);
+        },
+        isEnabled: async () => {
+            return enabled.value;
+        },
+        enable: async (value:boolean) => {
+            enabled.value = value;
         }
     }
 }
 
 export const useEventTagFilterApi = (): IFeatureExport<AppSettings, EventTagFilterApi>  => {
     return{
-        background: ({ }: BgRuntime<AppSettings>) => {
+        background: ({ state }: BgRuntime<AppSettings>) => {
             return{
-                ...useTagFilter()
-            }            
+                ...useTagFilter(state)
+            }
         },
         foreground: exportForegroundApi([
             'filterTags',

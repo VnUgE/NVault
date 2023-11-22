@@ -2,9 +2,8 @@
 import 'pinia'
 import {  } from 'lodash'
 import { PiniaPluginContext } from 'pinia'
-import { NostrPubKey } from '../../features'
+import { onWatchableChange, type NostrPubKey } from '../../features'
 import { shallowRef } from 'vue';
-import { onWatchableChange } from '../../features/types';
 
 declare module 'pinia' {
     export interface PiniaCustomStateProperties {
@@ -16,7 +15,6 @@ declare module 'pinia' {
         selectKey(key: NostrPubKey): Promise<void>;
     }
 }
-
 
 export const identityPlugin = ({ store }: PiniaPluginContext) => {
 

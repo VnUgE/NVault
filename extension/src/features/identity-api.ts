@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Endpoints, useServerApi } from "./server-api";
+import { Endpoints } from "./server-api";
 import { NostrPubKey, Watchable } from "./types";
 import { 
     type FeatureApi, 
@@ -26,8 +26,9 @@ import {
 import { AppSettings } from "./settings";
 import { shallowRef, watch } from "vue";
 import { useSession } from "@vnuge/vnlib.browser";
-import { set, useToggle, watchOnce } from "@vueuse/core";
+import { set, useToggle } from "@vueuse/core";
 import { defer, isArray } from "lodash";
+import { waitForChange, waitForChangeFn } from "./util";
 
 export interface IdentityApi extends FeatureApi, Watchable {
     createIdentity: (identity: NostrPubKey) => Promise<NostrPubKey>
@@ -41,13 +42,13 @@ export interface IdentityApi extends FeatureApi, Watchable {
 export const useIdentityApi = (): IFeatureExport<AppSettings, IdentityApi> => {
     return{
         background: ({ state }: BgRuntime<AppSettings>) =>{
-            const { execRequest } = useServerApi(state);
+            const { execRequest } = state.useServerApi();
             const { loggedIn } = useSession();
 
             //Get the current selected key
             const selectedKey = shallowRef<NostrPubKey | undefined>();
             const allKeys = shallowRef<NostrPubKey[]>([]);
-            const [ onTriggered , triggerChange ] = useToggle()
+            const [ onKeyUpdateTriggered , triggerKeyUpdate ] = useToggle()
 
             const keyLoadWatchLoop = async () => {
                 while(true){
@@ -62,7 +63,7 @@ export const useIdentityApi = (): IFeatureExport<AppSettings, IdentityApi> => {
                     }
 
                     //Wait for changes to trigger a new key-load
-                    await new Promise((resolve) => watchOnce([onTriggered, loggedIn] as any, () => resolve(null)))
+                    await waitForChange([loggedIn, onKeyUpdateTriggered])
                 }
             }
 
@@ -74,16 +75,18 @@ export const useIdentityApi = (): IFeatureExport<AppSettings, IdentityApi> => {
             return {
                 //Identity is only available in options context
                 createIdentity: optionsOnly(async (id: NostrPubKey) => {
-                    await execRequest(Endpoints.CreateId, id)
-                    triggerChange()
+                   const newKey = await execRequest(Endpoints.CreateId, id)
+                    triggerKeyUpdate()
+                    return newKey
                 }),
                 updateIdentity: optionsOnly(async (id: NostrPubKey) => {
-                    await execRequest(Endpoints.UpdateId, id)
-                    triggerChange()
+                    const updated = await execRequest(Endpoints.UpdateId, id)
+                    triggerKeyUpdate()
+                    return updated
                 }),
                 deleteIdentity: optionsOnly(async (key: NostrPubKey) => {
                     await execRequest(Endpoints.DeleteKey, key);
-                    triggerChange()
+                    triggerKeyUpdate()
                 }),
                 selectKey: popupAndOptionsOnly((key: NostrPubKey): Promise<void> => {
                     set(selectedKey, key);
@@ -95,10 +98,8 @@ export const useIdentityApi = (): IFeatureExport<AppSettings, IdentityApi> => {
                 getPublicKey: (): Promise<NostrPubKey | undefined> => {
                     return Promise.resolve(selectedKey.value);
                 },
-                waitForChange: () => {
-                    return new Promise((resolve) => watchOnce([selectedKey, loggedIn, onTriggered] as any, () => resolve()))
-                }
-            }  
+                waitForChange: waitForChangeFn([selectedKey, loggedIn, allKeys])
+            }
         },
         foreground: exportForegroundApi([
             'createIdentity',

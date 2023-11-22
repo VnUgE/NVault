@@ -3,15 +3,15 @@ import 'pinia'
 import {  } from 'lodash'
 import { PiniaPluginContext } from 'pinia'
 import { computed, shallowRef } from 'vue';
-import { onWatchableChange } from '../../features/types';
+import { onWatchableChange } from '../../features';
 import { type AllowedOriginStatus } from '../../features/nip07allow-api';
 
 declare module 'pinia' {
     export interface PiniaCustomProperties {
-        isTabAllowed: boolean;
-        currentOrigin: string | undefined;
-        allowedOrigins: Array<string>;
-        isOriginProtectionOn: boolean;
+        readonly isTabAllowed: boolean;
+        readonly currentOrigin: string | undefined;
+        readonly allowedOrigins: Array<string>;
+        readonly isOriginProtectionOn: boolean;
         allowOrigin(origin?:string): Promise<void>;
         dissallowOrigin(origin?:string): Promise<void>;
         disableOriginProtection(): Promise<void>;

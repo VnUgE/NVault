@@ -14,13 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { AxiosInstance } from "axios";
-import { get, watchOnce } from "@vueuse/core";
+import { get } from "@vueuse/core";
 import { computed } from "vue";
 import { usePkiAuth, useSession, useUser } from "@vnuge/vnlib.browser";
-import { type FeatureApi, type BgRuntime, type IFeatureExport, exportForegroundApi, popupAndOptionsOnly, popupOnly } from "./framework";
 import type { ClientStatus } from "./types";
 import type { AppSettings } from "./settings";
 import type { JsonObject } from "type-fest";
+import { type FeatureApi, type BgRuntime, type IFeatureExport, exportForegroundApi, popupAndOptionsOnly, popupOnly } from "./framework";
+import { waitForChangeFn } from "./util";
 
 export interface ProectedHandler<T extends JsonObject> {
     (message: T): Promise<any>
@@ -77,14 +78,13 @@ export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
             onInstalled(() => {
                 //Configure interval to run every 5 minutes to update the status
                 setInterval(runHeartbeat, 60 * 1000);
-
                 //Run immediately
                 runHeartbeat();
-
                 return Promise.resolve();
             })
 
             return {
+                waitForChange: waitForChangeFn([currentConfig, loggedIn, userName]),
                 login: popupOnly(async (token: string): Promise<boolean> => {
                     //Perform login
                     await login(token)
@@ -107,9 +107,6 @@ export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
                         userName: get(userName),
                     } as ClientStatus
                 },
-                async waitForChange(){
-                    return new Promise((resolve) => watchOnce([currentConfig, loggedIn] as any, () => resolve()))
-                }
             }
         },
         foreground: exportForegroundApi<UserApi>([

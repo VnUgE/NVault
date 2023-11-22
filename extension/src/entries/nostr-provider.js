@@ -74,9 +74,9 @@ window.nostr = {
   } ,
 
   async signEvent(event){
-    const { event:ev } = await sendMessage('signEvent', { event })
-    debugLog("Signed event", ev);
-    return ev
+    const signed = await sendMessage('signEvent', { event })
+    debugLog("Signed event", signed);
+    return signed
   },
 
    getRelays(){

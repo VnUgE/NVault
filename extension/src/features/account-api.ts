@@ -13,16 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { useMfaConfig, usePkiConfig, PkiPublicKey, debugLog } from "@vnuge/vnlib.browser";
+import { useMfaConfig, usePkiConfig, type PkiPublicKey } from "@vnuge/vnlib.browser";
 import { ArrayToHexString, Base64ToUint8Array } from "@vnuge/vnlib.browser/dist/binhelpers";
 import { JsonObject } from "type-fest";
-import { useSingleSlotStorage } from "./types";
 import { computed, watch } from "vue";
-import { storage } from "webextension-polyfill";
 import { JWK, SignJWT, importJWK } from "jose";
-import { cloneDeep } from "lodash";
+import { clone } from "lodash";
 import { FeatureApi, BgRuntime, IFeatureExport, exportForegroundApi, optionsOnly, popupAndOptionsOnly } from "./framework";
 import { AppSettings } from "./settings";
+import { set, toRefs } from "@vueuse/core";
 
 
 export interface EcKeyParams extends JsonObject {
@@ -83,7 +82,7 @@ export const usePkiApi = (): IFeatureExport<AppSettings, PkiApi> => {
 
 interface PkiSettings {
     userName: string,
-    privateKey?:JWK
+    privateKey:JWK | undefined
 }
 
 export interface LocalPkiApi extends FeatureApi {
@@ -97,17 +96,17 @@ export const useLocalPki = (): IFeatureExport<AppSettings, LocalPkiApi> => {
     return{
         //Setup registration
         background: ({ state } : BgRuntime<AppSettings>) =>{
-            const { get, set } = useSingleSlotStorage<PkiSettings>(storage.local, 'pki-settings')
+            const store = state.useStorageSlot<PkiSettings>('pki-settings', { userName: '', privateKey: undefined })
+            const { userName, privateKey } = toRefs(store)
 
             const getPubKey = async (): Promise<PkiPubKey | undefined> => {
-                const setting = await get()
 
-                if (!setting?.privateKey) {
+                if (!privateKey.value) {
                     return undefined
                 }
 
                 //Clone the private key, remove the private parts
-                const c = cloneDeep(setting.privateKey)
+                const c = clone(privateKey.value)
 
                 delete c.d
                 delete c.p
@@ -118,12 +117,12 @@ export const useLocalPki = (): IFeatureExport<AppSettings, LocalPkiApi> => {
 
                 return {
                     ...c,
-                    userName: setting.userName
+                    userName: userName.value
                 } as PkiPubKey
             }
 
             return{
-                regenerateKey: optionsOnly(async (userName:string, params:EcKeyParams) => {
+                regenerateKey: optionsOnly(async (uname:string, params:EcKeyParams) => {
                     const p = {
                         ...params,
                         name: "ECDSA",
@@ -133,46 +132,47 @@ export const useLocalPki = (): IFeatureExport<AppSettings, LocalPkiApi> => {
                     const key = await window.crypto.subtle.generateKey(p, true, ['sign', 'verify'])
 
                     //Convert to jwk
-                    const privateKey = await window.crypto.subtle.exportKey('jwk', key.privateKey) as JWK;
+                    const newKey = await window.crypto.subtle.exportKey('jwk', key.privateKey) as JWK;
 
                     //Convert to base64 so we can hash it easier
-                    const b = btoa(privateKey.x! + privateKey.y!);
+                    const b = btoa(newKey.x! + newKey.y!);
 
                     //take sha256 of the binary version of the coords
                     const digest = await crypto.subtle.digest('SHA-256', Base64ToUint8Array(b));
 
                     //Set the kid
-                    privateKey.kid = ArrayToHexString(digest);
+                    newKey.kid = ArrayToHexString(digest);
 
                     //Serial number is random hex
                     const serial = new Uint8Array(32)
                     crypto.getRandomValues(serial)
-                    privateKey.serial = ArrayToHexString(serial);
+                    newKey.serial = ArrayToHexString(serial);
 
-                    //Save the key
-                    await set({ userName, privateKey })
+                    //Set the username
+                    set(userName, uname)
+                    set(privateKey, newKey)
                 }),
                 getPubKey: optionsOnly(getPubKey),
                 generateOtp: optionsOnly(async () =>{
-                    const setting = await get()
-                    if (!setting?.privateKey) {
+                   
+                    if (!privateKey.value) {
                         throw new Error('No key found')
                     }
 
-                    const privKey = await importJWK(setting.privateKey as JWK)
+                    const privKey = await importJWK(privateKey.value as JWK)
 
                     const random = new Uint8Array(32)
                     crypto.getRandomValues(random)
 
                     const jwt = new SignJWT({
-                        'sub': setting.userName,
+                        'sub': userName.value,
                         'n': ArrayToHexString(random),
-                        keyid: setting.privateKey.kid,
-                        serial: privKey.serial
+                        keyid: privateKey.value.kid,
+                        serial: (privKey as any).serial
                     });
 
                     const token = await jwt.setIssuedAt()
-                        .setProtectedHeader({ alg: setting.privateKey.alg! })
+                        .setProtectedHeader({ alg: privateKey.value.alg! })
                         .setIssuer(state.currentConfig.value.apiUrl)
                         .setExpirationTime('30s')
                         .sign(privKey)

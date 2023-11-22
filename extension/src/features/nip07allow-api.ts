@@ -13,13 +13,14 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { storage, tabs, type Tabs } from "webextension-polyfill";
-import { Watchable, useSingleSlotStorage } from "./types";
+import { tabs, type Tabs } from "webextension-polyfill";
+import { Watchable } from "./types";
 import { defaultTo, filter, includes, isEqual } from "lodash";
 import { BgRuntime, FeatureApi, IFeatureExport, exportForegroundApi, popupAndOptionsOnly } from "./framework";
 import { AppSettings } from "./settings";
-import { set, get, watchOnce, useToggle } from "@vueuse/core";
+import { set, get, toRefs } from "@vueuse/core";
 import { computed, shallowRef } from "vue";
+import { waitForChangeFn } from "./util";
 
 interface AllowedSites{
     origins: string[];
@@ -41,14 +42,10 @@ export interface InjectAllowlistApi extends FeatureApi, Watchable {
 
 export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlistApi> => {
     return {
-        background: ({ }: BgRuntime<AppSettings>) => {
+        background: ({ state }: BgRuntime<AppSettings>) => {
 
-            const store = useSingleSlotStorage<AllowedSites>(storage.local, 'nip07-allowlist', { origins: [], enabled: true });
-            
-            //watch current tab
-            const allowedOrigins = shallowRef<string[]>([])
-            const protectionEnabled = shallowRef<boolean>(true)
-            const [manullyTriggered, trigger] = useToggle()
+            const store = state.useStorageSlot<AllowedSites>('nip07-allowlist', { origins: [], enabled: true });
+            const { origins, enabled } = toRefs(store)
 
             const { currentOrigin, currentTab } = (() => {
 
@@ -72,19 +69,9 @@ export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlis
                 return { currentTab, currentOrigin }
             })()
 
-            const writeChanges = async () => {
-                await store.set({ origins: get(allowedOrigins), enabled: get(protectionEnabled) })
-            }
-
-            //Initial load
-            store.get().then((data) => {
-                allowedOrigins.value = data.origins
-                protectionEnabled.value = data.enabled
-            })
-
             const isOriginAllowed = (origin?: string): boolean => {
                 //If protection is not enabled, allow all
-                if(protectionEnabled.value == false){
+                if(enabled.value == false){
                     return true;
                 }
                 //if no origin specified, use current origin
@@ -97,7 +84,7 @@ export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlis
 
                 //Default to origin only
                 const originOnly = new URL(origin).origin
-                return includes(allowedOrigins.value, originOnly)
+                return includes(origins.value, originOnly)
             }
 
             const addOrigin = async (origin?: string): Promise<void> => {
@@ -110,13 +97,9 @@ export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlis
                 const originOnly = new URL(newOrigin).origin
 
                 //See if origin is already in the list
-                if (!includes(allowedOrigins.value, originOnly)) {
+                if (!includes(origins.value, originOnly)) {
                     //Add to the list
-                    allowedOrigins.value.push(originOnly);
-                    trigger();
-
-                    //Save changes
-                    await writeChanges()
+                    origins.value.push(originOnly);
 
                     //If current tab was added, reload the tab
                     if (!origin) {
@@ -134,39 +117,31 @@ export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlis
 
                 //Get origin part of url
                 const delOriginOnly = new URL(delOrigin).origin
-                const allowList = get(allowedOrigins)
+                const allowList = get(origins)
 
                 //Remove the origin
-                allowedOrigins.value = filter(allowList, (o) => !isEqual(o, delOriginOnly));
-                trigger();
-
-                await writeChanges()
+                origins.value = filter(allowList, (o) => !isEqual(o, delOriginOnly));
 
                 //If current tab was removed, reload the tab
                 if (!origin) {
                     await tabs.reload(currentTab.value?.id)
                 }
             }
-           
 
             return {
+                waitForChange: waitForChangeFn([currentTab, enabled, origins]),
                 addOrigin: popupAndOptionsOnly(addOrigin),
                 removeOrigin: popupAndOptionsOnly(removeOrigin),
                 enable: popupAndOptionsOnly(async (value: boolean): Promise<void> => {
-                    set(protectionEnabled, value)
-                    await writeChanges()
+                    set(enabled, value)
                 }),
                 async getStatus(): Promise<AllowedOriginStatus> {
                     return{
-                        allowedOrigins: get(allowedOrigins),
-                        enabled: get(protectionEnabled),
+                        allowedOrigins: get(origins),
+                        enabled: get(enabled),
                         currentOrigin: get(currentOrigin),
                         isAllowed: isOriginAllowed()
                     }
-                },
-                async waitForChange() {
-                    //Wait for the trigger to change
-                    await new Promise((resolve) => watchOnce([currentTab, protectionEnabled, manullyTriggered] as any, () => resolve(null)));
                 },
             }
         },

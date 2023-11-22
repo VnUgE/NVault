@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-
+import { runtime } from "webextension-polyfill";
 import { createApp } from "vue";
 import { createPinia } from 'pinia';
 import { useBackgroundPiniaPlugin, identityPlugin, originPlugin } from '../../store'
@@ -25,7 +25,7 @@ import '@fontsource/noto-sans-masaram-gondi'
 //We need inline styles to inject into the shadow dom
 import tw from "~/assets/all.scss?inline";
 import localStyle from './style.scss?inline'
-import { onLoad } from "../nostr-shim";
+import { onLoad } from "../util";
 import { defer } from "lodash";
 
 /* FONT AWESOME CONFIG */
@@ -34,6 +34,10 @@ import { faCircleInfo } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 library.add(faCircleInfo)
+
+//The extension name, same as nostr-provider script path
+const ext = '@vnuge/nvault-extension'
+const scriptUrl = runtime.getURL('src/entries/nostr-provider.js')
 
 renderContent([], (appRoot, shadowRoot) => {
 
@@ -62,5 +66,5 @@ renderContent([], (appRoot, shadowRoot) => {
   .mount(appRoot);
 
   //Load the nostr shim
-  defer(onLoad)
+  defer(() => onLoad(ext, scriptUrl))
 });
