@@ -3,7 +3,7 @@ import 'pinia'
 import {  } from 'lodash'
 import { PiniaPluginContext } from 'pinia'
 import { NostrPubKey } from '../../features'
-import { ref } from 'vue';
+import { shallowRef } from 'vue';
 import { onWatchableChange } from '../../features/types';
 
 declare module 'pinia' {
@@ -22,17 +22,22 @@ export const identityPlugin = ({ store }: PiniaPluginContext) => {
 
     const { identity } = store.plugins
 
-    const allKeys = ref<NostrPubKey[]>([])
-    const selectedKey = ref<NostrPubKey | undefined>(undefined)
+    const originalReset = store.$reset.bind(store)
+    const allKeys = shallowRef<NostrPubKey[]>([])
+    const selectedKey = shallowRef<NostrPubKey | undefined>(undefined)
 
     onWatchableChange(identity, async () => {
+        console.log('Identity changed')
         allKeys.value = await identity.getAllKeys();
-        //Get the current key
         selectedKey.value = await identity.getPublicKey();
-        console.log('Selected key is now', selectedKey.value)
     }, { immediate:true })
 
     return {
+        $reset(){
+            originalReset()
+            allKeys.value = []
+            selectedKey.value = undefined
+        },
         selectedKey,
         allKeys,
         selectKey: identity.selectKey,

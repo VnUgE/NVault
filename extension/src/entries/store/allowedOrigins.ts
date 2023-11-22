@@ -2,7 +2,7 @@
 import 'pinia'
 import {  } from 'lodash'
 import { PiniaPluginContext } from 'pinia'
-import { computed, ref } from 'vue';
+import { computed, shallowRef } from 'vue';
 import { onWatchableChange } from '../../features/types';
 import { type AllowedOriginStatus } from '../../features/nip07allow-api';
 
@@ -22,7 +22,7 @@ declare module 'pinia' {
 export const originPlugin = ({ store }: PiniaPluginContext) => {
    
     const { plugins } = store
-    const status = ref<AllowedOriginStatus>()
+    const status = shallowRef<AllowedOriginStatus>()
 
     onWatchableChange(plugins.allowedOrigins, async () => {
         //Update the status

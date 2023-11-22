@@ -69,9 +69,8 @@ window.addEventListener('message', ({ data }) => {
 window.nostr = {
   
   //Redirect calls to the background script
-  async getPublicKey(){
-    const { PublicKey } = await sendMessage('getPublicKey', {})
-    return PublicKey
+  getPublicKey(){
+    return sendMessage('getPublicKey', {})
   } ,
 
   async signEvent(event){
@@ -80,9 +79,8 @@ window.nostr = {
     return ev
   },
 
-  async getRelays(){
-    const { relays } = await sendMessage('getRelays', {})
-    return relays
+   getRelays(){
+    return sendMessage('getRelays', {})
   },
 
   nip04: {

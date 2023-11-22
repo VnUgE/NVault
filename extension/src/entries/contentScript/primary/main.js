@@ -28,6 +28,13 @@ import localStyle from './style.scss?inline'
 import { onLoad } from "../nostr-shim";
 import { defer } from "lodash";
 
+/* FONT AWESOME CONFIG */
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { faCircleInfo } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+
+library.add(faCircleInfo)
+
 renderContent([], (appRoot, shadowRoot) => {
 
   //Create the background feature wiring
@@ -38,14 +45,6 @@ renderContent([], (appRoot, shadowRoot) => {
     .use(identityPlugin)
     .use(originPlugin)
 
-  createApp(App)
-  .use(store)
-  .use(Notification)
-  .mount(appRoot);
-
-  //Load the nostr shim
-  defer(onLoad)
-
   //Add tailwind styles just to the shadow dom element
   const style = document.createElement('style')
   style.innerHTML = tw.toString()
@@ -55,4 +54,13 @@ renderContent([], (appRoot, shadowRoot) => {
   const style2 = document.createElement('style')
   style2.innerHTML = localStyle.toString()
   shadowRoot.appendChild(style2)
+
+  createApp(App)
+  .use(store)
+  .use(Notification)
+  .component('fa-icon', FontAwesomeIcon)
+  .mount(appRoot);
+
+  //Load the nostr shim
+  defer(onLoad)
 });

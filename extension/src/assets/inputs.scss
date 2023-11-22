@@ -45,8 +45,9 @@ label.checkbox {
 
 /*Select */
 select.input {
+    @apply appearance-none;
     option {
-        @apply dark:bg-dark-700 ;
+        @apply dark:bg-dark-700 p-0 m-0;
     }
 }
 

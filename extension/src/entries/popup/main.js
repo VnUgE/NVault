@@ -24,10 +24,10 @@ import "./local.scss"
 
 /* FONT AWESOME CONFIG */
 import { library } from '@fortawesome/fontawesome-svg-core'
-import { faArrowRightFromBracket, faCopy, faEdit, faGear, faMinus, faPlus, faSpinner } from '@fortawesome/free-solid-svg-icons'
+import { faArrowRightFromBracket, faCopy, faEdit, faGear, faMinus, faMoon, faPlus, faSpinner, faSun } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
-library.add(faSpinner, faEdit, faGear, faCopy, faArrowRightFromBracket, faPlus, faMinus)
+library.add(faSpinner, faEdit, faGear, faCopy, faArrowRightFromBracket, faPlus, faMinus, faSun, faMoon)
 
 const bgPlugin = useBackgroundPiniaPlugin('popup')
 

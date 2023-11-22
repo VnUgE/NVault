@@ -17,7 +17,6 @@ import { runtime } from "webextension-polyfill"
 import { isEqual, isNil, isEmpty } from 'lodash'
 import { apiCall } from '@vnuge/vnlib.browser'
 import { useScriptTag, watchOnce } from "@vueuse/core"
-import { createPort } from '../../webext-bridge/'
 import { useStore } from '../store'
 import { storeToRefs } from 'pinia'
 
@@ -34,11 +33,14 @@ export const usePrompt = (callback) => _promptHandler.set(callback);
 
 export const onLoad = async () =>{
 
+    const store = useStore()
+    const { nostr } = store.plugins
+    const { isTabAllowed, selectedKey } = storeToRefs(store)
+
     const injectHandler = () => {
 
         //Setup listener for the content script to process nostr messages
         const ext = '@vnuge/nvault-extension'
-        const { sendMessage } = createPort('content-script')
 
         const scriptUrl = runtime.getURL('src/entries/nostr-provider.js')
 
@@ -47,6 +49,14 @@ export const onLoad = async () =>{
 
         //Only listen for messages if injection is enabled
         window.addEventListener('message', async ({ source, data, origin }) => {
+
+            const invokePrompt = async (cb) => {
+                //await propmt for user to allow the request
+                const allow = await _promptHandler.invoke({ ...data, origin })
+                //send request to background
+                return response = allow ? await cb() : { error: 'User denied permission' }
+            }
+
             //Confirm the message format is correct
             if (!isEqual(source, window) || isEmpty(data) || isNil(data.type)) {
                 return
@@ -56,21 +66,42 @@ export const onLoad = async () =>{
                 return
             }
 
+            //clean any junk/methods with json parse/stringify
+            data = JSON.parse(JSON.stringify(data))
+
             // pass on to background
             var response;
             await apiCall(async () => {
                 switch (data.type) {
                     case 'getPublicKey':
+                        return invokePrompt(async () => selectedKey.value.PublicKey)
                     case 'signEvent':
+                        return invokePrompt(async () => {
+                            const event = data.payload.event
+
+                            //Set key id to selected key
+                            event.KeyId = selectedKey.value.Id
+                            event.pubkey = selectedKey.value.PublicKey;
+
+                            return await nostr.signEvent(event);
+                        })
                     //Check the public key against selected key
                     case 'getRelays':
+                        return invokePrompt(async () => await nostr.getRelays())
                     case 'nip04.encrypt':
+                        return invokePrompt(async () => await nostr.nip04Encrypt({
+                            pubkey: data.payload.peer,
+                            content: data.payload.plaintext,
+                            //Set selected key id as our desired decryption key
+                            KeyId: selectedKey.value.Id
+                        }))
                     case 'nip04.decrypt':
-                        //await propmt for user to allow the request
-                        const allow = await _promptHandler.invoke({ ...data, origin })
-                        //send request to background
-                        response = allow ? await sendMessage(data.type, { ...data.payload, origin }, 'background') : { error: 'User denied permission' }
-                        break;
+                        return invokePrompt(async () => await nostr.nip04Decrypt({
+                            pubkey: data.payload.peer,
+                            content: data.payload.ciphertext,
+                            //Set selected key id as our desired decryption key
+                            KeyId: selectedKey.value.Id
+                        }))
                     default:
                         throw new Error('Unknown nostr message type')
                 }
@@ -80,14 +111,10 @@ export const onLoad = async () =>{
         });
     }
 
-    const store = useStore()
-    const { isTabAllowed } = storeToRefs(store)
-    
     //Make sure the origin is allowed
     if (store.isTabAllowed === false){
         //If not allowed yet, wait for the store to update
         watchOnce(isTabAllowed, val => val ? injectHandler() : undefined);
-        return;
     }
     else{
         injectHandler();

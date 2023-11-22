@@ -18,10 +18,9 @@ import { computed } from "vue"
 import { get } from '@vueuse/core'
 import { type WebMessage, type UserProfile } from "@vnuge/vnlib.browser"
 import { initEndponts } from "./endpoints"
-import { type NostrIdentiy } from "../foreground/types"
 import { cloneDeep } from "lodash"
 import { type AppSettings } from "../settings"
-import type { NostrEvent, NostrRelay } from "../types"
+import type { EncryptionRequest, NostrEvent, NostrPubKey, NostrRelay } from "../types"
 
 export enum Endpoints {
     GetKeys = 'getKeys',
@@ -36,7 +35,20 @@ export enum Endpoints {
     UpdateProfile = 'updateProfile',
 }
 
-export const useServerApi = (settings: AppSettings) => {
+export interface ExecRequestHandler{
+    (id: Endpoints.GetKeys):Promise<NostrPubKey[]>
+    (id: Endpoints.DeleteKey, key: NostrPubKey):Promise<void>
+    (id: Endpoints.SignEvent, event: NostrEvent):Promise<NostrEvent>
+    (id: Endpoints.GetRelays):Promise<NostrRelay[]>
+    (id: Endpoints.SetRelay, relay: NostrRelay):Promise<NostrRelay>
+    (id: Endpoints.Encrypt, data: EncryptionRequest):Promise<string>
+    (id: Endpoints.Decrypt, data: EncryptionRequest):Promise<string>
+    (id: Endpoints.CreateId, identity: NostrPubKey):Promise<NostrPubKey>
+    (id: Endpoints.UpdateId, identity: NostrPubKey):Promise<NostrPubKey>
+    (id: Endpoints.UpdateProfile, profile: UserProfile):Promise<string>
+}
+
+export const useServerApi = (settings: AppSettings): { execRequest: ExecRequestHandler } => {
     const { registerEndpoint, execRequest } = initEndponts()
 
     //ref to nostr endpoint url
@@ -54,7 +66,7 @@ export const useServerApi = (settings: AppSettings) => {
     registerEndpoint({
         id: Endpoints.DeleteKey,
         method: 'DELETE',
-        path: (key:NostrIdentiy) => `${get(nostrUrl)}?type=identity&key_id=${key.Id}`,
+        path: (key: NostrPubKey) => `${get(nostrUrl)}?type=identity&key_id=${key.Id}`,
         onRequest: () => Promise.resolve(),
         onResponse: async (response: WebMessage) => response.getResultOrThrow()
     })
@@ -91,7 +103,7 @@ export const useServerApi = (settings: AppSettings) => {
         id: Endpoints.CreateId,
         method: 'PUT',
         path: () => `${get(nostrUrl)}?type=identity`,
-        onRequest: (identity:NostrIdentiy) => Promise.resolve(identity),
+        onRequest: (identity: NostrPubKey) => Promise.resolve(identity),
         onResponse: async (response: WebMessage<NostrEvent>) => response.getResultOrThrow()
     })
 
@@ -99,7 +111,7 @@ export const useServerApi = (settings: AppSettings) => {
         id: Endpoints.UpdateId,
         method: 'PATCH',
         path: () => `${get(nostrUrl)}?type=identity`,
-        onRequest: (identity:NostrIdentiy) => {
+        onRequest: (identity:NostrPubKey) => {
             const id = cloneDeep(identity) as any;
             delete id.Created;
             delete id.LastModified;
@@ -121,7 +133,7 @@ export const useServerApi = (settings: AppSettings) => {
         id:Endpoints.Encrypt,
         method:'POST',
         path: () => `${get(nostrUrl)}?type=encrypt`,
-        onRequest: (data: NostrEvent) => Promise.resolve(data),
+        onRequest: (data: EncryptionRequest) => Promise.resolve(data),
         onResponse: async (response: WebMessage<string>) => response.getResultOrThrow()
     })
 
@@ -129,7 +141,7 @@ export const useServerApi = (settings: AppSettings) => {
         id:Endpoints.Decrypt,
         method:'POST',
         path: () => `${get(nostrUrl)}?type=decrypt`,
-        onRequest: (data: NostrEvent) => Promise.resolve(data),
+        onRequest: (data: EncryptionRequest) => Promise.resolve(data),
         onResponse: async (response: WebMessage<string>) => response.getResultOrThrow()
     })
 

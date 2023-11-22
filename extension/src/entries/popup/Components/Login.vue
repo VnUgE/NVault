@@ -31,7 +31,7 @@ const token = ref('')
 const onSubmit = async () => {
     await apiCall(async ({ toaster }) => {
         await login(token.value)
-        toaster.general.success({
+        toaster.form.success({
             'title': 'Login successful',
             'text': 'Successfully logged into your profile'
         })

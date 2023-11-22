@@ -35,8 +35,18 @@ export interface TaggedNostrEvent extends NostrEvent {
     tags?: any[][]
 }
 
-export interface EventMessage extends JsonObject {
-    readonly event: NostrEvent
+export interface EncryptionRequest extends JsonObject {
+    readonly KeyId: string
+    /**
+     * The plaintext to encrypt or ciphertext 
+     * to decrypt
+     */
+    readonly content: string
+    /**
+     * The other peer's public key used 
+     * for encryption
+     */
+    readonly pubkey: string
 }
 
 export interface NostrRelay extends JsonObject {

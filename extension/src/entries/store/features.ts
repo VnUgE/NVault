@@ -2,10 +2,8 @@
 import 'pinia'
 import { } from 'lodash'
 import { PiniaPluginContext } from 'pinia'
-import { type Tabs, tabs } from 'webextension-polyfill'
 
 import {
-    SendMessageHandler,
     useAuthApi,
     useHistoryApi,
     useIdentityApi,
@@ -18,9 +16,8 @@ import {
     useInjectAllowList
 } from "../../features"
 
-import { RuntimeContext, createPort } from '../../webext-bridge'
-import { ref } from 'vue'
 import { onWatchableChange } from '../../features/types'
+import { ChannelContext } from '../../messaging'
 
 export type BgPlugins = ReturnType<typeof usePlugins>
 export type BgPluginState<T> = { plugins: BgPlugins } & T
@@ -28,13 +25,12 @@ export type BgPluginState<T> = { plugins: BgPlugins } & T
 declare module 'pinia' {
     export interface PiniaCustomProperties {
         plugins: BgPlugins
-        currentTab: Tabs.Tab | undefined
     }
 }
 
-const usePlugins = (sendMessage: SendMessageHandler) => {
+const usePlugins = (context: ChannelContext) => {
     //Create plugin wrapping function
-    const { use } = useForegoundFeatures(sendMessage)
+    const { use } = useForegoundFeatures(context)
 
     return {
         settings: use(useSettingsApi),
@@ -49,13 +45,10 @@ const usePlugins = (sendMessage: SendMessageHandler) => {
     }
 }
 
-export const useBackgroundPiniaPlugin = (context: RuntimeContext) => {
+export const useBackgroundPiniaPlugin = (context: ChannelContext) => {
     //Create port for context
-    const { sendMessage } = createPort(context)
-    const plugins = usePlugins(sendMessage)
+    const plugins = usePlugins(context)
     const { user } = plugins;
-
-    const currentTab = ref<Tabs.Tab | undefined>(undefined)
 
     //Plugin store
     return ({ store }: PiniaPluginContext) => {
@@ -71,46 +64,13 @@ export const useBackgroundPiniaPlugin = (context: RuntimeContext) => {
 
         //Wait for settings changes
         onWatchableChange(plugins.settings, async () => {
-
             //Update settings and dark mode on change
             store.settings = await plugins.settings.getSiteConfig();
             store.darkMode = await plugins.settings.getDarkMode();
-            console.log("Settings changed")
         }, { immediate: true })
-      
-
-        const initTab = async () => {
-
-            if(!tabs){
-                return;
-            }
-
-            //Get the current tab
-            const [active] = await tabs.query({ active: true, currentWindow: true })
-            currentTab.value = active
-
-            //Watch for changes to the current tab
-            tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-                //If the url changed, update the current tab
-                if (changeInfo.url) {
-                    currentTab.value = tab
-                }
-            })
-
-            tabs.onActivated.addListener(async ({ tabId }) => {
-                //Get the tab
-                const tab = await tabs.get(tabId)
-                //Update the current tab
-                currentTab.value = tab
-            })
-        }
-       
-       
-        initTab()
 
         return{
             plugins,
-            currentTab,
         }
     }
 } 

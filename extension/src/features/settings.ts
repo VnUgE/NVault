@@ -19,7 +19,7 @@ import { configureApi, debugLog } from '@vnuge/vnlib.browser'
 import { readonly, ref, Ref } from "vue";
 import { JsonObject } from "type-fest";
 import { Watchable, useSingleSlotStorage } from "./types";
-import { BgRuntime, FeatureApi, optionsOnly, IFeatureExport, exportForegroundApi } from './framework'
+import { BgRuntime, FeatureApi, optionsOnly, IFeatureExport, exportForegroundApi, popupAndOptionsOnly } from './framework'
 import { get, watchOnce } from "@vueuse/core";
 
 export interface PluginConfig extends JsonObject {
@@ -143,7 +143,7 @@ export const useSettingsApi = () : IFeatureExport<AppSettings, SettingsApi> =>{
                     return state.currentConfig.value
                 }),
 
-                setDarkMode: optionsOnly(async (darkMode: boolean) => {
+                setDarkMode: popupAndOptionsOnly(async (darkMode: boolean) => {
                     console.log('Setting dark mode to', darkMode, 'from', _darkMode.value)
                     _darkMode.value = darkMode 
                 }),

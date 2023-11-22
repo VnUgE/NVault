@@ -24,10 +24,10 @@ import {
     exportForegroundApi 
 } from "./framework";
 import { AppSettings } from "./settings";
-import { ref, watch } from "vue";
+import { shallowRef, watch } from "vue";
 import { useSession } from "@vnuge/vnlib.browser";
-import { get, set, useToggle, watchOnce } from "@vueuse/core";
-import { find, isArray } from "lodash";
+import { set, useToggle, watchOnce } from "@vueuse/core";
+import { defer, isArray } from "lodash";
 
 export interface IdentityApi extends FeatureApi, Watchable {
     createIdentity: (identity: NostrPubKey) => Promise<NostrPubKey>
@@ -45,8 +45,28 @@ export const useIdentityApi = (): IFeatureExport<AppSettings, IdentityApi> => {
             const { loggedIn } = useSession();
 
             //Get the current selected key
-            const selectedKey = ref<NostrPubKey | undefined>();
+            const selectedKey = shallowRef<NostrPubKey | undefined>();
+            const allKeys = shallowRef<NostrPubKey[]>([]);
             const [ onTriggered , triggerChange ] = useToggle()
+
+            const keyLoadWatchLoop = async () => {
+                while(true){
+                    //Load keys from server if logged in
+                    if(loggedIn.value){
+                        const [...keys] = await execRequest(Endpoints.GetKeys);
+                        allKeys.value = isArray(keys) ? keys : [];
+                    }
+                    else{
+                        //Clear all keys when logged out
+                        allKeys.value = [];
+                    }
+
+                    //Wait for changes to trigger a new key-load
+                    await new Promise((resolve) => watchOnce([onTriggered, loggedIn] as any, () => resolve(null)))
+                }
+            }
+
+            defer(keyLoadWatchLoop)
 
             //Clear the selected key if the user logs out
             watch(loggedIn, (li) => li ? null : selectedKey.value = undefined)
@@ -54,47 +74,28 @@ export const useIdentityApi = (): IFeatureExport<AppSettings, IdentityApi> => {
             return {
                 //Identity is only available in options context
                 createIdentity: optionsOnly(async (id: NostrPubKey) => {
-                    await execRequest<NostrPubKey>(Endpoints.CreateId, id)
+                    await execRequest(Endpoints.CreateId, id)
                     triggerChange()
                 }),
                 updateIdentity: optionsOnly(async (id: NostrPubKey) => {
-                    await execRequest<NostrPubKey>(Endpoints.UpdateId, id)
+                    await execRequest(Endpoints.UpdateId, id)
                     triggerChange()
                 }),
                 deleteIdentity: optionsOnly(async (key: NostrPubKey) => {
-                    await execRequest<NostrPubKey>(Endpoints.DeleteKey, key);
+                    await execRequest(Endpoints.DeleteKey, key);
                     triggerChange()
                 }),
                 selectKey: popupAndOptionsOnly((key: NostrPubKey): Promise<void> => {
-                    selectedKey.value = key;
+                    set(selectedKey, key);
                     return Promise.resolve()
                 }),
-                getAllKeys: async (): Promise<NostrPubKey[]> => {
-                    if(!get(loggedIn)){
-                        return []
-                    }
-                    //Get the keys from the server
-                    const data = await execRequest<NostrPubKey[]>(Endpoints.GetKeys);
-
-                    //Response must be an array of key objects
-                    if (!isArray(data)) {
-                        return [];
-                    }
-
-                    //Make sure the selected keyid is in the list, otherwise unselect the key
-                    if (data?.length > 0) {
-                        if (!find(data, k => k.Id === selectedKey.value?.Id)) {
-                            set(selectedKey, undefined);
-                        }
-                    }
-
-                    return [...data]
+                getAllKeys: (): Promise<NostrPubKey[]> => {
+                    return Promise.resolve(allKeys.value);
                 },
                 getPublicKey: (): Promise<NostrPubKey | undefined> => {
                     return Promise.resolve(selectedKey.value);
                 },
                 waitForChange: () => {
-                    console.log('Waiting for change')
                     return new Promise((resolve) => watchOnce([selectedKey, loggedIn, onTriggered] as any, () => resolve()))
                 }
             }  

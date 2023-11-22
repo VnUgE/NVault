@@ -15,12 +15,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { runtime } from "webextension-polyfill";
-import { createBackgroundPort } from '../../webext-bridge'
-import { BridgeMessage, RuntimeContext, isInternalEndpoint } from "../../webext-bridge";
 import { serializeError, deserializeError } from 'serialize-error';
 import { JsonObject } from "type-fest";
-import { cloneDeep, isObjectLike, set } from "lodash";
+import { cloneDeep, isArray, isObjectLike, set } from "lodash";
 import { debugLog } from "@vnuge/vnlib.browser";
+import { ChannelContext, createMessageChannel } from "../../messaging";
 
 export interface BgRuntime<T> {
     readonly state: T;
@@ -68,16 +67,15 @@ export interface IBackgroundWrapper<TState> {
 }
 
 export interface ProtectedFunction extends Function {
-    readonly protection: RuntimeContext[]
+    readonly protection: ChannelContext[]
 }
 
 export const optionsOnly = <T extends Function>(func: T): T => protectMethod(func, 'options');
 export const popupOnly = <T extends Function>(func: T): T => protectMethod(func, 'popup');
 export const contentScriptOnly = <T extends Function>(func: T): T => protectMethod(func, 'content-script');
-export const windowOnly = <T extends Function>(func: T): T => protectMethod(func, 'window');
 export const popupAndOptionsOnly = <T extends Function>(func: T): T => protectMethod(func, 'popup', 'options');
 
-export const protectMethod = <T extends Function>(func: T, ...protection: RuntimeContext[]): T => {
+export const protectMethod = <T extends Function>(func: T, ...protection: ChannelContext[]): T => {
     (func as any).protection = protection
     return func;
 }
@@ -88,13 +86,15 @@ export const protectMethod = <T extends Function>(func: T, ...protection: Runtim
  */
 export const useBackgroundFeatures = <TState>(state: TState): IBackgroundWrapper<TState> => {
     
+    const { openOnMessageChannel } = createMessageChannel('background');
+    const { onMessage } = openOnMessageChannel()
+
+
     const rt = {
         state,
         onConnected: runtime.onConnect.addListener,
         onInstalled: runtime.onInstalled.addListener,
     }   as BgRuntime<TState>
-
-    const { onMessage } = createBackgroundPort()
 
     /**
      * Each plugin will export named methods. Background methods
@@ -120,20 +120,25 @@ export const useBackgroundFeatures = <TState>(state: TState): IBackgroundWrapper
                     const onMessageFuncName = `${feature.name}-${externFuncName}`
 
                     //register method with api
-                    onMessage(onMessageFuncName, async (msg: BridgeMessage<any>) => {
+                    onMessage<any>(onMessageFuncName, async (sender, payload) => {
                         try {
 
-                            //Always an internal endpoint
-                            if (!isInternalEndpoint(msg.sender)) {
+                            if ((func as ProtectedFunction).protection
+                                && !(func as ProtectedFunction).protection.includes(sender)) {
                                 throw new Error(`Unauthorized external call to ${onMessageFuncName}`)
                             }
 
-                            if ((func as ProtectedFunction).protection
-                                && !(func as ProtectedFunction).protection.includes(msg.sender.context)) {
-                                throw new Error(`Unauthorized external call to ${onMessageFuncName}`)
+                            const res = await func(...payload)
+                            
+                            if(isArray(res)){
+                                return [...res]
                             }
-                            const res = await func(...msg.data)
-                            return isObjectLike(res) ? { ...res} : res
+                            else if(isObjectLike(res)){
+                                return { ...res }
+                            }
+                            else{
+                                return res
+                            }
                         }
                         catch (e: any) {
                             debugLog(`Error in method ${onMessageFuncName}`, e)
@@ -154,8 +159,11 @@ export const useBackgroundFeatures = <TState>(state: TState): IBackgroundWrapper
  * Creates a foreground runtime context for unwrapping foreground stub 
  * methods and redirecting them to thier background handler
  */
-export const useForegoundFeatures = (sendMessage: SendMessageHandler): IForegroundUnwrapper => {
+export const useForegoundFeatures = (context: ChannelContext): IForegroundUnwrapper => {
     
+    const { openChannel } = createMessageChannel(context);
+    const { sendMessage } = openChannel()
+
     /**
      * The goal of this function is to get the foreground interface object
      * that should match the background implementation. All methods are

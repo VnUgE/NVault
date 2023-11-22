@@ -14,10 +14,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { Endpoints, useServerApi } from "./server-api";
-import { NostrRelay,  EventMessage, NostrEvent } from './types'
-import { FeatureApi, BgRuntime, IFeatureExport, optionsOnly, exportForegroundApi } from "./framework";
-import { AppSettings } from "./settings";
+import { type FeatureApi, type BgRuntime, type IFeatureExport, optionsOnly, exportForegroundApi } from "./framework";
+import { type AppSettings } from "./settings";
 import { useTagFilter } from "./tagfilter-api";
+import type { NostrRelay, EncryptionRequest, NostrEvent } from './types';
+import { cloneDeep } from "lodash";
 
 
 /**
@@ -28,8 +29,8 @@ export interface NostrApi extends FeatureApi {
     getRelays: () => Promise<NostrRelay[]>;
     signEvent: (event: NostrEvent) => Promise<NostrEvent | undefined>;
     setRelay: (relay: NostrRelay) => Promise<NostrRelay | undefined>;
-    nip04Encrypt: (data: EventMessage) => Promise<string>;
-    nip04Decrypt: (data: EventMessage) => Promise<string>;
+    nip04Encrypt: (data: EncryptionRequest) => Promise<string>;
+    nip04Decrypt: (data: EncryptionRequest) => Promise<string>;
 }
 
 export const useNostrApi = (): IFeatureExport<AppSettings, NostrApi> => {
@@ -43,10 +44,13 @@ export const useNostrApi = (): IFeatureExport<AppSettings, NostrApi> => {
             return {
                 getRelays: async (): Promise<NostrRelay[]> => {
                     //Get preferred relays for the current user
-                    const data = await execRequest<NostrRelay[]>(Endpoints.GetRelays)
-                    return [...data]
+                    const [...relays] = await execRequest(Endpoints.GetRelays)
+                    return relays;
                 },
                 signEvent: async (req: NostrEvent): Promise<NostrEvent | undefined> => {
+
+                    //Store copy to prevent mutation
+                    req = cloneDeep(req)
 
                     //If tag filter is enabled, filter before continuing
                     if(state.currentConfig.value.tagFilter){
@@ -54,17 +58,27 @@ export const useNostrApi = (): IFeatureExport<AppSettings, NostrApi> => {
                     }
                    
                     //Sign the event
-                    const event = await execRequest<NostrEvent>(Endpoints.SignEvent, req);
+                    const event = await execRequest(Endpoints.SignEvent, req);
                     return event;
                 },
-                nip04Encrypt: async (data: EventMessage): Promise<string> => {
-                    return execRequest<string>(Endpoints.Encrypt, data);
+                nip04Encrypt: async (data: EncryptionRequest): Promise<string> => {
+                    const message: EncryptionRequest = {
+                        content: data.content,
+                        KeyId: data.KeyId,
+                        pubkey: data.pubkey
+                    }
+                    return execRequest(Endpoints.Encrypt, message);
                 },
-                nip04Decrypt: (data: EventMessage): Promise<string> => {
-                    return execRequest<string>(Endpoints.Decrypt, data);
+                nip04Decrypt: (data: EncryptionRequest): Promise<string> => {
+                    const message: EncryptionRequest = {
+                        content: data.content,
+                        KeyId: data.KeyId,
+                        pubkey: data.pubkey
+                    }
+                    return execRequest(Endpoints.Decrypt, message);
                 },
                 setRelay: optionsOnly((relay: NostrRelay): Promise<NostrRelay | undefined> => {
-                    return execRequest<NostrRelay>(Endpoints.SetRelay, relay)
+                    return execRequest(Endpoints.SetRelay, relay)
                 }),
             }
         },

@@ -19,7 +19,7 @@ import { defaultTo, filter, includes, isEqual } from "lodash";
 import { BgRuntime, FeatureApi, IFeatureExport, exportForegroundApi, popupAndOptionsOnly } from "./framework";
 import { AppSettings } from "./settings";
 import { set, get, watchOnce, useToggle } from "@vueuse/core";
-import { computed, ref } from "vue";
+import { computed, shallowRef } from "vue";
 
 interface AllowedSites{
     origins: string[];
@@ -46,13 +46,13 @@ export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlis
             const store = useSingleSlotStorage<AllowedSites>(storage.local, 'nip07-allowlist', { origins: [], enabled: true });
             
             //watch current tab
-            const allowedOrigins = ref<string[]>([])
-            const protectionEnabled = ref<boolean>(true)
+            const allowedOrigins = shallowRef<string[]>([])
+            const protectionEnabled = shallowRef<boolean>(true)
             const [manullyTriggered, trigger] = useToggle()
 
             const { currentOrigin, currentTab } = (() => {
 
-                const currentTab = ref<Tabs.Tab | undefined>(undefined)
+                const currentTab = shallowRef<Tabs.Tab | undefined>(undefined)
                 const currentOrigin = computed(() => currentTab.value?.url ? new URL(currentTab.value.url).origin : undefined)
 
                 //Watch for changes to the current tab
@@ -73,7 +73,7 @@ export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlis
             })()
 
             const writeChanges = async () => {
-                await store.set({ origins: [...get(allowedOrigins)], enabled: get(protectionEnabled) })
+                await store.set({ origins: get(allowedOrigins), enabled: get(protectionEnabled) })
             }
 
             //Initial load
@@ -158,15 +158,15 @@ export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlis
                 }),
                 async getStatus(): Promise<AllowedOriginStatus> {
                     return{
-                        allowedOrigins: [...get(allowedOrigins)],
+                        allowedOrigins: get(allowedOrigins),
                         enabled: get(protectionEnabled),
                         currentOrigin: get(currentOrigin),
                         isAllowed: isOriginAllowed()
                     }
                 },
-                waitForChange:  () => {
+                async waitForChange() {
                     //Wait for the trigger to change
-                    return new Promise((resolve) => watchOnce([currentTab, protectionEnabled, manullyTriggered] as any, () => resolve()));
+                    await new Promise((resolve) => watchOnce([currentTab, protectionEnabled, manullyTriggered] as any, () => resolve(null)));
                 },
             }
         },

@@ -19,6 +19,12 @@
             <fa-icon icon="arrow-right-from-bracket" />
           </button>
         </div>
+         <div class="my-auto">
+          <button class="rounded btn xs" @click="toggleDark" >
+            <fa-icon class="w-4" v-if="darkMode" icon="sun"/>
+            <fa-icon class="w-4" v-else icon="moon" />
+          </button>
+        </div>
         <div class="my-auto">
           <button class="rounded btn xs" @click="openOptions">
               <fa-icon :icon="['fas', 'gear']"/>
@@ -106,6 +112,7 @@ const { copy, copied } = useClipboard()
 const pubKey = computed(() => selectedKey!.value?.PublicKey)
 
 const openOptions = () => runtime.openOptionsPage();
+const toggleDark = () => store.toggleDarkMode()
 
 //Watch for dark mode changes and update the body class
 watchEffect(() => darkMode.value ? document.body.classList.add('dark') : document.body.classList.remove('dark'));

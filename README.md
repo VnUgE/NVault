@@ -17,9 +17,10 @@ This project is probably best explained by the features it has an that need to b
 - ✔ SSL and all the basic web security
 - ✔ Multi user support for friends and family
 - ✔ Support loading external random library (native or managed dll)
-- Note encryption/decryption
+- Note encryption/decryption (in progress)
 - Support a connected, or network based signing hardware
 - Optionally support network based, event authorization applications
+- Server backed event history to preserve your notes
 
 ### Extension
 - ✔ Infinite identities per account
@@ -30,7 +31,7 @@ This project is probably best explained by the features it has an that need to b
 - ✔ Per user NIP-05 identity export
 - ✔ Dark/light theme
 - Preferred relay storage (also NIP-05 relays)
-- NIP-07 encryption
+- NIP-07 encryption (in progress)
 - Fine grained event permissions
 - Event history
 - A good looking UI
