@@ -1,15 +1,22 @@
 
 #injected-root{
+
+    /* Reset all base fonts so host does not leak into shadow root */
+    @apply font-sans text-base;
     
     .toaster{
         @apply fixed top-10 right-2 z-[999999999] max-w-[250px];
     }
     
     .vue-notification-template.vue-notification.error{
-        @apply bg-red-500 text-white px-4 py-2;
+        @apply bg-red-500 text-white px-3 py-2;
 
         .notification-title{
-            
+            @apply text-base font-bold;
+        }
+
+        .notification-content{
+            @apply text-sm;
         }
     }
 }

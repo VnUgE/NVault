@@ -1,12 +1,14 @@
 <template>
     <div v-show="isOpen" id="nvault-ext-prompt" :class="{'dark': darkMode }">
         
-        <div class="absolute top-0 bottom-0 left-0 right-0 text-white" style="z-index:9147483647 !important" >
+        <div class="fixed top-0 bottom-0 left-0 right-0 text-white" style="z-index:9147483647 !important" >
+            
             <div class="fixed inset-0 left-0 w-full h-full bg-black/50" @click.self="close" />
-            <div class="relative w-full max-w-[28rem] mx-auto mt-36 mb-auto" ref="prompt">
-                <div class="w-full p-5 bg-white border rounded-lg shadow-lg dark:bg-dark-900 dark:border-dark-500">
-                    <div v-if="loggedIn" class="text-gray-800 dark:text-gray-200">
 
+            <div class="relative w-full max-w-[28rem] mx-auto mt-36 mb-auto" ref="prompt">
+                <div class="w-full p-5 text-gray-800 bg-white border rounded-lg shadow-lg dark:bg-dark-900 dark:border-dark-500 dark:text-gray-200">
+                    
+                    <div v-if="loggedIn" class="">
                         <div class="flex flex-row justify-between">
                             <div class="">
                                 <div class="text-lg font-bold">
@@ -21,7 +23,7 @@
                                     </span>
                                 </div>
                             </div>
-                                <div class="">
+                            <div class="">
                                 <Popover class="relative">
                                     <PopoverButton class="">
                                         <fa-icon icon="circle-info" class="w-4 h-4" />
@@ -55,11 +57,19 @@
                             </div>
                         </div>
                     </div>
+                    
                     <div v-else class="">
-                        <h3 class="">Log in!</h3>
+                        
                         <div class="">
-                            You must log in before you can allow access.
+                            <div class="text-lg font-bold">
+                               Log in
+                            </div>
                         </div>
+
+                        <div class="py-3 text-sm text-center">
+                             You must log in before you can allow access. 
+                        </div>
+
                         <div class="flex justify-end gap-2 mt-4">
                             <div>
                                 <button class="rounded btn xs" @click="close">Close</button>

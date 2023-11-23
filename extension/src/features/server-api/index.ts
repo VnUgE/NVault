@@ -133,7 +133,10 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
         method:'POST',
         path: () => `${get(nostrUrl)}?type=encrypt`,
         onRequest: (data: EncryptionRequest) => Promise.resolve(data),
-        onResponse: async (response: WebMessage<string>) => response.getResultOrThrow()
+        onResponse: async (response: WebMessage<{ ciphertext:string, iv:string }>) =>{
+            const { ciphertext, iv } = response.getResultOrThrow()
+            return `${ciphertext}?iv=${iv}`
+        }
     })
 
     registerEndpoint({

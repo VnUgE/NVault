@@ -517,9 +517,11 @@ namespace NVault.Plugins.Vault.Endpoints
                     .NotEmpty()
                     .Length(0, 10000)
                     //Make sure iv exists
-                    .Must(ct => ct.Contains("iv?=", StringComparison.OrdinalIgnoreCase))
+                    .Must(ct => ct.Contains("?iv=", StringComparison.OrdinalIgnoreCase))
+                    .WithMessage("iv not found in ciphertext")
                     //Check iv is not too long
-                    .Must(ct => ct.AsSpan().SliceAfterParam("iv?=").Length < 28);
+                    .Must(ct => ct.AsSpan().SliceAfterParam("?iv=").Length == NostrOpProvider.MaxBase64EncodedSize)
+                    .WithMessage("iv is not the correct size");
 
                 //Pubpkey must be 64 hex characters
                 validationRules.RuleFor(p => p.OtherPubKey)

@@ -17,10 +17,11 @@ This project is probably best explained by the features it has an that need to b
 - ✔ SSL and all the basic web security
 - ✔ Multi user support for friends and family
 - ✔ Support loading external random library (native or managed dll)
-- Note encryption/decryption (in progress)
+- ✔ Note encryption/decryption
 - Support a connected, or network based signing hardware
 - Optionally support network based, event authorization applications
 - Server backed event history to preserve your notes
+- Support for NIP-46 event signing using an extern library
 
 ### Extension
 - ✔ Infinite identities per account
@@ -30,11 +31,11 @@ This project is probably best explained by the features it has an that need to b
 - ✔ Easy identity selection
 - ✔ Per user NIP-05 identity export
 - ✔ Dark/light theme
+- ✔ NIP-07 encryption
 - Preferred relay storage (also NIP-05 relays)
-- NIP-07 encryption (in progress)
 - Fine grained event permissions
 - Event history
-- A good looking UI
+- A good looking UI (in progress)
 - Chrome and Firefox support (mobile would be nice also)
 - Build fully featured library/API for other extension builders
 - Stip metadata tags in events such as [#7f57800e](https://github.com/nostr-protocol/nips/pull/884/commits/7f27800e27c437ce17d223799f37631105d1ae5f)

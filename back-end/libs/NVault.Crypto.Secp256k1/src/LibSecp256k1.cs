@@ -82,6 +82,9 @@ namespace NVault.Crypto.Secp256k1
         [SafeMethodName("secp256k1_ec_pubkey_serialize")]
         internal delegate int PubKeySerialize(IntPtr ctx, byte* outPubKey, ulong* outLen, Secp256k1PublicKey* pubKey, uint flags);
 
+        [SafeMethodName("secp256k1_xonly_pubkey_parse")]
+        internal delegate int XOnlyPubkeyParse(IntPtr ctx, Secp256k1PublicKey* pubkey, byte* input32);
+
         [SafeMethodName("secp256k1_ecdh")]
         internal delegate int Ecdh(
             IntPtr ctx, 
@@ -143,6 +146,7 @@ namespace NVault.Crypto.Secp256k1
         internal readonly SecKeyVerify _secKeyVerify;
         internal readonly PubKeySerialize _pubKeySerialize;
         internal readonly Ecdh _ecdh;
+        internal readonly XOnlyPubkeyParse _xOnlyPubkeyParse;
         private readonly IRandomSource _randomSource;
 
         /// <summary>
@@ -171,6 +175,7 @@ namespace NVault.Crypto.Secp256k1
             _secKeyVerify = handle.DangerousGetMethod<SecKeyVerify>();
             _pubKeySerialize = handle.DangerousGetMethod<PubKeySerialize>();
             _ecdh = handle.DangerousGetMethod<Ecdh>();
+            _xOnlyPubkeyParse = handle.DangerousGetMethod<XOnlyPubkeyParse>();
             
             //Store random source
             _randomSource = randomSource;

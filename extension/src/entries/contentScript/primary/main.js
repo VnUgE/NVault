@@ -15,8 +15,10 @@
 
 import { runtime } from "webextension-polyfill";
 import { createApp } from "vue";
+import { defer } from "lodash";
 import { createPinia } from 'pinia';
 import { useBackgroundPiniaPlugin, identityPlugin, originPlugin } from '../../store'
+import { onLoad } from "../util";
 import renderContent from "../renderContent";
 import App from "./App.vue";
 import Notification from '@kyvg/vue3-notification'
@@ -25,8 +27,6 @@ import '@fontsource/noto-sans-masaram-gondi'
 //We need inline styles to inject into the shadow dom
 import tw from "~/assets/all.scss?inline";
 import localStyle from './style.scss?inline'
-import { onLoad } from "../util";
-import { defer } from "lodash";
 
 /* FONT AWESOME CONFIG */
 import { library } from '@fortawesome/fontawesome-svg-core'

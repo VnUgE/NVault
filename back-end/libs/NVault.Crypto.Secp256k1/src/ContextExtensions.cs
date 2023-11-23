@@ -254,7 +254,7 @@ namespace NVault.Crypto.Secp256k1
         {
             if (secretKey.Length != SecretKeySize)
             {
-                throw new ArgumentException($"Your public key buffer must be exactly {SecretKeySize} bytes long");
+                throw new ArgumentException($"Your secret key buffer must be exactly {SecretKeySize} bytes long");
             }
 
             //Init callback state struct
@@ -265,17 +265,28 @@ namespace NVault.Crypto.Secp256k1
                 OutLen = data.Length
             };
 
-            //Stack allocated keypair and x-only public key
-            Secp256k1PublicKey pubKeyStruct = new();
-            //Recover the x-only public key structure
-            MemoryUtil.CopyStruct(xOnlyPubKey, &pubKeyStruct);
-
             context.Lib.SafeLibHandle.ThrowIfClosed();
+
+            //Stack allocated keypair and x-only public key
+            Secp256k1PublicKey peerPubKey = new();
+
+            //Parse the public key from the buffer
+            fixed (byte* pubkeyPtr = &MemoryMarshal.GetReference(xOnlyPubKey))
+            {
+                context.Lib._xOnlyPubkeyParse(context.Context, &peerPubKey, pubkeyPtr);
+            }
 
             fixed (byte* dataPtr = &MemoryMarshal.GetReference(data),
                     secKeyPtr = &MemoryMarshal.GetReference(secretKey))
             {
-                return context.Lib._ecdh.Invoke(context.Context, dataPtr, &pubKeyStruct, secKeyPtr, UmanagedEcdhHashFuncCallback, &state) == 1;
+                return context.Lib._ecdh.Invoke(
+                    context.Context, 
+                    dataPtr, 
+                    &peerPubKey, 
+                    secKeyPtr, 
+                    UmanagedEcdhHashFuncCallback, 
+                    &state
+                    ) == 1;
             }
 
             /*

@@ -34,12 +34,12 @@ using VNLib.Plugins.Extensions.Loading;
 
 using NVault.Plugins.Vault.Model;
 
-
 namespace NVault.Plugins.Vault
 {
     internal sealed class NostrOpProvider : INostrOperations
     {
-        const int NIP04_RANDOM_IV_SIZE = 16;
+        public const int AES_IV_SIZE = 16;
+        public static int MaxBase64EncodedSize { get; } = Base64.GetMaxEncodedToUtf8Length(AES_IV_SIZE);
 
         private static JavaScriptEncoder _encoder { get; } = GetJsEncoder();
 
@@ -350,7 +350,7 @@ namespace NVault.Plugins.Vault
 
             //Small buffers for private key and raw iv
             Span<byte> privKeyBytes = stackalloc byte[keyBufSize];
-            Span<byte> ivBuffer = stackalloc byte[encipher ? NIP04_RANDOM_IV_SIZE : 64];
+            Span<byte> ivBuffer = stackalloc byte[encipher ? AES_IV_SIZE : 64];
 
             try
             {
@@ -391,14 +391,15 @@ namespace NVault.Plugins.Vault
                     ReadOnlySpan<char> cipherText = text.SliceBeforeParam("?iv=");
                     ReadOnlySpan<char> ivSegment = text.SliceAfterParam("?iv=");
 
-                    if (ivSegment.Length > 128)
+                    if (ivSegment.Length > MaxBase64EncodedSize)
                     {
                         throw new ArgumentException("initialization vector is larger than allowed");
                     }
 
                     //Decode initialziation vector
                     ERRNO ivSize= VnEncoding.TryFromBase64Chars(ivSegment, ivBuffer);
-                    if (ivSize < 1)
+                    //Must be exactly the size of the AES block s   
+                    if (ivSize != AES_IV_SIZE)
                     {
                         return false;
                     }
@@ -412,7 +413,7 @@ namespace NVault.Plugins.Vault
 
                     //Decrypt the message
                     ERRNO outputSize = _cryptoProvider.DecryptMessage(
-                        privKeyBytes, 
+                        privKeyBytes[..(int)keySize],
                         pubKey, 
                         ivBuffer.Slice(0, ivSize), 
                         ctBuffer.AsSpan(0, ctSize), 
@@ -424,6 +425,13 @@ namespace NVault.Plugins.Vault
                         return false;
                     }
 
+                    Span<byte> output = outputBuffer.Span;
+                    //trim trailing zeros
+                    while (outputSize > 0 && output[outputSize - 1] == 0)
+                    {
+                        outputSize--;
+                    }
+
                     //Store the output text (deciphered text)
                     outputText = Encoding.UTF8.GetString(outputBuffer.AsSpan(0, outputSize));
 
@@ -433,8 +441,8 @@ namespace NVault.Plugins.Vault
             finally
             {
                 //Zero the key buffer and key
-                MemoryUtil.InitializeBlock(ctBuffer.Span);
-                MemoryUtil.InitializeBlock(outputBuffer.Span);
+                MemoryUtil.InitializeBlock(ref ctBuffer.GetReference(), outputBuffer.IntLength);
+                MemoryUtil.InitializeBlock(ref outputBuffer.GetReference(), outputBuffer.IntLength);
                 MemoryUtil.InitializeBlock(privKeyBytes);
                 MemoryUtil.InitializeBlock(ivBuffer);
             }

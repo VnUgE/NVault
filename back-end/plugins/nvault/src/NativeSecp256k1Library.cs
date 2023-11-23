@@ -71,7 +71,7 @@ namespace NVault.Plugins.Vault
                 aes.Key = sharedKeyBuffer;
                 aes.Mode = CipherMode.CBC;
 
-                return aes.DecryptCbc(ciphterText, aesIv, outputBuffer, PaddingMode.None);
+                return aes.DecryptCbc(ciphterText, aesIv, outputBuffer, PaddingMode.Zeros);
             }
             finally
             {
@@ -99,14 +99,17 @@ namespace NVault.Plugins.Vault
             try
             {
                 //Get the Secp256k1 shared key
-                context.ComputeSharedKey(sharedKeyBuffer, targetKey, secretKey, HashFuncCallback, IntPtr.Zero);
+                if(!context.ComputeSharedKey(sharedKeyBuffer, targetKey, secretKey, HashFuncCallback, IntPtr.Zero))
+                {
+                    return ERRNO.E_FAIL;
+                }
 
                 //Init the AES cipher
                 using Aes aes = Aes.Create();
                 aes.Key = sharedKeyBuffer;
                 aes.Mode = CipherMode.CBC;
 
-                return aes.EncryptCbc(plainText, aesIv, cipherText, PaddingMode.None);
+                return aes.EncryptCbc(plainText, aesIv, cipherText, PaddingMode.Zeros);
             }
             finally
             {
