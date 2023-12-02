@@ -25,7 +25,6 @@ export const identityPlugin = ({ store }: PiniaPluginContext) => {
     const selectedKey = shallowRef<NostrPubKey | undefined>(undefined)
 
     onWatchableChange(identity, async () => {
-        console.log('Identity changed')
         allKeys.value = await identity.getAllKeys();
         selectedKey.value = await identity.getPublicKey();
     }, { immediate:true })

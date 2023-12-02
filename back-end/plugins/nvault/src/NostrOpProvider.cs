@@ -39,7 +39,7 @@ namespace NVault.Plugins.Vault
     internal sealed class NostrOpProvider : INostrOperations
     {
         public const int AES_IV_SIZE = 16;
-        public static int MaxBase64EncodedSize { get; } = Base64.GetMaxEncodedToUtf8Length(AES_IV_SIZE);
+        public static int IvMaxBase64EncodedSize { get; } = Base64.GetMaxEncodedToUtf8Length(AES_IV_SIZE);
 
         private static JavaScriptEncoder _encoder { get; } = GetJsEncoder();
 
@@ -289,9 +289,7 @@ namespace NVault.Plugins.Vault
             string? outText = null, ivText = null;
 
             //Call decipher method
-            bool result = Nip04Cipher(secret.ToReadOnlySpan(), nip04Ciphertext.AsSpan(), targetPubkey, ref outText, ref ivText, false);
-
-            if (result)
+            if (Nip04Cipher(secret.ToReadOnlySpan(), nip04Ciphertext.AsSpan(), targetPubkey, ref outText, ref ivText, false))
             {
                 return outText;
             }
@@ -307,16 +305,13 @@ namespace NVault.Plugins.Vault
             //Recover target public key
             byte[] targetPubkey = Convert.FromHexString(targetPubKeyHex);
 
-            //Get key data from the vault
-            using PrivateString? secret = await _vault.GetSecretAsync(scope, keyMeta.Id, cancellation);
+            //Get key data from the vault (key should always exist, but may get out of sync if manually deleted)
+            using PrivateString? secret = await _vault.GetSecretAsync(scope, keyMeta.Id, cancellation) ?? throw new ArgumentException("Secret key not found in vault");
 
-            string? outputText = null,
-                ivText = null;
+            string? outputText = null, ivText = null;
 
-            //Call decipher method
-            bool result = Nip04Cipher(secret.ToReadOnlySpan(), plainText, targetPubkey, ref outputText, ref ivText, true);
-
-            if (result)
+            //Call encipher method
+            if (Nip04Cipher(secret.ToReadOnlySpan(), plainText, targetPubkey, ref outputText, ref ivText, true))
             {
                 return new()
                 {
@@ -391,7 +386,7 @@ namespace NVault.Plugins.Vault
                     ReadOnlySpan<char> cipherText = text.SliceBeforeParam("?iv=");
                     ReadOnlySpan<char> ivSegment = text.SliceAfterParam("?iv=");
 
-                    if (ivSegment.Length > MaxBase64EncodedSize)
+                    if (ivSegment.Length > IvMaxBase64EncodedSize)
                     {
                         throw new ArgumentException("initialization vector is larger than allowed");
                     }

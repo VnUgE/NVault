@@ -61,8 +61,27 @@ namespace NVault.Plugins.Vault
         /// <returns>True if the operation succeeded, false otherwise</returns>
         bool RecoverPublicKey(ReadOnlySpan<byte> privateKey, Span<byte> pubKey);
 
+        /// <summary>
+        /// Decrypts a Nostr encrypted message by the target's public key, and the local secret key. 
+        /// Both keys will be used to compute the shared secret that will be used to decrypt the message.
+        /// </summary>
+        /// <param name="secretKey">The local secret key</param>
+        /// <param name="targetKey">The message's target public key for the shared secret</param>
+        /// <param name="aseIv">The initialization vector used to encrypt the message</param>
+        /// <param name="cyphterText">The cyphertext to decrypt</param>
+        /// <param name="outputBuffer">The output buffer to write plaintext data to</param>
+        /// <returns>The number of bytes written to the output, 0 or negative for an error</returns>
         ERRNO DecryptMessage(ReadOnlySpan<byte> secretKey, ReadOnlySpan<byte> targetKey, ReadOnlySpan<byte> aseIv, ReadOnlySpan<byte> cyphterText, Span<byte> outputBuffer);
 
+        /// <summary>
+        /// Encrypts a message with the specified secret key, target public key, and initialization vector.
+        /// </summary>
+        /// <param name="secretKey"></param>
+        /// <param name="targetKey"></param>
+        /// <param name="aesIv">The initalization vector used by the AES cipher to encrypt data</param>
+        /// <param name="plainText">The plaintext data to encrypt</param>
+        /// <param name="cipherText">The ciphertext output buffer</param>
+        /// <returns>The number of bytes written to the output buffer, 0 or negative on error</returns>
         ERRNO EncryptMessage(ReadOnlySpan<byte> secretKey, ReadOnlySpan<byte> targetKey, ReadOnlySpan<byte> aesIv, ReadOnlySpan<byte> plainText, Span<byte> cipherText);
 
         /// <summary>

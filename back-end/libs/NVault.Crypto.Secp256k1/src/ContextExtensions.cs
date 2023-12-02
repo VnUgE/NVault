@@ -26,68 +26,15 @@ using static NVault.Crypto.Secp256k1.LibSecp256k1;
 
 namespace NVault.Crypto.Secp256k1
 {
+    /// <summary>
+    /// The callback function signature required for ECDH hash functions
+    /// </summary>
+    /// <param name="state">The callback state</param>
+    /// <returns>The return value to be passed as a result of the operation</returns>
     public delegate int Secp256k1EcdhHashFunc(in Secp256HashFuncState state);
-
-    [StructLayout(LayoutKind.Sequential)]
-    public unsafe readonly ref struct Secp256HashFuncState
-    {
-
-        /// <summary>
-        /// The opaque pointer passed to the hash function
-        /// </summary>
-        public readonly IntPtr Opaque { get; }
-
-        private readonly byte* _output;
-        private readonly byte* _xCoord;
-        private readonly int _outputLength;
-        private readonly int _xCoordLength;
-
-        internal Secp256HashFuncState(byte* output, int outputLength, byte* xCoord, int xCoordLength, IntPtr opaque)
-        {
-            Opaque = opaque;
-            _output = output;
-            _outputLength = outputLength;
-            _xCoord = xCoord;
-            _xCoordLength = xCoordLength;
-        }
-
-        /// <summary>
-        /// Gets the output buffer as a span
-        /// </summary>
-        /// <returns>The output buffer span</returns>
-        public readonly Span<byte> GetOutput() => new(_output, _outputLength);
-
-        /// <summary>
-        /// Gets the x coordinate argument as a span
-        /// </summary>
-        /// <returns>The xcoordinate buffer span</returns>
-        public readonly ReadOnlySpan<byte> GetXCoordArg() => new(_xCoord, _xCoordLength);
-    }
 
     public static unsafe class ContextExtensions
     {
-        /// <summary>
-        /// Creates a new <see cref="Secp256k1Context"/> from the current managed library
-        /// </summary>
-        /// <param name="Lib"></param>
-        /// <returns>The new <see cref="Secp256k1Context"/> object from the library</returns>
-        /// <exception cref="CryptographicException"></exception>
-        public static Secp256k1Context CreateContext(this LibSecp256k1 Lib)
-        {
-            //Protect for released lib
-            Lib.SafeLibHandle.ThrowIfClosed();
-
-            //Create new context
-            IntPtr context = Lib._create(1);
-
-            if (context == IntPtr.Zero)
-            {
-                throw new CryptographicException("Failed to create the new Secp256k1 context");
-            }
-
-            return new Secp256k1Context(Lib, context);
-        }
-
         /// <summary>
         /// Signs a 32byte message digest with the specified secret key on the current context and writes the signature to the specified buffer
         /// </summary>
@@ -108,13 +55,22 @@ namespace NVault.Crypto.Secp256k1
             if (digest.Length != (int)HashAlg.SHA256)
             {
                 return ERRNO.E_FAIL;
-            }           
+            }
+
+            //Secret key size must be exactly the size of the secret key struct
+            if(secretKey.Length != sizeof(Secp256k1SecretKey))
+            {
+                return ERRNO.E_FAIL;
+            }
 
             //Stack allocated keypair
             KeyPair keyPair = new();
 
+            //Init the secret key struct from key data
+            Secp256k1SecretKey secKeyStruct = MemoryMarshal.Read<Secp256k1SecretKey>(secretKey);
+
             //Randomize the context and create the keypair
-            if (!context.CreateKeyPair(&keyPair, secretKey))
+            if (!context.CreateKeyPair(&keyPair, &secKeyStruct))
             {
                 return ERRNO.E_FAIL;
             }
@@ -161,9 +117,9 @@ namespace NVault.Crypto.Secp256k1
         /// <exception cref="CryptographicException"></exception>
         public static ERRNO GeneratePubKeyFromSecret(this in Secp256k1Context context, ReadOnlySpan<byte> secretKey, Span<byte> pubKeyBuffer)
         {
-            if (secretKey.Length != SecretKeySize)
+            if (secretKey.Length != sizeof(Secp256k1SecretKey))
             {
-                throw new CryptographicException($"Your secret key must be exactly {SecretKeySize} bytes long");
+                throw new CryptographicException($"Your secret key must be exactly {sizeof(Secp256k1SecretKey)} bytes long");
             }
 
             if (pubKeyBuffer.Length < XOnlyPublicKeySize)
@@ -176,12 +132,13 @@ namespace NVault.Crypto.Secp256k1
 
             //Stack allocated keypair and x-only public key
             Secp256k1PublicKey xOnlyPubKey = new();
+            Secp256k1SecretKey secKeyStruct = MemoryMarshal.Read<Secp256k1SecretKey>(secretKey);
             KeyPair keyPair = new();
 
             try
             {
                 //Init context and keypair
-                if (!context.CreateKeyPair(&keyPair, secretKey))
+                if (!context.CreateKeyPair(&keyPair, &secKeyStruct))
                 {
                     return ERRNO.E_FAIL;
                 }
@@ -220,9 +177,9 @@ namespace NVault.Crypto.Secp256k1
         /// <exception cref="CryptographicException"></exception>
         public static bool VerifySecretKey(this in Secp256k1Context context, ReadOnlySpan<byte> secretKey)
         {
-            if (secretKey.Length != SecretKeySize)
+            if (secretKey.Length != sizeof(Secp256k1SecretKey))
             {
-                throw new CryptographicException($"Your secret key must be exactly {SecretKeySize} bytes long");
+                throw new CryptographicException($"Your secret key must be exactly {sizeof(Secp256k1SecretKey)} bytes long");
             }
 
             context.Lib.SafeLibHandle.ThrowIfClosed();
@@ -252,9 +209,9 @@ namespace NVault.Crypto.Secp256k1
         /// <exception cref="ArgumentException"></exception>
         public static bool ComputeSharedKey(this in Secp256k1Context context, Span<byte> data, ReadOnlySpan<byte> xOnlyPubKey, ReadOnlySpan<byte> secretKey, Secp256k1EcdhHashFunc callback, IntPtr opaque)
         {
-            if (secretKey.Length != SecretKeySize)
+            if (secretKey.Length != sizeof(Secp256k1SecretKey))
             {
-                throw new ArgumentException($"Your secret key buffer must be exactly {SecretKeySize} bytes long");
+                throw new ArgumentException($"Your secret key buffer must be exactly {sizeof(Secp256k1SecretKey)} bytes long");
             }
 
             //Init callback state struct

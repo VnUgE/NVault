@@ -51,12 +51,12 @@ renderContent([], (appRoot, shadowRoot) => {
 
   //Add tailwind styles just to the shadow dom element
   const style = document.createElement('style')
-  style.innerHTML = tw.toString()
+  style.textContent = tw.toString()
   shadowRoot.appendChild(style)
 
   //Add local styles
   const style2 = document.createElement('style')
-  style2.innerHTML = localStyle.toString()
+  style2.textContent = localStyle.toString()
   shadowRoot.appendChild(style2)
 
   createApp(App)

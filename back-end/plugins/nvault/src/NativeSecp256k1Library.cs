@@ -76,7 +76,7 @@ namespace NVault.Plugins.Vault
             finally
             {
                 //Zero out buffers
-                MemoryUtil.InitializeBlock(sharedKeyBuffer.AsSpan());
+                MemoryUtil.InitializeBlock(sharedKeyBuffer);
             }
         }
 
@@ -114,7 +114,7 @@ namespace NVault.Plugins.Vault
             finally
             {
                 //Zero out buffers
-                MemoryUtil.InitializeBlock(sharedKeyBuffer.AsSpan());
+                MemoryUtil.InitializeBlock(sharedKeyBuffer);
             }
         }
 

@@ -134,7 +134,7 @@ namespace NVault.Plugins.Vault.Endpoints
 
                 //Get the key metadata
                 NostrKeyMeta? keyMeta = await _publicKeyStore.GetSingleUserRecordAsync(nEvent.KeyId, entity.Session.UserID);
-                if(webm.Assert(keyMeta != null, "Key not found"))
+                if(webm.Assert(keyMeta?.Value != null, "Key not found"))
                 {
                     return VirtualClose(entity, webm, HttpStatusCode.NotFound);
                 }
@@ -520,7 +520,7 @@ namespace NVault.Plugins.Vault.Endpoints
                     .Must(ct => ct.Contains("?iv=", StringComparison.OrdinalIgnoreCase))
                     .WithMessage("iv not found in ciphertext")
                     //Check iv is not too long
-                    .Must(ct => ct.AsSpan().SliceAfterParam("?iv=").Length == NostrOpProvider.MaxBase64EncodedSize)
+                    .Must(ct => ct.AsSpan().SliceAfterParam("?iv=").Length == NostrOpProvider.IvMaxBase64EncodedSize)
                     .WithMessage("iv is not the correct size");
 
                 //Pubpkey must be 64 hex characters

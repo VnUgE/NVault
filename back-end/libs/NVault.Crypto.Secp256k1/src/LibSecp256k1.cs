@@ -23,15 +23,16 @@ using VNLib.Utils.Extensions;
 
 namespace NVault.Crypto.Secp256k1
 {
-    
+
     internal unsafe delegate int EcdhHasFunc(byte* output, byte* x32, byte* y32, void* data);
 
     public unsafe class LibSecp256k1 : VnDisposeable
     {
-        public const int SecretKeySize = 32;
         public const int SignatureSize = 64;
         public const int RandomBufferSize = 32;
         public const int XOnlyPublicKeySize = 32;
+
+        public static readonly int SecretKeySize = sizeof(Secp256k1SecretKey);
 
         /*
          * Unsafe structures that represent the native keypair and x-only public key
@@ -51,15 +52,14 @@ namespace NVault.Crypto.Secp256k1
         {
             public fixed byte data[64];
         }
-
       
 
         //Native methods
         [SafeMethodName("secp256k1_context_create")]
-        internal delegate IntPtr CreateContext(int flags);
+        internal delegate IntPtr ContextCreate(int flags);
 
         [SafeMethodName("secp256k1_context_destroy")]
-        internal delegate void DestroyContext(IntPtr context);
+        internal delegate void ContextDestroy(IntPtr context);
 
         [SafeMethodName("secp256k1_context_randomize")]
         internal delegate int RandomizeContext(IntPtr context, byte* seed32);
@@ -94,7 +94,6 @@ namespace NVault.Crypto.Secp256k1
             EcdhHasFunc hashFunc, 
             void* dataPtr
         );
-
         
 
         /// <summary>
@@ -132,14 +131,32 @@ namespace NVault.Crypto.Secp256k1
         }
 
         /// <summary>
+        /// Loads the Secp256k1 library from the specified path and creates a wrapper class (loads methods from the library)
+        /// </summary>
+        /// <param name="handle">The handle to the shared library</param>
+        /// <param name="random">An optional random source to create random entropy and secrets from</param>
+        /// <returns>The <see cref="LibSecp256k1"/> library wrapper class</returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="MissingMemberException"></exception>
+        /// <exception cref="EntryPointNotFoundException"></exception>
+        public static LibSecp256k1 FromHandle(SafeLibraryHandle handle, IRandomSource? random)
+        {
+            _ = handle ?? throw new ArgumentNullException(nameof(handle));
+            //setup fallback random source if null
+            random ??= new FallbackRandom();
+            //Create the lib
+            return new LibSecp256k1(handle, random);
+        }
+
+        /// <summary>
         /// The underlying library handle
         /// </summary>
         public SafeLibraryHandle SafeLibHandle { get; }
 
         internal readonly KeypairCreate _createKeyPair;
-        internal readonly CreateContext _create;
+        internal readonly ContextCreate _create;
         internal readonly RandomizeContext _randomize;
-        internal readonly DestroyContext _destroy;
+        internal readonly ContextDestroy _destroy;
         internal readonly KeypairXOnlyPub _createXonly;
         internal readonly XOnlyPubkeySerialize _serializeXonly;
         internal readonly SignHash _signHash;
@@ -165,10 +182,10 @@ namespace NVault.Crypto.Secp256k1
             SafeLibHandle = handle ?? throw new ArgumentNullException(nameof(handle));
 
             //Get all method handles and store them
-            _create = handle.DangerousGetMethod<CreateContext>();
+            _create = handle.DangerousGetMethod<ContextCreate>();
             _createKeyPair = handle.DangerousGetMethod<KeypairCreate>();
             _randomize = handle.DangerousGetMethod<RandomizeContext>();
-            _destroy = handle.DangerousGetMethod<DestroyContext>();
+            _destroy = handle.DangerousGetMethod<ContextDestroy>();
             _createXonly = handle.DangerousGetMethod<KeypairXOnlyPub>();
             _serializeXonly = handle.DangerousGetMethod<XOnlyPubkeySerialize>();
             _signHash = handle.DangerousGetMethod<SignHash>();
@@ -205,9 +222,9 @@ namespace NVault.Crypto.Secp256k1
             //Protect for released lib
             SafeLibHandle.ThrowIfClosed();
 
-            if(buffer.Length != SecretKeySize)
+            if(buffer.Length != sizeof(Secp256k1SecretKey))
             {
-                throw new ArgumentException($"Buffer must be exactly {SecretKeySize} bytes long", nameof(buffer));
+                throw new ArgumentException($"Buffer must be exactly {sizeof(Secp256k1SecretKey)} bytes long", nameof(buffer));
             }
 
             //Fill the buffer with random bytes
@@ -225,6 +242,28 @@ namespace NVault.Crypto.Secp256k1
             SafeLibHandle.ThrowIfClosed();
 
             _randomSource.GetRandomBytes(buffer);
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="Secp256k1Context"/> from the current managed library
+        /// </summary>
+        /// <param name="Lib"></param>
+        /// <returns>The new <see cref="Secp256k1Context"/> object from the library</returns>
+        /// <exception cref="OutOfMemoryException"></exception>
+        public Secp256k1Context CreateContext()
+        {
+            //Protect for released lib
+            SafeLibHandle.ThrowIfClosed();
+
+            //Create new context
+            IntPtr context = _create(1);
+
+            if (context == IntPtr.Zero)
+            {
+                throw new OutOfMemoryException("Failed to create the new Secp256k1 context");
+            }
+
+            return new Secp256k1Context(this, context);
         }
 
         protected override void Free()

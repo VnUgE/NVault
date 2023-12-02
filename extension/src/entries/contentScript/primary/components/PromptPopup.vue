@@ -85,12 +85,13 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { usePrompt, type UserPermissionRequest } from '../../util'
+import { debugLog } from '@vnuge/vnlib.browser';
+import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
 import { clone, first } from 'lodash';
+import { usePrompt, type UserPermissionRequest } from '../../util'
 import { useStore } from '../../../store';
-import { storeToRefs } from 'pinia';
 
 const store = useStore()
 const { loggedIn, selectedKey, darkMode } = storeToRefs(store)
@@ -127,7 +128,7 @@ usePrompt((ev: UserPermissionRequest):Promise<boolean> => {
 
     ev = clone(ev)
 
-    console.log('[usePrompt] =>', ev)
+    debugLog('[usePrompt] =>', ev)
 
     switch(ev.type){
         case 'getPublicKey':

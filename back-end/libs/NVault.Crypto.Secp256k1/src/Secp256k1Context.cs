@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 using System;
-using System.Runtime.InteropServices;
 
 using VNLib.Utils.Extensions;
 using VNLib.Utils.Memory;
@@ -54,15 +53,12 @@ namespace NVault.Crypto.Secp256k1
             return result;
         }
 
-        internal unsafe readonly bool CreateKeyPair(KeyPair* keyPair, ReadOnlySpan<byte> secretKey)
+        internal unsafe readonly bool CreateKeyPair(KeyPair* keyPair, Secp256k1SecretKey* secretKey)
         {
             Lib.SafeLibHandle.ThrowIfClosed();
 
-            fixed (byte* sk = &MemoryMarshal.GetReference(secretKey))
-            {
-                //Create the keypair from the secret key
-                return Lib._createKeyPair(Context, keyPair, sk) == 1;
-            }
+            //Create the keypair from the secret key
+            return Lib._createKeyPair(Context, keyPair, (byte*)secretKey) == 1;
         }
 
         /// <summary>

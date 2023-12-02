@@ -41,20 +41,18 @@ const sharedManifest = {
     'activeTab',
   ],
 
-
   browser_specific_settings: {
     "gecko": {
-      "id": "{fdacee2c-bab4-490d-bc4b-ecdd03d5d68a}"
+      "id": "{d71bf2c0-7485-4572-b1a5-c5dd2c5f16d5}"
     }
   },
 
-  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self';"
+  "content_security_policy": "script-src 'self'; object-src 'self';"
 };
 
 const browserAction = {
   default_icon: {
     16: "icons/16.png",
-    19: "icons/19.png",
     32: "icons/32.png",
     38: "icons/38.png",
   },
