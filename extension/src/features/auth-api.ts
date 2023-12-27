@@ -16,12 +16,14 @@
 import { AxiosInstance } from "axios";
 import { get } from "@vueuse/core";
 import { computed } from "vue";
+import { delay } from "lodash";
 import { usePkiAuth, useSession, useUser } from "@vnuge/vnlib.browser";
 import type { ClientStatus } from "./types";
 import type { AppSettings } from "./settings";
 import type { JsonObject } from "type-fest";
 import { type FeatureApi, type BgRuntime, type IFeatureExport, exportForegroundApi, popupAndOptionsOnly, popupOnly } from "./framework";
 import { waitForChangeFn } from "./util";
+
 
 export interface ProectedHandler<T extends JsonObject> {
     (message: T): Promise<any>
@@ -46,7 +48,7 @@ export interface UserApi extends FeatureApi {
 export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
 
     return {
-        background: ({ state, onInstalled }:BgRuntime<AppSettings>): UserApi =>{
+        background: ({ state }:BgRuntime<AppSettings>): UserApi =>{
             const { loggedIn, clearLoginState } = useSession();
             const { currentConfig } = state
             const { logout, getProfile, heartbeat, userName } = useUser();
@@ -74,14 +76,9 @@ export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
                 }
             }
 
-            //Install hook for interval
-            onInstalled(() => {
-                //Configure interval to run every 5 minutes to update the status
-                setInterval(runHeartbeat, 60 * 1000);
-                //Run immediately
-                runHeartbeat();
-                return Promise.resolve();
-            })
+            //Configure interval to run every 5 minutes to update the status
+            setInterval(runHeartbeat, 60 * 1000);
+            delay(runHeartbeat, 1000)   //Delay 1 second to allow the extension to load
 
             return {
                 waitForChange: waitForChangeFn([currentConfig, loggedIn, userName]),
