@@ -14,14 +14,14 @@
     <Company>Vaughn Nugent</Company>
     <Product>NVault.VaultExtensions</Product>
     <Description>A Hashicorp Vault unified extension library for NVault</Description>
-    <Copyright>Copyright © 2023 Vaughn Nugent</Copyright>
+    <Copyright>Copyright © 2024 Vaughn Nugent</Copyright>
     <PackageProjectUrl>https://www.vaughnnugent.com/resources/software/modules/NVault</PackageProjectUrl>
     <RepositoryUrl>https://github.com/VnUgE/NVault/tree/master/</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="VaultSharp" Version="1.13.0.1" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Loading" Version="0.1.0-ci0042" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Loading" Version="0.1.0-ci0044" />
   </ItemGroup>
 
 </Project>

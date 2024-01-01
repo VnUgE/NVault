@@ -14,16 +14,16 @@
     <Company>Vaughn Nugent</Company>
     <Product>Nvault</Product>
     <Description>A VNLib.Plugins.Essentials framework plugin that provides a nostr vault backend called NVault</Description>
-    <Copyright>Copyright © 2023 Vaughn Nugent</Copyright>
+    <Copyright>Copyright © 2024 Vaughn Nugent</Copyright>
     <PackageProjectUrl>https://www.vaughnnugent.com/resources/software/modules/NVault</PackageProjectUrl>
     <RepositoryUrl>https://github.com/VnUgE/NVault/tree/master/</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentValidation" Version="11.8.0" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0042" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0042" />
-    <PackageReference Include="VVNLib.Plugins.Extensions.Loading.Sql" Version="0.1.0-ci0034" />
+    <PackageReference Include="FluentValidation" Version="11.9.0" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0044" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0044" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Loading.Sql" Version="0.1.0-ci0044" />
   </ItemGroup>
 
   <ItemGroup>
