@@ -55,7 +55,7 @@
     "pinia": "^2.1.7",
     "sass": "^1.56.1",
     "serialize-error": "^11.0.0",
-    "tiny-uid": "^1.1.1",
+    "nanoid": "^5.0.4",
     "universal-cookie": "^6.1.x",
     "vite-plugin-web-extension": "^3.0.2",
     "vue": "^3.2.47",

@@ -1,4 +1,4 @@
-import uuid from 'tiny-uid'
+import { nanoid } from 'nanoid'
 import { isEqual } from 'lodash'
 import { Runtime, runtime } from 'webextension-polyfill'
 import { serializeError, isErrorLike, type ErrorObject, deserializeError } from 'serialize-error'
@@ -49,7 +49,7 @@ interface RxChannelState{
     onDisconnected(): void
 }
 
-export const createMessageChannel = (localContext: ChannelContext): MessageChannel => {
+export const createMessageChannel = (localContext: ChannelContext, randomIdSize = 32): MessageChannel => {
 
     const createRxChannel = (): RxChannelState => {
 
@@ -150,7 +150,7 @@ export const createMessageChannel = (localContext: ChannelContext): MessageChann
             sendMessage: (port: Runtime.Port) => {
                 return <T extends JsonObject>(name: string, message: JsonObject): Promise<T> => {
                     //unique transaction id for message, used to match in response map
-                    const transactionId = uuid(32)
+                    const transactionId = nanoid(randomIdSize)
 
                     //Create itnernal request wrapper
                     const request: InternalChannelMessage = {
