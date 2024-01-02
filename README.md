@@ -63,3 +63,10 @@ This project is licensed under the GNU AGPL v3 open source license. See LICENSE.
 Right now I am too busy to worry about copyrights, prs and such so I will not be accepting contributions at the moment. Suggestions are MORE than welcome, I prefer contact via email (see my GH profile or my website for my email address). This will change in the future if I get more time or an alternate source of income.  
 
 Actually, if you are a front-end developer with some good UI/design skils and are intersted in making the UI look better, let me know! 
+
+## Donations
+If you like this project and want to support it or motivate me for faster development you can donate with fiat or on-chain BTC for now.  
+
+On-Chain Bitcoin: `bc1qgj4fk6gdu8lnhd4zqzgxgcts0vlwcv3rqznxn9`
+
+Fiat: [Paypal](https://www.paypal.com/donate/?business=VKEDFD74QAQ72&no_recurring=0&item_name=By+donating+you+are+funding+my+love+for+producing+free+software+for+my+community.+&currency_code=USD)
