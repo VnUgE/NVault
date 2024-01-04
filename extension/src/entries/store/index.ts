@@ -23,6 +23,7 @@ export type * from './types'
 export * from './allowedOrigins'
 export * from './features'
 export * from './identity'
+export * from './mfaconfig'
 
 export const useStore = defineStore({
     id: 'main',
@@ -34,8 +35,8 @@ export const useStore = defineStore({
     }),
     actions: {
 
-        async login (token: string) {
-            await this.plugins.user.login(token);
+        async login (usernameOrToken: string, password?: string) {
+            await this.plugins.user.login(usernameOrToken, password);
         },
 
         async logout () {
@@ -49,10 +50,6 @@ export const useStore = defineStore({
         async toggleDarkMode(){
             await this.plugins.settings.setDarkMode(this.darkMode === false)
         },
-        
-        checkIsCurrentOriginAllowed() {
-            
-        }
     },
     getters:{
          

@@ -13,15 +13,17 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { useMfaConfig, usePkiConfig, type PkiPublicKey } from "@vnuge/vnlib.browser";
+import { usePkiConfig, type PkiPublicKey, useSession } from "@vnuge/vnlib.browser";
 import { ArrayToHexString, Base64ToUint8Array } from "@vnuge/vnlib.browser/dist/binhelpers";
 import { JsonObject } from "type-fest";
-import { computed, watch } from "vue";
+import { computed, shallowRef } from "vue";
 import { JWK, SignJWT, importJWK } from "jose";
 import { clone } from "lodash";
-import { FeatureApi, BgRuntime, IFeatureExport, exportForegroundApi, optionsOnly, popupAndOptionsOnly } from "./framework";
+import { FeatureApi, BgRuntime, IFeatureExport, exportForegroundApi, optionsOnly } from "./framework";
 import { AppSettings } from "./settings";
-import { set, toRefs } from "@vueuse/core";
+import { get, set, toRefs, useToggle, watchDebounced } from "@vueuse/core";
+import { Watchable } from "./types";
+import { waitForChangeFn } from "./util";
 
 
 export interface EcKeyParams extends JsonObject {
@@ -39,43 +41,59 @@ export interface PkiPubKey extends JsonObject, PkiPublicKey {
     readonly userName: string
 }
 
-export interface PkiApi extends FeatureApi{
+export interface PkiApi extends FeatureApi, Watchable{
     getAllKeys(): Promise<PkiPubKey[]>
+    addOrUpdate(key: PkiPubKey): Promise<void>
     removeKey(kid: PkiPubKey): Promise<void>
-    isEnabled(): Promise<boolean>
+    refresh(): Promise<void>
 }
 
 export const usePkiApi = (): IFeatureExport<AppSettings, PkiApi> => {
     return{
         background: ({ state } : BgRuntime<AppSettings>):PkiApi =>{
+            const { loggedIn } = useSession()
             const accountPath = computed(() => state.currentConfig.value.accountBasePath)
-            const mfaEndpoint = computed(() => `${accountPath.value}/mfa`)
             const pkiEndpoint = computed(() => `${accountPath.value}/pki`)
-
+            const [ onRefresh, refresh ] = useToggle()
             //Compute config
-            const mfaConfig = useMfaConfig(mfaEndpoint);
-            const pkiConfig = usePkiConfig(pkiEndpoint, mfaConfig);
+          
+            const pkiConfig = usePkiConfig(pkiEndpoint);
+            const keys = shallowRef<PkiPubKey[]>([])
 
             //Refresh the config when the endpoint changes
-            watch(mfaEndpoint, () => pkiConfig.refresh());
+            watchDebounced([pkiEndpoint, loggedIn, onRefresh], async () => {
+                if(!loggedIn.value){
+                    set(keys, [])
+                    return
+                }
+
+                const res = await pkiConfig.getAllKeys()
+                set(keys, res as PkiPubKey[])
+            }, {debounce: 100});
 
             return{
-                getAllKeys: optionsOnly(async () => {
-                    const res = await pkiConfig.getAllKeys();
-                    return res as PkiPubKey[]
+                waitForChange: waitForChangeFn([loggedIn, keys]),
+                getAllKeys: optionsOnly(() => {
+                    return Promise.resolve(get(keys))
                 }),
                 removeKey: optionsOnly(async (key: PkiPubKey) => {
                     await pkiConfig.removeKey(key.kid)
                 }),
-                isEnabled: popupAndOptionsOnly(async () => {
-                    return pkiConfig.enabled.value
-                })
+                addOrUpdate: optionsOnly(async (key: PkiPubKey) => {
+                    await pkiConfig.addOrUpdate(key)
+                }),
+                refresh() {
+                    refresh()
+                    return Promise.resolve()
+                }
             }
         },
         foreground: exportForegroundApi<PkiApi>([
+            'waitForChange',
             'getAllKeys',
+            'addOrUpdate',
             'removeKey',
-            'isEnabled'
+            'refresh'
         ])
     }
 }

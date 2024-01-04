@@ -57,7 +57,7 @@
                     {{ pubKey ?? 'No key selected' }}
                   </div>
                   <div class="my-auto ml-auto cursor-pointer" :class="{'text-primary-500': copied }">
-                      <fa-icon class="mr-1" icon="copy" @click="copy(pubKey)"/>
+                      <fa-icon class="mr-1" icon="copy" @click="copy(pubKey!)"/>
                   </div>
                 </div>
               </div>

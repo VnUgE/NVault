@@ -52,13 +52,15 @@
     "base32-encode": "^2.0.0",
     "jose": "^5.0.x",
     "lodash-es": "^4.17.21",
+    "nanoid": "^5.0.4",
+    "otpauth": "^9.2.1",
     "pinia": "^2.1.7",
     "sass": "^1.56.1",
     "serialize-error": "^11.0.0",
-    "nanoid": "^5.0.4",
     "universal-cookie": "^7.0.x",
     "vite-plugin-web-extension": "^4.1.1",
     "vue": "^3.2.47",
+    "vue3-otp-input": "^0.4.1",
     "webextension-polyfill": "^0.10.0"
   }
 }

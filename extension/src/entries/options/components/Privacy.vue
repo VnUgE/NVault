@@ -1,18 +1,19 @@
 <template>
-    <div class="flex flex-col w-full mt-4 sm:px-2">
-        <div class="flex flex-row gap-1">
-            <div class="text-2xl">
+    <div class="flex flex-col w-full max-w-md mx-auto mt-4 sm:px-2">
+        <div class="flex flex-row gap-1 mx-auto">
+            <div class="mb-auto mr-1" >
+                <div class="w-2 h-2 rounded-full" :class="[isOriginProtectionOn ? 'bg-primary-600' : 'bg-red-500']">
+                </div>
+            </div>
+            <h3 class="text-2xl">
                 Tracking protection
-            </div>
-            <div class="mt-auto" :class="[isOriginProtectionOn ? 'text-primary-600' : 'text-red-500']">
-                {{ isOriginProtectionOn ? 'active' : 'inactive' }}
-            </div>
+            </h3>
         </div>
         <div class="">
             <div class="p-2">
                 <div class="my-1">
-                    <form @submit.prevent="allowOrigin()">
-                        <input class="w-full max-w-xs input primary" type="text" v-model="newOrigin" placeholder="Add new origin"/>
+                    <form class="flex flex-row w-full" @submit.prevent="allowOrigin()">
+                        <input class="flex-1 input primary" type="text" v-model="newOrigin" placeholder="Add new origin"/>
                         <button type="submit" class="ml-1 btn xs" >
                             <fa-icon icon="plus" />
                         </button>

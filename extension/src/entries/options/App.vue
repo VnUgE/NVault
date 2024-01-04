@@ -1,5 +1,9 @@
 <template>
   <main id="injected-root">
+    
+    <!-- Global password/confirm promps -->
+    <ConfirmPrompt />
+    <PasswordPrompt />
 
     <notifications class="toaster" group="form" position="top-right" />
 
@@ -13,6 +17,11 @@
             <Tab v-slot="{ selected }">
               <button class="tab-title" :class="{ selected }">
                 Identities
+              </button>
+            </Tab>
+            <Tab v-slot="{ selected }">
+              <button class="tab-title" :class="{ selected }">
+                  Account
               </button>
             </Tab>
             <Tab v-slot="{ selected }">
@@ -54,6 +63,9 @@
           <TabPanels>
             <TabPanel class="mt-4">
              <Identities :all-keys="allKeys" @edit-key="editKey"/>
+            </TabPanel>
+            <TabPanel>
+              <Account/>
             </TabPanel>
             <TabPanel>
               <Privacy/>
@@ -115,6 +127,9 @@ import SiteSettings from './components/SiteSettings.vue';
 import Identities from './components/Identities.vue';
 import Privacy from "./components/Privacy.vue";
 import { useStore } from "../store";
+import Account from "./components/Account.vue";
+import ConfirmPrompt from "../../components/ConfirmPrompt.vue";
+import PasswordPrompt from "../../components/PasswordPrompt.vue";
 
 
 //Configure the notifier to use the notification library
@@ -128,7 +143,7 @@ const keyBuffer = ref<NostrPubKey>({} as NostrPubKey)
 
 const editKey = (key: NostrPubKey) =>{
   //Goto hidden tab
-  selectedTab.value = 3
+  selectedTab.value = 4
   //Set selected key
   keyBuffer.value = { ...key }
 }
@@ -165,7 +180,7 @@ watchEffect(() => darkMode.value ? document.body.classList.add('dark') : documen
 
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 
 main {
   font-family: Avenir, Helvetica, Arial, sans-serif;
@@ -196,6 +211,10 @@ main {
   &.selected{
     @apply border-primary-500 hover:border-primary-500;
   }
+}
+
+.text-color-background{
+  @apply text-gray-400 dark:text-gray-500;
 }
 
 </style>

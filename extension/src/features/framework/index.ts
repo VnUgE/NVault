@@ -34,7 +34,11 @@ export type FeatureApi = {
 export type SendMessageHandler = <T extends JsonObject | JsonObject[]>(action: string, data: any) => Promise<T>
 export type VarArgsFunction<T> = (...args: any[]) => T
 export type FeatureConstructor<TState, T extends FeatureApi> = () => IFeatureExport<TState, T>
-export type DummyApiExport<T extends FeatureApi> = Array<keyof T> 
+
+export type DummyApiExport<T extends FeatureApi> = {
+    [K in keyof T]: T[K] extends Function ? K : never
+}[keyof T][]
+
 
 export interface IFeatureExport<TState, TFeature extends FeatureApi> {
     /**

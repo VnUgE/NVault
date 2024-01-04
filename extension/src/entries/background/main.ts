@@ -23,7 +23,8 @@ import {
   useAppSettings,
   usePkiApi,
   useEventTagFilterApi,
-  useInjectAllowList
+  useInjectAllowList,
+  useMfaConfigApi,
 } from "../../features";
 import { useBackgroundFeatures } from "../../features/framework";
 
@@ -40,5 +41,6 @@ register([
   useLocalPki,
   usePkiApi,
   useEventTagFilterApi,
-  useInjectAllowList
+  useInjectAllowList,
+  useMfaConfigApi
 ])

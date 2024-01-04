@@ -63,6 +63,7 @@ export interface LoginMessage extends JsonObject {
 export interface ClientStatus extends JsonObject {
     readonly loggedIn: boolean;
     readonly userName: string | null;
+    readonly mfaStatus: object | null;
 }
 
 export enum NostrRelayFlags {
@@ -96,4 +97,12 @@ export interface Watchable{
      * must be called again to listen for the next change. 
      */
     waitForChange(): Promise<void>;
+}
+
+export interface TotpUpdateMessage extends JsonObject {
+    readonly issuer: string
+    readonly digits: number
+    readonly period: number
+    readonly algorithm: string
+    readonly secret: string
 }

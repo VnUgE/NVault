@@ -38,6 +38,13 @@
                     </PopoverPanel>
                 </Popover>
             </div>
+             <div class="">
+                <div class="">
+                    <button class="rounded btn sm" @click="store.refreshIdentities()">
+                        <fa-icon icon="refresh" class="" />
+                    </button>
+                </div>
+            </div>
         </div>
         <div v-for="key in allKeys" :key="key.Id" class="mt-2 mb-3">
             <div class="" :class="{'selected': isSelected(key)}" @click.self="selectKey(key)">
@@ -90,7 +97,7 @@ import {
     PopoverPanel,
     PopoverOverlay
 } from '@headlessui/vue'
-import { apiCall, configureNotifier } from '@vnuge/vnlib.browser';
+import { apiCall, configureNotifier, useConfirm } from '@vnuge/vnlib.browser';
 import { NostrPubKey } from '../../../features';
 import { notify } from "@kyvg/vue3-notification";
 import { get, useClipboard } from '@vueuse/core';
@@ -106,7 +113,7 @@ const downloadAnchor = ref<HTMLAnchorElement>()
 const store = useStore()
 const { selectedKey, allKeys } = storeToRefs(store)
 const { copy } = useClipboard()
-
+const { reveal } = useConfirm()
 
 const isSelected = (me : NostrPubKey) => isEqual(me, selectedKey.value)
 const editKey = (key : NostrPubKey) => emit('edit-key', key);
@@ -134,7 +141,17 @@ const prettyPrintDate = (key : NostrPubKey) => {
 
 const onDeleteKey = async (key : NostrPubKey) => {
     
-    if(!confirm(`Are you sure you want to delete ${key.UserName}?`)){
+    const { isCanceled } = await reveal({
+        title: 'Are you sure?',
+        text: `You are about to perminantly delete your identity ${key.UserName}.`,
+        subtext: 'This is a perminant action and cannot be undone.',
+    })
+
+    if(isCanceled){
+        return;
+    }
+
+    if(!confirm(`Are you REALLY sure you want to delete ${key.UserName}?`)){
         return;
     } 
 

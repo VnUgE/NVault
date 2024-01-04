@@ -128,9 +128,9 @@ import { useStore } from '../../store';
 import { storeToRefs } from 'pinia';
 import useVuelidate from '@vuelidate/core'
 
-const { waiting } = useWait();
 const store = useStore()
-const { settings, isOriginProtectionOn } = storeToRefs(store)
+const { settings } = storeToRefs(store)
+const { waiting } = useWait();
 
 const { apply, data, buffer, modified, update } = useDataBuffer(settings.value, async sb =>{
     const newConfig = await store.saveSiteConfig(sb.buffer)
@@ -142,7 +142,7 @@ const { apply, data, buffer, modified, update } = useDataBuffer(settings.value, 
 watch(settings, v => apply(v))
 
 const originProtection = computed({
-    get: () => isOriginProtectionOn.value,
+    get: () => store.isOriginProtectionOn,
     set: v => store.setOriginProtection(v)
 })
 

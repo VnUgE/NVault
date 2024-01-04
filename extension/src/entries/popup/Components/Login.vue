@@ -1,43 +1,45 @@
 <template>
     <div id="login-template" class="py-4">
-        <form class="" @submit.prevent="onSubmit">
-            <fieldset class="px-4 input-container">
-                <label class="">Please enter your authentication token</label>
-                <textarea class="w-full input" v-model="token" rows="5">
-                </textarea>
-            </fieldset>
-            <div class="flex justify-end mt-2">
-                <div class="px-3">
-                    <button class="w-24 rounded btn sm primary">
-                        <fa-icon v-if="waiting" icon="spinner" class="animate-spin" />
-                        <span v-else>Submit</span>
-                    </button>
-                </div>
-            </div>
-        </form>
+        <TabGroup @change="onChange">
+            <TabList as="div" class="flex flex-row mx-auto mb-3 font-bold w-fit">
+                <Tab 
+                    class="p-0.5 mx-1 border-b"
+                    :class="[ isActive(0) ? 'border-gray-400' : 'border-transparent']"
+                >
+                    OTP
+                </Tab>
+                <Tab 
+                    class="p-0.5 mx-1 border-b"
+                    :class="[ isActive(1) ? 'border-gray-400' : 'border-transparent']"
+                >
+                    User/Pass
+                </Tab>
+            </TabList>
+            <TabPanels>
+                <TabPanel>
+                    <OtpLogin />
+                </TabPanel>
+                <TabPanel>
+                    <PassLogin />
+                </TabPanel>
+            </TabPanels>
+        </TabGroup>
     </div>
 </template>
 
 <script setup lang="ts">
-import { apiCall, useWait } from "@vnuge/vnlib.browser";
-import { ref } from "vue";
-import { useStore } from "../../store";
+import { TabGroup, TabList, Tab, TabPanels, TabPanel } from '@headlessui/vue'
+import PassLogin from "./PassLogin.vue";
+import OtpLogin from "./OtpLogin.vue";
+import { shallowRef } from 'vue';
 
-const { login } = useStore()
-const { waiting } = useWait()
+const activeTab = shallowRef(0)
 
-const token = ref('')
-
-const onSubmit = async () => {
-    await apiCall(async ({ toaster }) => {
-        await login(token.value)
-        toaster.form.success({
-            'title': 'Login successful',
-            'text': 'Successfully logged into your profile'
-        })
-    })
- 
+const onChange = (index: any) => {
+    activeTab.value = index
 }
+
+const isActive = (index: any) => activeTab.value === index
 
 </script>
 

@@ -24,10 +24,10 @@ import {
     exportForegroundApi 
 } from "./framework";
 import { AppSettings } from "./settings";
-import { shallowRef, watch } from "vue";
+import { shallowRef } from "vue";
 import { useSession } from "@vnuge/vnlib.browser";
-import { set, useToggle } from "@vueuse/core";
-import { defer, isArray } from "lodash";
+import { set, useToggle, watchDebounced } from "@vueuse/core";
+import { isArray } from "lodash";
 import { waitForChange, waitForChangeFn } from "./util";
 
 export interface IdentityApi extends FeatureApi, Watchable {
@@ -37,6 +37,7 @@ export interface IdentityApi extends FeatureApi, Watchable {
     getAllKeys: () => Promise<NostrPubKey[]>;
     getPublicKey: () => Promise<NostrPubKey | undefined>;
     selectKey: (key: NostrPubKey) => Promise<void>;
+    refreshKeys: () => Promise<void>;
 }
 
 export const useIdentityApi = (): IFeatureExport<AppSettings, IdentityApi> => {
@@ -50,27 +51,23 @@ export const useIdentityApi = (): IFeatureExport<AppSettings, IdentityApi> => {
             const allKeys = shallowRef<NostrPubKey[]>([]);
             const [ onKeyUpdateTriggered , triggerKeyUpdate ] = useToggle()
 
-            const keyLoadWatchLoop = async () => {
-                while(true){
-                    //Load keys from server if logged in
-                    if(loggedIn.value){
-                        const [...keys] = await execRequest(Endpoints.GetKeys);
-                        allKeys.value = isArray(keys) ? keys : [];
-                    }
-                    else{
-                        //Clear all keys when logged out
-                        allKeys.value = [];
-                    }
-
-                    //Wait for changes to trigger a new key-load
-                    await waitForChange([loggedIn, onKeyUpdateTriggered])
+            watchDebounced([onKeyUpdateTriggered, loggedIn], async () => {
+                //Load keys from server if logged in
+                if (loggedIn.value) {
+                    const [...keys] = await execRequest(Endpoints.GetKeys);
+                    allKeys.value = isArray(keys) ? keys : [];
                 }
-            }
+                else {
+                    //Clear all keys when logged out
+                    allKeys.value = [];
 
-            defer(keyLoadWatchLoop)
+                    //Clear the selected key if the user becomes logged out
+                    selectedKey.value = undefined;
+                }
 
-            //Clear the selected key if the user logs out
-            watch(loggedIn, (li) => li ? null : selectedKey.value = undefined)
+                //Wait for changes to trigger a new key-load
+                await waitForChange([ loggedIn, onKeyUpdateTriggered ])
+            }, { debounce: 100 })
 
             return {
                 //Identity is only available in options context
@@ -98,6 +95,10 @@ export const useIdentityApi = (): IFeatureExport<AppSettings, IdentityApi> => {
                 getPublicKey: (): Promise<NostrPubKey | undefined> => {
                     return Promise.resolve(selectedKey.value);
                 },
+                refreshKeys: () => {
+                    triggerKeyUpdate()
+                    return Promise.resolve()
+                },
                 waitForChange: waitForChangeFn([selectedKey, loggedIn, allKeys])
             }
         },
@@ -108,7 +109,8 @@ export const useIdentityApi = (): IFeatureExport<AppSettings, IdentityApi> => {
             'getAllKeys',
             'getPublicKey',
             'selectKey',
-            'waitForChange'
+            'waitForChange',
+            'refreshKeys'
         ])
     }
 }

@@ -20,7 +20,11 @@ export default async function renderContent(
   cssPaths,
   render = (_appRoot) => {}
 ) {
+  
+  //insert a div into the top of the body
   const appContainer = document.createElement("div");
+  document.body.insertBefore(appContainer, document.body.firstChild);
+  
   const shadowRoot = appContainer.attachShadow({ mode: 'closed' });
   const appRoot = document.createElement("div");
 
@@ -40,7 +44,5 @@ export default async function renderContent(
   }
 
   shadowRoot.appendChild(appRoot);
-  document.body.appendChild(appContainer);
-
   render(appRoot, shadowRoot);
 }

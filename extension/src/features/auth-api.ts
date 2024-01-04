@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Vaughn Nugent
+// Copyright (C) 2024 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -14,15 +14,17 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { AxiosInstance } from "axios";
-import { get } from "@vueuse/core";
-import { computed } from "vue";
-import { delay } from "lodash";
-import { usePkiAuth, useSession, useUser } from "@vnuge/vnlib.browser";
+import { get, useTimeoutFn, set } from "@vueuse/core";
+import { computed, shallowRef } from "vue";
+import { clone, defer, delay } from "lodash";
+import { IMfaFlowContinuiation, totpMfaProcessor, useMfaLogin, usePkiAuth, useSession, useUser,
+     type IMfaSubmission, type IMfaMessage, type WebMessage 
+} from "@vnuge/vnlib.browser";
+import { type FeatureApi, type BgRuntime, type IFeatureExport, exportForegroundApi, popupAndOptionsOnly, popupOnly } from "./framework";
+import { waitForChangeFn } from "./util";
 import type { ClientStatus } from "./types";
 import type { AppSettings } from "./settings";
 import type { JsonObject } from "type-fest";
-import { type FeatureApi, type BgRuntime, type IFeatureExport, exportForegroundApi, popupAndOptionsOnly, popupOnly } from "./framework";
-import { waitForChangeFn } from "./util";
 
 
 export interface ProectedHandler<T extends JsonObject> {
@@ -38,11 +40,12 @@ export interface ApiMessageHandler<T extends JsonObject> {
 }
 
 export interface UserApi extends FeatureApi {
-    login: (token: string) => Promise<boolean>
+    login(username: string, password?: string): Promise<boolean>
     logout: () => Promise<void>
     getProfile: () => Promise<any>
     getStatus: () => Promise<ClientStatus>
     waitForChange: () => Promise<void>
+    submitMfa: (submission: IMfaSubmission) => Promise<boolean>
 }
 
 export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
@@ -55,7 +58,8 @@ export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
             const currentPkiPath = computed(() => `${currentConfig.value.accountBasePath}/pki`)
             
             //Use pki login controls
-            const { login } = usePkiAuth(currentPkiPath as any)
+            const pkiAuth = usePkiAuth(currentPkiPath as any)
+            const { login } = useMfaLogin([ totpMfaProcessor() ])
 
             //We can send post messages to the server heartbeat endpoint to get status
             const runHeartbeat = async () => {
@@ -76,15 +80,73 @@ export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
                 }
             }
 
+            const mfaUpgrade = (() => {
+
+                const store = shallowRef<IMfaFlowContinuiation | null>(null)
+                const message = computed<IMfaMessage | null>(() =>{
+                    if(!store.value){
+                        return null
+                    }
+                    //clone the continuation to send to the popup
+                    const cl = clone<Partial<IMfaFlowContinuiation>>(store.value)
+                    //Remove the submit method from the continuation
+                    delete cl.submit;
+                    return cl as IMfaMessage
+                })
+
+                const { start, stop } = useTimeoutFn(() => set(store, null), 360 * 1000)
+
+                return{
+                    setContiuation(cont: IMfaFlowContinuiation){
+                        //Store continuation for later
+                        set(store, cont)
+                        //Restart cleanup timer
+                        start()
+                    },
+                    continuation: message,
+                    async submit(submission: IMfaSubmission){
+                        const cont = get(store)
+                        if(!cont){
+                            throw new Error('MFA login expired')
+                        }
+                        const response = await cont.submit(submission)
+                        response.getResultOrThrow()
+
+                        //Stop timer
+                        stop()
+                        //clear the continuation
+                        defer(() => set(store, null))
+                    }
+                }
+            })()
+
             //Configure interval to run every 5 minutes to update the status
             setInterval(runHeartbeat, 60 * 1000);
             delay(runHeartbeat, 1000)   //Delay 1 second to allow the extension to load
 
             return {
-                waitForChange: waitForChangeFn([currentConfig, loggedIn, userName]),
-                login: popupOnly(async (token: string): Promise<boolean> => {
-                    //Perform login
-                    await login(token)
+                waitForChange: waitForChangeFn([currentConfig, loggedIn, userName, mfaUpgrade.continuation]),
+                login: popupOnly(async (usernameOrToken: string, password?: string): Promise<boolean> => {
+                    
+                    if(password){
+                        const result = await login(usernameOrToken, password)
+                        if ('getResultOrThrow' in result){
+                            (result as WebMessage).getResultOrThrow()
+                        }
+                        
+                        if((result as IMfaFlowContinuiation).submit){
+                            //Capture continuation, store for submission for later, and set the continuation
+                            mfaUpgrade.setContiuation(result as IMfaFlowContinuiation);
+                            return true;
+                        }
+
+                        //Otherwise normal login
+                    }
+                    else{
+                        //Perform login
+                        await pkiAuth.login(usernameOrToken)
+                    }
+                  
                     //load profile
                     getProfile()
                     return true;
@@ -95,6 +157,19 @@ export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
                     //Cleanup after logout
                     clearLoginState()
                 }),
+                submitMfa: popupOnly(async (submission: IMfaSubmission): Promise<boolean> => {
+                    const cont = get(mfaUpgrade.continuation)
+                    if(!cont || cont.expired){
+                        return false;
+                    }
+
+                    //Submit the continuation
+                    await mfaUpgrade.submit(submission);
+
+                    //load profile
+                    getProfile()
+                    return true;
+                }),
                 getProfile: popupAndOptionsOnly(getProfile),
                 async getStatus (){
                     return {
@@ -102,6 +177,8 @@ export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
                         loggedIn: get(loggedIn),
                         //username
                         userName: get(userName),
+                        //mfa status
+                        mfaStatus: get(mfaUpgrade.continuation)
                     } as ClientStatus
                 },
             }
@@ -111,7 +188,8 @@ export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
             'logout',
             'getProfile',
             'getStatus',
-            'waitForChange'
+            'waitForChange',
+            'submitMfa',
         ]),
     } 
 }

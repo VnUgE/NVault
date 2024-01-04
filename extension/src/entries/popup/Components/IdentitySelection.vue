@@ -1,18 +1,22 @@
 <template>
     <div class="text-left">
-       <div class="w-full">
-            <div class="">
+       <div class="flex flex-row w-full gap-1">
+            <div class="flex-1">
                 <select class="w-full input" 
-                :disabled="waiting"
-                :value="selected?.Id"
-                @change.prevent="onSelected"
+                    :disabled="waiting"
+                    :value="selected?.Id"
+                    @change.prevent="onSelected"
                 >
                     <option disabled value="">Select an identity</option>
                     <option v-for="key in allKeys" :value="key.Id">{{ key.UserName }}</option>
                 </select>
             </div>
+            <div class="my-auto">
+                <button class="btn sm borderless" @click="store.refreshIdentities()">
+                    <fa-icon icon="refresh" class="" />
+                </button>
+            </div>
        </div>
-       
     </div>
 </template>
 
