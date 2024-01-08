@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Vaughn Nugent
+// Copyright (C) 2024 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -15,7 +15,7 @@
 
 import { createApp } from "vue";
 import { createPinia } from "pinia";
-import { identityPlugin, originPlugin, useBackgroundPiniaPlugin } from '../store'
+import { identityPlugin, originPlugin, permissionsPlugin, useBackgroundPiniaPlugin } from '../store'
 import App from "./App.vue";
 import Notifications from "@kyvg/vue3-notification";
 import '@fontsource/noto-sans-masaram-gondi'
@@ -35,6 +35,7 @@ const pinia = createPinia()
     .use(bgPlugin) //Add the background pinia plugin
     .use(identityPlugin)
     .use(originPlugin)
+    .use(permissionsPlugin)
 
 createApp(App)
     .use(Notifications)

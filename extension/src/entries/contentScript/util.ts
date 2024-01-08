@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Vaughn Nugent
+// Copyright (C) 2024 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -18,36 +18,12 @@ import { apiCall } from '@vnuge/vnlib.browser'
 import { Store, storeToRefs } from 'pinia'
 import { useScriptTag, watchOnce } from "@vueuse/core"
 import { useStore } from '../store'
-
-export type PromptHandler = (request: UserPermissionRequest) => Promise<boolean>
-
-export interface UserPermissionRequest {
-    type: string
-    msg: string
-    origin: string
-    data: any
-}
-
-const _promptHandler = (() => {
-    let _handler: PromptHandler | undefined = undefined;
-    return {
-        invoke(event:UserPermissionRequest){
-            if (!_handler) {
-                throw new Error('No prompt handler set')
-            }
-            return _handler(event)
-        },
-        set(handler: PromptHandler) { 
-            _handler = handler
-        }
-    }
-})()
-
+import { PrStatus } from '../../features'
 
 const registerWindowHandler = (store: Store, extName: string) => {
 
     const { selectedKey } = storeToRefs(store)
-    const { nostr } = store.plugins;
+    const { nostr, permission } = store.plugins;
 
     const onAsyncCall = async ({ source, data, origin } : MessageEvent<any>) => {
 
@@ -56,9 +32,9 @@ const registerWindowHandler = (store: Store, extName: string) => {
 
         const requestPermission = async (cb: (...args: any) => Promise<any>) => {
             //await propmt for user to allow the request
-            const allow = await _promptHandler.invoke({ ...data, origin })
+            const allow = await permission.requestAndWaitResult({ ...data, requestType: data.type, origin })
             //send request to background
-            return allow ? await cb() : { error: 'User denied permission' }
+            return allow == PrStatus.Approved ? await cb() : { error: 'User denied permission' }
         }
 
         //Confirm the message format is correct
@@ -133,9 +109,7 @@ const registerWindowHandler = (store: Store, extName: string) => {
     });
 }
 
-export const usePrompt = (callback: PromptHandler) => _promptHandler.set(callback);
-
-export const onLoad = async (extName: string, scriptUrl: string) => {
+export const onLoad = (extName: string, scriptUrl: string) => {
    
     const store = useStore()
     const { isTabAllowed } = storeToRefs(store)

@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Vaughn Nugent
+// Copyright (C) 2024 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -17,7 +17,7 @@ import { runtime } from "webextension-polyfill";
 import { createApp } from "vue";
 import { defer } from "lodash";
 import { createPinia } from 'pinia';
-import { useBackgroundPiniaPlugin, identityPlugin, originPlugin } from '../../store'
+import { useBackgroundPiniaPlugin, identityPlugin, originPlugin, permissionsPlugin } from '../../store'
 import { onLoad } from "../util";
 import renderContent from "../renderContent";
 import App from "./App.vue";
@@ -48,6 +48,7 @@ renderContent([], (appRoot, shadowRoot) => {
     .use(bgPlugins)
     .use(identityPlugin)
     .use(originPlugin)
+    .use(permissionsPlugin)
 
   //Add tailwind styles just to the shadow dom element
   const style = document.createElement('style')

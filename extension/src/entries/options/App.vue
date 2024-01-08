@@ -26,6 +26,11 @@
             </Tab>
             <Tab v-slot="{ selected }">
               <button class="tab-title" :class="{ selected }">
+                Activity
+              </button>
+            </Tab>
+            <Tab v-slot="{ selected }">
+              <button class="tab-title" :class="{ selected }">
                 Privacy
               </button>
             </Tab>
@@ -64,15 +69,15 @@
             <TabPanel class="mt-4">
              <Identities :all-keys="allKeys" @edit-key="editKey"/>
             </TabPanel>
-            <TabPanel>
-              <Account/>
-            </TabPanel>
-            <TabPanel>
-              <Privacy/>
-            </TabPanel>
-            <TabPanel>
-              <SiteSettings/>
-            </TabPanel>
+
+            <TabPanel> <Account/> </TabPanel>
+
+            <TabPanel> <EventHistory/> </TabPanel>
+
+            <TabPanel> <Privacy/> </TabPanel>
+
+            <TabPanel> <SiteSettings/> </TabPanel>
+            
             <TabPanel>
               <div class="flex flex-col px-2 mt-4">
                 <div class="absolute mx-auto">
@@ -130,6 +135,7 @@ import { useStore } from "../store";
 import Account from "./components/Account.vue";
 import ConfirmPrompt from "../../components/ConfirmPrompt.vue";
 import PasswordPrompt from "../../components/PasswordPrompt.vue";
+import EventHistory from "./components/EventHistory.vue";
 
 
 //Configure the notifier to use the notification library
@@ -143,7 +149,7 @@ const keyBuffer = ref<NostrPubKey>({} as NostrPubKey)
 
 const editKey = (key: NostrPubKey) =>{
   //Goto hidden tab
-  selectedTab.value = 4
+  selectedTab.value = 5
   //Set selected key
   keyBuffer.value = { ...key }
 }

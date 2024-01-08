@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Vaughn Nugent
+// Copyright (C) 2024 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -25,6 +25,7 @@ import {
   useEventTagFilterApi,
   useInjectAllowList,
   useMfaConfigApi,
+  usePermissionApi
 } from "../../features";
 import { useBackgroundFeatures } from "../../features/framework";
 
@@ -42,5 +43,6 @@ register([
   usePkiApi,
   useEventTagFilterApi,
   useInjectAllowList,
-  useMfaConfigApi
+  useMfaConfigApi,
+  usePermissionApi
 ])

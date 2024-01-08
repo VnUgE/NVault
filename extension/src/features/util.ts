@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Vaughn Nugent
+// Copyright (C) 2024 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -20,13 +20,17 @@ import { type MaybeRefOrGetter, type WatchSource, isProxy, toRaw } from "vue";
 import type { Watchable } from "./types";
 
 export const waitForChange = <T extends Readonly<WatchSource<unknown>[]>>(source: [...T]):Promise<void> => {
-    return new Promise((resolve) => watchOnce(source, () => resolve()))
+    return new Promise((resolve) => watchOnce<any>(source, () => resolve(), { deep: true }))
 }
 
 export const waitForChangeFn = <T extends Readonly<WatchSource<unknown>[]>>(source: [...T]) => {
     return (): Promise<void> => {
-        return new Promise((resolve) => watchOnce(source, () => resolve()))
+        return new Promise((resolve) => watchOnce<any>(source, () => resolve(), {deep: true}))
     }
+}
+
+export const waitOne = <T extends Readonly<WatchSource<unknown>[]>>(source: [...T]): Promise<void> => {
+    return new Promise((resolve) => watchOnce<any>(source, () => resolve(), { deep: true }))
 }
 
 export const useStorage = <T>(storage: any & chrome.storage.StorageArea, key: string, initialValue: MaybeRefOrGetter<T>): RemovableRef<T> => {

@@ -44,7 +44,7 @@
             </div>
             
             <div class="">
-              <label class="mb-0.5 text-sm dark:text-dark-100">
+              <label class="mb-0.5 text-sm">
                 Identity
               </label>
               <IdentitySelection></IdentitySelection>
@@ -64,12 +64,12 @@
             </div>
 
              <div class="mt-4">
-                <label class="block mb-1 text-xs text-left dark:text-dark-100" >
+                <label class="block mb-1 text-xs text-left " >
                   Current origin
                 </label>
                 
                 <div v-if="isOriginProtectionOn" class="flex flex-row w-full gap-2">
-                  <input :value="currentOrigin" class="flex-1 p-1 mx-0 text-sm input" readonly/>
+                  <input :value="currentOrigin" class="flex-1 p-1 mx-0 text-sm input dark:text-dark-100" readonly/>
 
                   <button v-if="isTabAllowed" class="btn xs" @click="store.dissallowOrigin()">
                       <fa-icon icon="minus" />
@@ -79,10 +79,20 @@
                   </button>
                 </div>
                 
-                <div v-else class="text-xs text-center">
+                <div v-else class="text-xs text-center dark:text-dark-100">
                   <span class="">Tracking protection disabled</span>
                 </div>
             </div>
+            <div class="mt-4">
+                  <label class="block mb-1 text-xs text-left " >
+                    Permissions
+                  </label>
+                  <ul class="flex flex-row flex-wrap gap-2 dark:text-dark-100">
+                    <li v-for="rule in ruleTypes" :key="rule" class="text-xs">
+                      {{ rule }}
+                    </li>
+                  </ul>
+              </div>
         
         </div>
       </div>
@@ -102,6 +112,7 @@ import { notify } from "@kyvg/vue3-notification";
 import { runtime } from "webextension-polyfill";
 import Login from "./Login.vue";
 import IdentitySelection from "./IdentitySelection.vue";
+import { map } from "lodash";
 
 configureNotifier({notify, close:notify.close})
 
@@ -110,6 +121,8 @@ const { loggedIn, selectedKey, userName, darkMode, isTabAllowed, currentOrigin, 
 const { copy, copied } = useClipboard()
 
 const pubKey = computed(() => selectedKey!.value?.PublicKey)
+
+const ruleTypes = computed<string[]>(() => map(store.permissions.rulesForCurrentOrigin, 'type'))
 
 const openOptions = () => runtime.openOptionsPage();
 const toggleDark = () => store.toggleDarkMode()

@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Vaughn Nugent
+// Copyright (C) 2024 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -24,6 +24,7 @@ export * from './allowedOrigins'
 export * from './features'
 export * from './identity'
 export * from './mfaconfig'
+export * from './permissions'
 
 export const useStore = defineStore({
     id: 'main',

@@ -1,12 +1,12 @@
 <template>
-    <div v-show="isOpen" id="nvault-ext-prompt" :class="{'dark': darkMode }">
+    <div v-show="event" id="nvault-ext-prompt" :class="{'dark': darkMode }">
         
         <div class="fixed top-0 bottom-0 left-0 right-0 text-white" style="z-index:9147483647 !important" >
             
             <div class="fixed inset-0 left-0 w-full h-full bg-black/50" @click.self="close" />
 
-            <div class="relative w-full max-w-[28rem] mx-auto mt-36 mb-auto" ref="prompt">
-                <div class="w-full p-5 text-gray-800 bg-white border rounded-lg shadow-lg dark:bg-dark-900 dark:border-dark-500 dark:text-gray-200">
+            <div v-if="store.permissions.isPopup" class="relative w-full md:max-w-[28rem] mx-auto md:mt-36 mb-auto" ref="prompt">
+                <div class="w-full h-screen p-5 text-gray-800 bg-white border shadow-lg md:h-auto md:rounded dark:bg-dark-900 dark:border-dark-500 dark:text-gray-200">
                     
                     <div v-if="loggedIn" class="">
                         <div class="flex flex-row justify-between">
@@ -44,7 +44,7 @@
                         
                         <div class="py-3 text-sm text-center">
                             <span class="font-bold">{{ site }}</span>
-                                would like to access to 
+                                would like access to 
                             <span class="font-bold">{{ event?.msg }}</span>
                         </div>
 
@@ -53,7 +53,12 @@
                                 <button class="rounded btn sm" @click="close">Close</button>
                             </div>
                             <div>
-                                <button :disabled="selectedKey?.Id == undefined" class="rounded btn sm" @click="allow">Allow</button>
+                                <button :disabled="selectedKey?.Id == undefined" class="rounded amber btn sm" @click="allow(true)">
+                                    Always Allow
+                                </button>
+                            </div>
+                            <div>
+                                <button :disabled="selectedKey?.Id == undefined" class="rounded btn sm" @click="allow(false)">Allow</button>
                             </div>
                         </div>
                     </div>
@@ -85,13 +90,16 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { debugLog } from '@vnuge/vnlib.browser';
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
 import { clone, first } from 'lodash';
-import { usePrompt, type UserPermissionRequest } from '../../util'
 import { useStore } from '../../../store';
+import { type PermissionRequest } from '../../../../features' 
+
+interface PropmtMessage extends PermissionRequest{
+    msg: string;
+}
 
 const store = useStore()
 const { loggedIn, selectedKey, darkMode } = storeToRefs(store)
@@ -99,38 +107,38 @@ const keyName = computed(() => selectedKey.value?.UserName)
 
 const prompt = ref(null)
 
-interface PopupEvent extends UserPermissionRequest {
-    allow: () => void
-    close: () => void
-}
-
-const evStack = ref<PopupEvent[]>([])
-const isOpen = computed(() => evStack.value.length > 0)
-const event = computed<PopupEvent | undefined>(() => first(evStack.value));
+const event = computed<PropmtMessage | undefined>(() => {
+    //Use a the current windowpending if set
+    if(store.permissions.windowPending){
+        return getPromptMessage(store.permissions.windowPending)
+    }
+    //Otherwise use the first pending event
+    const pending = first(store.permissions.pending)
+    return getPromptMessage(pending)
+});
 
 const site = computed(() => new URL(event.value?.origin || "https://example.com").host)
 const evData = computed(() => JSON.stringify(event.value || {}, null, 2))
 
-
 const close = () => {
-    //Pop the first event off
-    const res = evStack.value.shift()
-    res?.close()
+    if(event.value){
+        store.plugins.permission.deny(event.value.uuid);
+    }
 }
-const allow = () => {
-    //Pop the first event off
-    const res = evStack.value.shift()
-    res?.allow()
+
+const allow = (addRule: boolean) => {
+   if (event.value) {
+        store.plugins.permission.allow(event.value.uuid, addRule);
+    }
 }
 
 //Listen for events
-usePrompt((ev: UserPermissionRequest):Promise<boolean> => {
+const getPromptMessage = (perms: PermissionRequest | undefined): PropmtMessage | undefined => {
 
-    ev = clone(ev)
+    if(!perms) return undefined
 
-    debugLog('[usePrompt] =>', ev)
-
-    switch(ev.type){
+    const ev = clone(perms) as PropmtMessage
+    switch(ev.requestType){
         case 'getPublicKey':
             ev.msg = "your public key"
             break;
@@ -150,14 +158,7 @@ usePrompt((ev: UserPermissionRequest):Promise<boolean> => {
             ev.msg = "unknown event"
             break;
     }
-
-    return new Promise((resolve) => {
-        evStack.value.push({
-            ...ev,
-            allow: () => resolve(true),
-            close: () => resolve(false),
-        })
-    })
-})
+    return ev
+}
 
 </script>

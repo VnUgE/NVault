@@ -43,6 +43,9 @@ export default defineConfig(({ mode }) => {
           scripts: [
             'src/entries/nostr-provider.js', // defaults to webAccessible: true
           ],
+          html: [
+            'src/entries/contentScript/auth-popup.html',
+          ]
         },
       }),
     ],

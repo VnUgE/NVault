@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Vaughn Nugent
+// Copyright (C) 2024 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -30,7 +30,8 @@ import {
     useEventTagFilterApi,
     useInjectAllowList,
     onWatchableChange,
-    useMfaConfigApi
+    useMfaConfigApi,
+    usePermissionApi
 } from "../../features"
 
 import { ChannelContext } from '../../messaging'
@@ -59,7 +60,8 @@ const usePlugins = (context: ChannelContext) => {
         pki: use(usePkiApi),
         tagFilter: use(useEventTagFilterApi),
         allowedOrigins: use(useInjectAllowList),
-        mfaConfig: use(useMfaConfigApi)
+        mfaConfig: use(useMfaConfigApi),
+        permission: use(usePermissionApi)
     }
 }
 

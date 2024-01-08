@@ -1,4 +1,4 @@
-// Copyright (C) 2023 Vaughn Nugent
+// Copyright (C) 2024 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,8 @@ export type { PkiPubKey, EcKeyParams, LocalPkiApi as PkiApi } from './pki-api'
 export type { NostrApi } from './nostr-api'
 export type { UserApi } from './auth-api'
 export type { IdentityApi } from './identity-api'
+export type { MfaUpdateResult } from './mfa-api'
+export type { PermissionRequest, PrType, AutoAllowRule } from './permissions'
 
 export { useBackgroundFeatures, useForegoundFeatures } from './framework'
 export { useLocalPki, usePkiApi } from './pki-api'
@@ -32,4 +34,5 @@ export { useHistoryApi } from './history'
 export { useEventTagFilterApi } from './tagfilter-api'
 export { useInjectAllowList } from './nip07allow-api'
 export { onWatchableChange } from './util'
-export { useMfaConfigApi, type MfaUpdateResult } from './mfa-api'
+export { useMfaConfigApi } from './mfa-api'
+export { usePermissionApi, PrStatus } from './permissions'

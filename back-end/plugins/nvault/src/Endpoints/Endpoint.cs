@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2023 Vaughn Nugent
+﻿// Copyright (C) 2024 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -27,6 +27,7 @@ using FluentValidation;
 
 using NVault.VaultExtensions;
 
+using VNLib.Utils.Logging;
 using VNLib.Utils.Extensions;
 using VNLib.Plugins;
 using VNLib.Plugins.Essentials;
@@ -46,6 +47,8 @@ namespace NVault.Plugins.Vault.Endpoints
     [ConfigurationName("endpoint")]
     internal class Endpoint : ProtectedWebEndpoint
     {
+        const string EventLogTemplate = "Method {m}, UserID {uid}, Type {tp} Payload {p}";
+
         private static IValidator<NostrEvent> EventValidator { get; } = NostrEvent.GetValidator();
         private static IValidator<NostrRelay> RelayValidator { get; } = NostrRelay.GetValidator();
         private static IValidator<NostrKeyMeta> KeyMetaValidator { get; } = NostrKeyMeta.GetValidator();
@@ -57,6 +60,7 @@ namespace NVault.Plugins.Vault.Endpoints
         private readonly NostrRelayStore _relays;
         private readonly NostrKeyMetaStore _publicKeyStore;
         private readonly bool AllowDelete;
+        private readonly ILogProvider? _abnoxiousLog;
 
         public Endpoint(PluginBase plugin, IConfigScope config)
         {
@@ -71,6 +75,12 @@ namespace NVault.Plugins.Vault.Endpoints
             _relays = new NostrRelayStore(options);
             _publicKeyStore = new NostrKeyMetaStore(options);
             _vault = new NostrOpProvider(plugin);
+
+            //Check for obnoxious logging
+            if (plugin.HostArgs.HasArgument("--nvault-obnoxious"))
+            {
+                _abnoxiousLog = plugin.Log.CreateScope("NVAULT EVENT");
+            }
         }
 
 
@@ -151,6 +161,8 @@ namespace NVault.Plugins.Vault.Endpoints
                     return VirtualOk(entity, webm);
                 }
 
+                _abnoxiousLog?.Information(EventLogTemplate, "POST", entity.Session.UserID[..10], "sign-event", nEvent);
+
                 //Create user scope
                 VaultUserScope scope = new(entity.Session.UserID);
 
@@ -193,6 +205,8 @@ namespace NVault.Plugins.Vault.Endpoints
                     return VirtualClose(entity, webm, HttpStatusCode.NotFound);
                 }
 
+                _abnoxiousLog?.Information(EventLogTemplate, "POST", entity.Session.UserID[..10], "decrypt-message", request);
+
                 VaultUserScope scope = new(entity.Session.UserID);
 
                 //Try to decrypt the message
@@ -232,6 +246,8 @@ namespace NVault.Plugins.Vault.Endpoints
                 {
                     return VirtualClose(entity, webm, HttpStatusCode.NotFound);
                 }
+
+                _abnoxiousLog?.Information(EventLogTemplate, "POST", entity.Session.UserID[..10], "encrypt-message", request);
 
                 VaultUserScope scope = new(entity.Session.UserID);
                 try
