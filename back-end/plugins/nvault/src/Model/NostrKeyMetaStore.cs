@@ -20,20 +20,17 @@ using Microsoft.EntityFrameworkCore;
 
 using VNLib.Plugins.Extensions.Data;
 using VNLib.Plugins.Extensions.Data.Abstractions;
+using VNLib.Plugins.Extensions.Loading;
 
 namespace NVault.Plugins.Vault.Model
 {
-    internal sealed class NostrKeyMetaStore : DbStore<NostrKeyMeta>
+    internal sealed class NostrKeyMetaStore(IAsyncLazy<DbContextOptions> Options) : DbStore<NostrKeyMeta>
     {
-        private readonly DbContextOptions _options;
-
-        public NostrKeyMetaStore(DbContextOptions options) => _options = options;
-
         ///<inheritdoc/>
         public override IDbQueryLookup<NostrKeyMeta> QueryTable { get; } = new DbQueries();
 
         ///<inheritdoc/>
-        public override IDbContextHandle GetNewContext() => new NostrContext(_options);
+        public override IDbContextHandle GetNewContext() => new NostrContext(Options.Value);
 
         ///<inheritdoc/>
         public override string GetNewRecordId() => Guid.NewGuid().ToString("N");

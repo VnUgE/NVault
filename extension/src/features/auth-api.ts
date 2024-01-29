@@ -22,7 +22,7 @@ import { IMfaFlowContinuiation, totpMfaProcessor, useMfaLogin, usePkiAuth, useSe
 } from "@vnuge/vnlib.browser";
 import { type FeatureApi, type BgRuntime, type IFeatureExport, exportForegroundApi, popupAndOptionsOnly, popupOnly } from "./framework";
 import { waitForChangeFn } from "./util";
-import type { ClientStatus } from "./types";
+import type { ClientStatus, Watchable } from "./types";
 import type { AppSettings } from "./settings";
 import type { JsonObject } from "type-fest";
 
@@ -39,12 +39,11 @@ export interface ApiMessageHandler<T extends JsonObject> {
     (message: T, apiHandle: { axios: AxiosInstance }): Promise<any>
 }
 
-export interface UserApi extends FeatureApi {
+export interface UserApi extends FeatureApi, Watchable {
     login(username: string, password?: string): Promise<boolean>
     logout: () => Promise<void>
     getProfile: () => Promise<any>
     getStatus: () => Promise<ClientStatus>
-    waitForChange: () => Promise<void>
     submitMfa: (submission: IMfaSubmission) => Promise<boolean>
 }
 

@@ -19,6 +19,7 @@ import { defer } from "lodash";
 import { createPinia } from 'pinia';
 import { useBackgroundPiniaPlugin, identityPlugin, originPlugin, permissionsPlugin } from '../../store'
 import { onLoad } from "../util";
+import ListBox from '../../../components/ListBox.vue'
 import renderContent from "../renderContent";
 import App from "./App.vue";
 import Notification from '@kyvg/vue3-notification'
@@ -64,6 +65,7 @@ renderContent([], (appRoot, shadowRoot) => {
   .use(store)
   .use(Notification)
   .component('fa-icon', FontAwesomeIcon)
+  .component('list-box', ListBox)
   .mount(appRoot);
 
   //Load the nostr shim

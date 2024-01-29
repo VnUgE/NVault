@@ -20,7 +20,7 @@ import { BgRuntime, FeatureApi, IFeatureExport, exportForegroundApi, popupAndOpt
 import { AppSettings } from "./settings";
 import { set, get, toRefs } from "@vueuse/core";
 import { computed, shallowRef } from "vue";
-import { waitForChangeFn } from "./util";
+import { waitForChangeFn, push, remove } from "./util";
 
 interface AllowedSites{
     origins: string[];
@@ -99,7 +99,7 @@ export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlis
                 //See if origin is already in the list
                 if (!includes(origins.value, originOnly)) {
                     //Add to the list
-                    origins.value.push(originOnly);
+                    push(origins, originOnly);
 
                     //If current tab was added, reload the tab
                     if (!origin) {
@@ -117,10 +117,9 @@ export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlis
 
                 //Get origin part of url
                 const delOriginOnly = new URL(delOrigin).origin
-                const allowList = get(origins)
 
                 //Remove the origin
-                origins.value = filter(allowList, (o) => !isEqual(o, delOriginOnly));
+                remove(origins, delOriginOnly)
 
                 //If current tab was removed, reload the tab
                 if (!origin) {

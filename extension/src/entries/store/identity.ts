@@ -22,12 +22,7 @@ import { shallowRef } from 'vue';
 declare module 'pinia' {
     export interface PiniaCustomStateProperties {
         allKeys: NostrPubKey[];
-        selectedKey: NostrPubKey | undefined;
-        deleteIdentity(key: Partial<NostrPubKey>): Promise<void>;
-        createIdentity(id: Partial<NostrPubKey>): Promise<NostrPubKey>;
-        updateIdentity(id: NostrPubKey): Promise<NostrPubKey>;
-        selectKey(key: NostrPubKey): Promise<void>;
-        refreshIdentities(): Promise<void>;
+        selectedKey: NostrPubKey | undefined;      
     }
 }
 

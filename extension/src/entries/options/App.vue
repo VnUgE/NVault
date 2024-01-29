@@ -12,7 +12,7 @@
         <div class="">
             <h2>NVault</h2>
         </div>
-        <TabGroup :selected-index="selectedTab" @change="id => selectedTab = id" >
+        <TabGroup :selected-index="selectedTab" @change="selectTab" >
           <TabList class="flex gap-3 pb-2 border-b border-gray-300 dark:border-dark-500">
             <Tab v-slot="{ selected }">
               <button class="tab-title" :class="{ selected }">
@@ -72,7 +72,7 @@
 
             <TabPanel> <Account/> </TabPanel>
 
-            <TabPanel> <EventHistory/> </TabPanel>
+            <TabPanel> <Activity/> </TabPanel>
 
             <TabPanel> <Privacy/> </TabPanel>
 
@@ -116,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect } from "vue";
+import { computed, ref, watchEffect } from "vue";
 import { 
   TabGroup,
   TabList,
@@ -126,26 +126,32 @@ import {
 } from '@headlessui/vue'
 import { apiCall, configureNotifier } from '@vnuge/vnlib.browser';
 import { storeToRefs } from "pinia";
-import { type NostrPubKey } from '../../features/';
+import { useQuery, type NostrPubKey } from '../../features/';
 import { notify } from "@kyvg/vue3-notification";
-import SiteSettings from './components/SiteSettings.vue';
-import Identities from './components/Identities.vue';
-import Privacy from "./components/Privacy.vue";
+import { toSafeInteger } from "lodash";
 import { useStore } from "../store";
 import Account from "./components/Account.vue";
 import ConfirmPrompt from "../../components/ConfirmPrompt.vue";
 import PasswordPrompt from "../../components/PasswordPrompt.vue";
-import EventHistory from "./components/EventHistory.vue";
+import Activity from "./components/Activity.vue";
+import SiteSettings from './components/SiteSettings.vue';
+import Identities from './components/Identities.vue';
+import Privacy from "./components/Privacy.vue";
 
 
 //Configure the notifier to use the notification library
 configureNotifier({ notify, close: notify.close })
 
 const store = useStore()
+const { identity } = store.plugins
 const { allKeys, darkMode, userName } = storeToRefs(store)
 
-const selectedTab = ref(0)
-const keyBuffer = ref<NostrPubKey>({} as NostrPubKey)
+const keyBuffer = ref<Partial<NostrPubKey>>({} as NostrPubKey)
+
+const tabIdQuery = useQuery('t')
+const selectedTab = computed(() => toSafeInteger(tabIdQuery.asRef.value));
+const selectTab = (id: number) => tabIdQuery.set(id.toString())
+
 
 const editKey = (key: NostrPubKey) =>{
   //Goto hidden tab
@@ -158,14 +164,14 @@ const doneEditing = () =>{
   //Goto hidden tab
   selectedTab.value = 0
   //Set selected key
-  keyBuffer.value = null
+  keyBuffer.value = {}
 }
 
 const onUpdate = async () =>{
   
   await apiCall(async ({ toaster }) => {
     //Update identity
-    await store.updateIdentity(keyBuffer.value)
+    await identity.updateIdentity(keyBuffer.value)
     //Show success
     toaster.general.success({
       'title':'Success',
@@ -176,7 +182,7 @@ const onUpdate = async () =>{
   //Goto hidden tab
   selectedTab.value = 0
   //Set selected key
-  keyBuffer.value = null
+  keyBuffer.value = {}
 }
 
 const toggleDark = () => store.toggleDarkMode()

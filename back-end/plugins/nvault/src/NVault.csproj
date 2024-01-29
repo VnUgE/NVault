@@ -27,9 +27,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\libs\NVault.Crypto.Secp256k1\src\NVault.Crypto.Secp256k1.csproj" />
-    <ProjectReference Include="..\..\..\libs\NVault.VaultExtensions\src\NVault.VaultExtensions.csproj" />
+    <ProjectReference Include="..\..\..\..\lib\NVault.Crypto.Noscrypt\src\NVault.Crypto.Noscrypt.csproj" />
+    <ProjectReference Include="..\..\..\..\lib\NVault.Crypto.Secp256k1\src\NVault.Crypto.Secp256k1.csproj" />
+    <ProjectReference Include="..\..\..\..\lib\NVault.VaultExtensions\src\NVault.VaultExtensions.csproj" />
   </ItemGroup>
+  
   <ItemGroup>
     <None Update="NVault.example.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

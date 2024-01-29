@@ -25,7 +25,9 @@ namespace NVault.Plugins.Vault.Model
     {
         public DbSet<NostrRelay> Relays { get; set; }
 
-        public DbSet<NostrKeyMeta> PublicKeys { get; set; }
+        public DbSet<NostrKeyMeta> NostrPublicKeys { get; set; }
+
+        public DbSet<NostrEventEntry> NostrEvents { get; set; }
 
         public NostrContext()
         { }
@@ -68,7 +70,7 @@ namespace NVault.Plugins.Vault.Model
                 .WithColumn(r => r.Version);
 
             //Setup public key table
-            builder.DefineTable<NostrKeyMeta>(nameof(PublicKeys))
+            builder.DefineTable<NostrKeyMeta>(nameof(NostrPublicKeys))
                 .WithColumn(r => r.Id)
                     .Next()
 
@@ -83,6 +85,29 @@ namespace NVault.Plugins.Vault.Model
                 .WithColumn(r => r.Value)
                     .Unique()
                     .AllowNull(false)
+                    .Next()
+
+                .WithColumn(r => r.Created)
+                    .AllowNull(false)
+                    .Next()
+
+                .WithColumn(r => r.LastModified)
+                    .AllowNull(false)
+                    .Next()
+
+                //Finally, version, it should be set to the timestamp from annotations
+                .WithColumn(r => r.Version);
+
+            //Setup event table
+            builder.DefineTable<NostrEventEntry>(nameof(NostrEvents))
+                .WithColumn(r => r.Id)  //PK attribute is set from model base
+                    .Next()
+
+                .WithColumn(r => r.UserId)
+                    .Next()
+
+                .WithColumn(r => r.EventData)
+                    .AllowNull(true)
                     .Next()
 
                 .WithColumn(r => r.Created)

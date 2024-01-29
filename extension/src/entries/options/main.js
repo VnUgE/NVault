@@ -19,6 +19,7 @@ import App from "./App.vue";
 import '@fontsource/noto-sans-masaram-gondi'
 import "~/assets/all.scss";
 import Notifications from "@kyvg/vue3-notification";
+import Pagination from '../../components/Pagination.vue';
 
 /* FONT AWESOME CONFIG */
 import { library } from '@fortawesome/fontawesome-svg-core'
@@ -43,4 +44,5 @@ createApp(App)
     .use(Notifications)
     .use(pinia)
     .component('fa-icon', FontAwesomeIcon)
+    .component('pagination', Pagination)
     .mount("#app");

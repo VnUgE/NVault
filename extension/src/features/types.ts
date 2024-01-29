@@ -15,12 +15,19 @@
 
 import { JsonObject } from "type-fest";
 
-export interface NostrPubKey extends JsonObject {
+export interface DbEntry extends JsonObject {
     readonly Id: string,
-    readonly UserName: string,
-    readonly PublicKey: string,
     readonly Created: string,
     readonly LastModified: string
+}
+
+export interface NostrPubKey extends DbEntry {
+    readonly UserName: string,
+    readonly PublicKey: string,
+}
+
+export interface EventEntry extends DbEntry {
+    readonly EventData: string
 }
 
 export interface NostrEvent extends JsonObject {
@@ -48,12 +55,9 @@ export interface EncryptionRequest extends JsonObject {
     readonly pubkey: string
 }
 
-export interface NostrRelay extends JsonObject {
-    readonly Id: string,
-    readonly url: string,
-    readonly flags: number,
-    readonly Created: string,
-    readonly LastModified: string
+export interface NostrRelay extends DbEntry {
+    readonly url: string;
+    readonly flags: number;
 }
 
 export interface LoginMessage extends JsonObject {
@@ -106,3 +110,4 @@ export interface TotpUpdateMessage extends JsonObject {
     readonly algorithm: string
     readonly secret: string
 }
+

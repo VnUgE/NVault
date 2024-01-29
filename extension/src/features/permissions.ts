@@ -13,13 +13,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Mutable, get, set, toRefs } from "@vueuse/core";
+import { Mutable, get, set, toRefs, useTimestamp } from "@vueuse/core";
 import { Ref } from "vue";
 import { defaultTo, defaults, defer, filter, find, forEach, isEqual, isNil } from "lodash";
 import { nanoid } from "nanoid";
-import { useSession } from "@vnuge/vnlib.browser";
+import { debugLog, useSession } from "@vnuge/vnlib.browser";
 import { type FeatureApi, type BgRuntime, type IFeatureExport, exportForegroundApi, optionsOnly } from "./framework";
-import { waitForChangeFn, waitOne } from "./util";
+import { remove, waitForChangeFn, waitOne } from "./util";
 import { windows, runtime, Windows, tabs } from "webextension-polyfill";
 import type { TotpUpdateMessage, Watchable } from "./types";
 import type { AppSettings } from "./settings";
@@ -27,6 +27,7 @@ import type { AppSettings } from "./settings";
 export interface AutoAllowRule{
     origin: string
     type: string
+    readonly expires?: number
     readonly timestamp: number
 }
 
@@ -35,6 +36,16 @@ export enum PrStatus{
     Pending,
     Approved,
     Denied
+}
+
+export enum CreateRuleType{
+    AllowOnce,
+    AllowForever,
+    FiveMinutes,
+    OneHour,
+    OneDay,
+    OneWeek,
+    OneMonth,
 }
 
 export interface PermissionRequest{
@@ -49,7 +60,7 @@ export type MfaUpdateResult = TotpUpdateMessage
 
 export interface PermissionApi extends FeatureApi, Watchable {
     getRequests(): Promise<PermissionRequest[]>   
-    allow(requestId: string, addRule: boolean): Promise<void>
+    allow(requestId: string, addRule: CreateRuleType): Promise<void>
     deny(requestId: string): Promise<void>
     clearRequests(): Promise<void>
     requestAndWaitResult(request: Partial<PermissionRequest>): Promise<PrStatus>
@@ -67,6 +78,24 @@ interface RuleSlot{
     rules: AutoAllowRule[]
 }
 
+const setExpirationRule = (expType: CreateRuleType): { expires?: number } => {
+    switch (expType) {
+        case CreateRuleType.AllowOnce:
+        case CreateRuleType.AllowForever:
+            return { }
+        case CreateRuleType.FiveMinutes:
+            return { expires: Date.now() + (5 * 60 * 1000) };
+        case CreateRuleType.OneHour:
+            return { expires: Date.now() + (60 * 60 * 1000) };
+        case CreateRuleType.OneDay:
+            return { expires: Date.now() + (24 * 60 * 60 * 1000) };
+        case CreateRuleType.OneWeek:
+            return { expires: Date.now() + (7 * 24 * 60 * 60 * 1000) };
+        case CreateRuleType.OneMonth:
+            return { expires: Date.now() + (30 * 24 * 60 * 60 * 1000) };        
+    }
+}
+
 const useRuleSet = (slot: Ref<RuleSlot>) => {
     
     defaults(slot.value, { rules: [] })
@@ -76,6 +105,14 @@ const useRuleSet = (slot: Ref<RuleSlot>) => {
         isAllowed: (request: PermissionRequest): boolean => {
             //find existing rule
             const rule = find(get(rules), r => isEqual(r.origin, request.origin) && isEqual(r.type, request.requestType))
+
+            //See if rule exists and is expired
+            if (rule && rule.expires && rule.expires < Date.now()) {
+                //remove expired rule
+                remove(rules, rule)
+                return false
+            }
+
             return !isNil(rule)
         },
         addRule: (rule: Partial<AutoAllowRule>) => {
@@ -99,7 +136,12 @@ const useRuleSet = (slot: Ref<RuleSlot>) => {
             const wo = filter(get(rules), r => !(isEqual(r.origin, rule.origin) && isEqual(r.type, rule.type)))
             set(rules, wo)
         },
-        getRules:(): AutoAllowRule[] =>get(rules)
+        getRules:(): AutoAllowRule[] => {
+            //Filter all expired rules
+            const wo = filter(get(rules), r => !r.expires || r.expires > Date.now())
+            set(rules, wo)
+            return wo
+        }
     }
 }
 
@@ -110,41 +152,13 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
     defaults(slot.value, { rules: [] })
     const { requests } = toRefs(slot)
 
-    const drawWindow = async ({ uuid }: Partial<PermissionRequest>): Promise<Windows.CreateCreateDataType> => {
-        const current = await windows.getCurrent()
-
-        const minWidth = 350
-        const minHeight = 180
-
-        const maxWidth = 500
-        const maxHeight = 250
-
-        const width = Math.min(Math.max(current.width! - 100, minWidth), maxWidth)
-        const height = Math.min(Math.max(current.height! - 100, minHeight), maxHeight)
-
-        //draw half way across screen minus half its width
-        const left = current.left! + (current.width! / 2) - (width / 2)
-
-        return {
-            url: `${permPopupUrl}?uuid=${uuid}&closeable`,
-            type: "popup",
-            height: height,
-            width: width,
-            focused: true,
-            allowScriptsToClose: true,
-            top: 100,
-            //try to center popup
-            left: left,
-        }
-    }
-
     const activePopups = new Map<number, PermissionRequest>()
 
     const getRequest = (requestId: string): PermissionRequest | undefined => {
         return find(get(requests), r => r.uuid === requestId)
     }
 
-    const updateRequest = (request: PermissionRequest, addRule: boolean) => {
+    const updateRequest = (request: PermissionRequest, addRule: CreateRuleType) => {
         const current = get(requests)
 
         const index = current.findIndex(r => r.uuid === request.uuid)
@@ -159,8 +173,14 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
         set(requests, current)
 
         //Add rule if needed
-        if (addRule) {
-            rules.addRule({ origin: request.origin, type: request.requestType })
+        switch (addRule) {
+            case CreateRuleType.AllowOnce:
+                //Do nothing
+                break;
+            //Compute expiration
+            default:
+                const { expires } = setExpirationRule(addRule);
+                rules.addRule({ origin: request.origin, type: request.requestType, expires })
         }
     }
 
@@ -171,6 +191,41 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
             status: PrStatus.Pending,
             timestamp: Date.now()
         } as PermissionRequest
+    }
+
+    const showPermsWindow = async (request: PermissionRequest): Promise<void> => {
+
+        const drawWindow = async ({ uuid }: Partial<PermissionRequest>): Promise<Windows.CreateCreateDataType> => {
+            const current = await windows.getCurrent()
+
+            const minWidth = 350
+            const minHeight = 180
+
+            const maxWidth = 500
+            const maxHeight = 250
+
+            const width = Math.min(Math.max(current.width! - 100, minWidth), maxWidth)
+            const height = Math.min(Math.max(current.height! - 100, minHeight), maxHeight)
+
+            //draw half way across screen minus half its width
+            const left = current.left! + (current.width! / 2) - (width / 2)
+
+            return {
+                url: `${permPopupUrl}?uuid=${uuid}&closeable`,
+                type: "popup",
+                height: height,
+                width: width,
+                focused: true,
+                allowScriptsToClose: true,
+                top: 100,
+                //try to center popup
+                left: left,
+            }
+        }
+
+        const windowsArgs = await drawWindow(request)
+        const { id } = await windows.create(windowsArgs)
+        activePopups.set(id!, request)
     }
 
     //Listen for popup close to cleanup request
@@ -199,12 +254,6 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
     return{
         getRequest,
 
-        async showPermsWindow (request: PermissionRequest): Promise<void> {
-            const windowsArgs = await drawWindow(request)
-            const { id } = await windows.create(windowsArgs)
-            activePopups.set(id!, request)
-        },
-
         pushRequest (request: Partial<PermissionRequest>, showPopup: boolean): PermissionRequest {
             //Create new request
             const req = initNewRequest(request)
@@ -223,13 +272,13 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
             
             //Show popup if needed
             if (showPopup) {
-                this.showPermsWindow(req)
+                showPermsWindow(req)
             }
             
             return req
         },
 
-        allow (requestId: string, addRule: boolean): void {
+        allow(requestId: string, addRule: CreateRuleType): void {
             const request = getRequest(requestId)
             if(!request){
                 throw new Error("Request not found")
@@ -248,7 +297,7 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
             //set denied
             (request as Mutable<PermissionRequest>).status = PrStatus.Denied
             //update request
-            updateRequest(request, false)
+            updateRequest(request, CreateRuleType.AllowOnce)
         },
 
         clearAll: () => {
@@ -257,12 +306,13 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
                 //set denied
                 (r as Mutable<PermissionRequest>).status = PrStatus.Denied
                 //update request
-                updateRequest(r, false)
+                updateRequest(r, CreateRuleType.AllowOnce)
             })
 
             //Then defer clear
             defer(() => set(requests, []))
         },
+        
         getAll: () => get(requests)
     }
 }
@@ -282,8 +332,11 @@ export const usePermissionApi = (): IFeatureExport<AppSettings, PermissionApi> =
             const ruleSet = useRuleSet(ruleStore)
             const permissions = usePermissions(reqStore, ruleSet)
 
+            //Computed current time to trigger an update every second
+            const currentTime = useTimestamp({ interval: 1000 })
+
             return {
-                waitForChange: waitForChangeFn([currentConfig, loggedIn, reqStore, ruleStore]),
+                waitForChange: waitForChangeFn([currentConfig, loggedIn, reqStore, ruleStore, currentTime]),
 
                 getRequests: () =>  Promise.resolve(permissions.getAll()),
 
@@ -292,7 +345,7 @@ export const usePermissionApi = (): IFeatureExport<AppSettings, PermissionApi> =
                     return Promise.resolve()
                 },
 
-                allow(requestId: string, addRule: boolean) {
+                allow(requestId: string, addRule: CreateRuleType) {
                     permissions.allow(requestId, addRule)
                     return Promise.resolve()
                 },
@@ -304,8 +357,11 @@ export const usePermissionApi = (): IFeatureExport<AppSettings, PermissionApi> =
                 }),
 
                 async requestAndWaitResult(request: Partial<PermissionRequest>) {
-                    //push request
-                    const req = permissions.pushRequest(request, true)
+                    
+                    debugLog("Requesting permission", request)
+
+                    //push request and show popup only if enabled
+                    const req = permissions.pushRequest(request, currentConfig.value.authPopup)
 
                     //See if pending
                     if(req.status !== PrStatus.Pending){
@@ -316,7 +372,7 @@ export const usePermissionApi = (): IFeatureExport<AppSettings, PermissionApi> =
                     do {
 
                         //wait for a change
-                        await waitOne([reqStore])
+                        await waitOne([ reqStore ])
 
                         //check if request was approved
                         const status = permissions.getRequest(req.uuid);

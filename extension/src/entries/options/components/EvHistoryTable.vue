@@ -1,5 +1,5 @@
 <template>
-   <table class="min-w-full divide-y-2 divide-gray-200 dark:divide-dark-500">
+    <table class="min-w-full divide-y-2 divide-gray-200 dark:divide-dark-500">
         <thead class="text-left bg-gray-50 dark:bg-dark-700">
             <tr>
                 <th class="p-2 font-medium whitespace-nowrap dark:text-white">
@@ -21,7 +21,9 @@
                     {{ req.requestType }}
                 </td>
                 <td class="p-2 whitespace-nowrap">
-                    {{ req.origin }}
+                    <a :href="req.origin" target="_blank" class="text-blue-500 hover:underline">
+                        {{ req.origin }}
+                    </a>
                 </td>
                 <td class="p-2 whitespace-nowrap">
                     {{ createShortDateAndTime(req) }}

@@ -5,31 +5,10 @@
                 Approval Rules
             </div>
             <div class="flex justify-center">
-                <nav aria-label="Pagination">
-                    <ul class="inline-flex items-center space-x-1 text-sm rounded-md">
-                        <li>
-                            <button @click="prev" class="page-btn">
-                                <fa-icon icon="chevron-left" class="w-4" />
-                            </button>
-                        </li>
-                        <li>
-                            <span class="inline-flex items-center px-4 py-2 space-x-1 rounded-md">
-                                Page 
-                                <b class="mx-1">{{ currentPage }}</b> 
-                                of 
-                                <b class="ml-1">{{ pageCount }}</b>
-                            </span>
-                        </li>
-                        <li>
-                            <button @click="next" class="page-btn">
-                                <fa-icon icon="chevron-right" class="w-4" />
-                            </button>
-                        </li>
-                    </ul>
-                </nav>
+                <pagination :pages="pages" />
             </div>
         </div>
-        <div class="">
+        <div class="mt-1">
             <table class="min-w-full text-sm divide-y-2 divide-gray-200 dark:divide-dark-500">
                 <thead class="text-left bg-gray-50 dark:bg-dark-700">
                     <tr>
@@ -40,7 +19,7 @@
                             Origin
                         </th>
                         <th class="p-2 font-medium whitespace-nowrap dark:text-white">
-                            Time
+                            Expires
                         </th>
                         <th class="p-2"></th>
                     </tr>
@@ -52,10 +31,12 @@
                             {{ rule.type }}
                         </td>
                         <td class="p-2 whitespace-nowrap">
-                            {{ rule.origin }}
+                            <a :href="rule.origin" target="_blank" class="text-blue-500 hover:underline">
+                                {{ rule.origin }}
+                            </a>
                         </td>
                         <td class="p-2 whitespace-nowrap">
-                            {{ createShortDateAndTime(rule) }}
+                            {{ getExpiration(rule) }}
                         </td>
                         <td class="p-2 text-right whitespace-nowrap">
                             <div class="button-group">
@@ -73,7 +54,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { get, useOffsetPagination } from '@vueuse/core';
+import { formatTimeAgo, get, useOffsetPagination } from '@vueuse/core';
 import { } from '@headlessui/vue'
 import { useStore } from '../../store';
 import { storeToRefs } from 'pinia';
@@ -85,13 +66,13 @@ const { } = storeToRefs(store)
 
 const rules = computed(() => store.permissions.rules)
 
-const { next, prev, currentPage, currentPageSize, pageCount } = useOffsetPagination({
+const pages = useOffsetPagination({
     pageSize: 10,
     total: computed(() => rules.value.length)
 })
 
 const currentRulePage = computed(() => {
-    const start = (get(currentPage) - 1) * get(currentPageSize)
+    const start = (get(pages.currentPage) - 1) * get(pages.currentPageSize)
     const end = start + 10
     return slice(rules.value, start, end)
 })
@@ -100,17 +81,12 @@ const deleteRule = (rule: AutoAllowRule) => {
     store.plugins.permission.deleteRule(rule)
 }
 
-const createShortDateAndTime = (request: { timestamp: number}) => {
-    const date = new Date(request.timestamp)
-    const hours = date.getHours()
-    const minutes = date.getMinutes()
-    const seconds = date.getSeconds()
-    const day = date.getDate()
-    const month = date.getMonth() + 1
-    const year = date.getFullYear()
-    return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`
+const getExpiration = (rule: AutoAllowRule) => {
+    if (!rule.expires) {
+        return "Never"
+    }
+    return formatTimeAgo(new Date(rule.expires))
 }
-
 
 </script>
 

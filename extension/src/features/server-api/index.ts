@@ -19,7 +19,7 @@ import { get } from '@vueuse/core'
 import { type WebMessage, type UserProfile } from "@vnuge/vnlib.browser"
 import { initEndponts } from "./endpoints"
 import { cloneDeep } from "lodash"
-import type { EncryptionRequest, NostrEvent, NostrPubKey, NostrRelay } from "../types"
+import type { EncryptionRequest, EventEntry, NostrEvent, NostrPubKey, NostrRelay } from "../types"
 
 export enum Endpoints {
     GetKeys = 'getKeys',
@@ -32,6 +32,8 @@ export enum Endpoints {
     CreateId = 'createIdentity',
     UpdateId = 'updateIdentity',
     UpdateProfile = 'updateProfile',
+    GetHistory = 'getEvents',
+    DeleteSingleEvent = 'deleteSingleEvent',
 }
 
 export interface ExecRequestHandler{
@@ -45,6 +47,8 @@ export interface ExecRequestHandler{
     (id: Endpoints.CreateId, identity: NostrPubKey):Promise<NostrPubKey>
     (id: Endpoints.UpdateId, identity: NostrPubKey):Promise<NostrPubKey>
     (id: Endpoints.UpdateProfile, profile: UserProfile):Promise<string>
+    (id: Endpoints.GetHistory):Promise<EventEntry[]>
+    (id: Endpoints.DeleteSingleEvent, evntId: EventEntry):Promise<void>
 }
 
 export interface ServerApi{
@@ -65,7 +69,7 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
     registerEndpoint({
         id: Endpoints.DeleteKey,
         method: 'DELETE',
-        path: (key: NostrPubKey) => `${get(nostrUrl)}?type=identity&key_id=${key.Id}`,
+        path: (key: NostrPubKey) => `${get(nostrUrl)}?type=identity&id=${key.Id}`,
         onRequest: () => Promise.resolve(),
         onResponse: async (response: WebMessage) => response.getResultOrThrow()
     })
@@ -145,6 +149,23 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
         path: () => `${get(nostrUrl)}?type=decrypt`,
         onRequest: (data: EncryptionRequest) => Promise.resolve(data),
         onResponse: async (response: WebMessage<string>) => response.getResultOrThrow()
+    })
+
+    //History api
+    registerEndpoint({
+        id: Endpoints.GetHistory,
+        method: 'GET',
+        path: () => `${get(nostrUrl)}?type=getEvents`,
+        onRequest: () => Promise.resolve(),
+        onResponse: (response : EventEntry[]) => Promise.resolve(response) //Pass through response, should be an array of events or an error
+    })
+
+    registerEndpoint({
+        id: Endpoints.DeleteSingleEvent,
+        method: 'DELETE',
+        path: (evnt: EventEntry) => `${get(nostrUrl)}?type=event&id=${evnt.Id}`,
+        onRequest: () => Promise.resolve(),
+        onResponse: (response) => Promise.resolve(response)
     })
 
     return { execRequest }

@@ -22,6 +22,7 @@ using VNLib.Plugins.Extensions.Validation;
 
 namespace NVault.Plugins.Vault.Model
 {
+
     internal sealed class NostrEvent
     {
         public const int MAX_CONTENT_LENGTH = 16 * 1024;
@@ -86,5 +87,6 @@ namespace NVault.Plugins.Vault.Model
 
             return val;
         }
+
     }
 }

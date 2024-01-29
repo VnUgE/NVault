@@ -9,11 +9,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libs", "Libs", "{74CA17B7-C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault", "back-end\plugins\nvault\src\NVault.csproj", "{7ADAE9C2-1739-4E91-B59C-DB3B07909C07}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.VaultExtensions", "back-end\libs\NVault.VaultExtensions\src\NVault.VaultExtensions.csproj", "{EF924E63-9FB9-404B-94AB-D273153A917E}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.Crypto.Secp256k1", "back-end\libs\NVault.Crypto.Secp256k1\src\NVault.Crypto.Secp256k1.csproj", "{BD10D3C9-6759-454D-AC33-D4546B7E0990}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B328A098-6882-4338-A563-C84D69E53F22}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.Crypto.Noscrypt", "lib\NVault.Crypto.Noscrypt\src\NVault.Crypto.Noscrypt.csproj", "{686B9DB8-5BA9-49AB-9761-6B661A5027BD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.Crypto.Secp256k1", "lib\NVault.Crypto.Secp256k1\src\NVault.Crypto.Secp256k1.csproj", "{7952F25A-DA19-492E-B797-839082053DE4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.VaultExtensions", "lib\NVault.VaultExtensions\src\NVault.VaultExtensions.csproj", "{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -25,22 +27,27 @@ Global
 		{7ADAE9C2-1739-4E91-B59C-DB3B07909C07}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7ADAE9C2-1739-4E91-B59C-DB3B07909C07}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7ADAE9C2-1739-4E91-B59C-DB3B07909C07}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EF924E63-9FB9-404B-94AB-D273153A917E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EF924E63-9FB9-404B-94AB-D273153A917E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EF924E63-9FB9-404B-94AB-D273153A917E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EF924E63-9FB9-404B-94AB-D273153A917E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BD10D3C9-6759-454D-AC33-D4546B7E0990}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BD10D3C9-6759-454D-AC33-D4546B7E0990}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BD10D3C9-6759-454D-AC33-D4546B7E0990}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BD10D3C9-6759-454D-AC33-D4546B7E0990}.Release|Any CPU.Build.0 = Release|Any CPU
+		{686B9DB8-5BA9-49AB-9761-6B661A5027BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{686B9DB8-5BA9-49AB-9761-6B661A5027BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{686B9DB8-5BA9-49AB-9761-6B661A5027BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{686B9DB8-5BA9-49AB-9761-6B661A5027BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7952F25A-DA19-492E-B797-839082053DE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7952F25A-DA19-492E-B797-839082053DE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7952F25A-DA19-492E-B797-839082053DE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7952F25A-DA19-492E-B797-839082053DE4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{7ADAE9C2-1739-4E91-B59C-DB3B07909C07} = {352C778E-C12D-483D-9C10-7985D81A8E10}
-		{EF924E63-9FB9-404B-94AB-D273153A917E} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
-		{BD10D3C9-6759-454D-AC33-D4546B7E0990} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
+		{686B9DB8-5BA9-49AB-9761-6B661A5027BD} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
+		{7952F25A-DA19-492E-B797-839082053DE4} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
+		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {ACF01A45-B7F0-4055-84F2-A3596713C9BB}

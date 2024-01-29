@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { storage } from "webextension-polyfill"
-import { } from 'lodash'
+import { defaultsDeep } from 'lodash'
 import { configureApi, debugLog } from '@vnuge/vnlib.browser'
 import { MaybeRefOrGetter, readonly, Ref, shallowRef, watch } from "vue";
 import { JsonObject } from "type-fest";
@@ -30,18 +30,20 @@ export interface PluginConfig extends JsonObject {
     readonly nostrEndpoint: string;
     readonly heartbeat: boolean;
     readonly maxHistory: number;
-    readonly tagFilter: boolean,
+    readonly tagFilter: boolean;
+    readonly authPopup: boolean;
 }
 
 //Default storage config
-const defaultConfig : PluginConfig = {
+const defaultConfig : PluginConfig = Object.freeze({
     apiUrl: import.meta.env.VITE_API_URL,
     accountBasePath: import.meta.env.VITE_ACCOUNTS_BASE_PATH,
     nostrEndpoint: import.meta.env.VITE_NOSTR_ENDPOINT,
     heartbeat: import.meta.env.VITE_HEARTBEAT_ENABLED === 'true',
     maxHistory: 50,
     tagFilter: true,
-};
+    authPopup: true,
+});
 
 export interface AppSettings{
     saveConfig(config: PluginConfig): void;
@@ -61,6 +63,9 @@ export const useAppSettings = (): AppSettings => {
 
     const _storageBackend = storage.local;
     const store = useStorage<PluginConfig>(_storageBackend, 'siteConfig', defaultConfig);
+
+    //Merge the default config for nullables with the current config on startyup
+    defaultsDeep(store.value, defaultConfig);
 
     watch(store, (config, _) => {
         //Configure the vnlib api

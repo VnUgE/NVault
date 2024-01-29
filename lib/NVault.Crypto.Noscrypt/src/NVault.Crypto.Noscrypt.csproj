@@ -5,23 +5,23 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RootNamespace>NVault.Crypto.Secp256k1</RootNamespace>
-    <AssemblyName>NVault.Crypto.Secp256k1</AssemblyName>
+    <RootNamespace>NVault.Crypto.Noscrypt</RootNamespace>
+    <AssemblyName>NVault.Crypto.Noscrypt</AssemblyName>
   </PropertyGroup>
 
   <PropertyGroup>
     <Authors>Vaughn Nugent</Authors>
     <Company>Vaughn Nugent</Company>
-    <Product>NVault.Crypto.Secp256k1</Product>
-    <Description>Provides a managed library for the Bitcoin Core secp256k1 library, along with other helper types for NVault</Description>
+    <Product>NVault.Crypto.Noscrypt</Product>
+    <Description>Provides a managed library for the noscrypt native library, along with other helper types for NVault</Description>
     <Copyright>Copyright © 2024 Vaughn Nugent</Copyright>
     <PackageProjectUrl>https://www.vaughnnugent.com/resources/software/modules/NVault</PackageProjectUrl>
     <RepositoryUrl>https://github.com/VnUgE/NVault/tree/master/</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="VNLib.Hashing.Portable" Version="0.1.0-ci0109" />
-    <PackageReference Include="VNLib.Utils" Version="0.1.0-ci0109" />
+    <PackageReference Include="VNLib.Hashing.Portable" Version="0.1.0-ci0114" />
+    <PackageReference Include="VNLib.Utils" Version="0.1.0-ci0114" />
   </ItemGroup>
 
 </Project>

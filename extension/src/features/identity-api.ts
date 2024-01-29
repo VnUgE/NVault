@@ -28,10 +28,10 @@ import { shallowRef } from "vue";
 import { useSession } from "@vnuge/vnlib.browser";
 import { set, useToggle, watchDebounced } from "@vueuse/core";
 import { isArray } from "lodash";
-import { waitForChange, waitForChangeFn } from "./util";
+import { waitForChangeFn } from "./util";
 
 export interface IdentityApi extends FeatureApi, Watchable {
-    createIdentity: (identity: NostrPubKey) => Promise<NostrPubKey>
+    createIdentity: (identity: Partial<NostrPubKey>) => Promise<NostrPubKey>
     updateIdentity: (identity: NostrPubKey) => Promise<NostrPubKey>
     deleteIdentity: (key: NostrPubKey) => Promise<void>
     getAllKeys: () => Promise<NostrPubKey[]>;
@@ -65,9 +65,7 @@ export const useIdentityApi = (): IFeatureExport<AppSettings, IdentityApi> => {
                     selectedKey.value = undefined;
                 }
 
-                //Wait for changes to trigger a new key-load
-                await waitForChange([ loggedIn, onKeyUpdateTriggered ])
-            }, { debounce: 100 })
+            }, { debounce: 100, immediate: true })
 
             return {
                 //Identity is only available in options context

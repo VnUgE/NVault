@@ -12,7 +12,7 @@
                 </select>
             </div>
             <div class="my-auto">
-                <button class="btn sm borderless" @click="store.refreshIdentities()">
+                <button class="btn sm borderless" @click="store.plugins.identity.refreshKeys()">
                     <fa-icon icon="refresh" class="" />
                 </button>
             </div>
@@ -35,7 +35,7 @@ const onSelected = async ({target}) =>{
     //Select the key of the given id
     const selected = find(allKeys.value, {Id: target.value})
     if(selected){
-        await store.selectKey(selected)
+        await store.plugins.identity.selectKey(selected)
     }
 }
 

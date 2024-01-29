@@ -1,11 +1,12 @@
 <template>
-    <div v-show="event" id="nvault-ext-prompt" :class="{'dark': darkMode }">
+    <div v-show="showPrompt" id="nvault-ext-prompt" :class="{'dark': darkMode }">
         
         <div class="fixed top-0 bottom-0 left-0 right-0 text-white" style="z-index:9147483647 !important" >
-            
+
+            <!-- Only show backdrop when prompt is on the same origin -->
             <div class="fixed inset-0 left-0 w-full h-full bg-black/50" @click.self="close" />
 
-            <div v-if="store.permissions.isPopup" class="relative w-full md:max-w-[28rem] mx-auto md:mt-36 mb-auto" ref="prompt">
+            <div v-if="showPopup" class="relative w-full md:max-w-[28rem] mx-auto md:mt-36 mb-auto" ref="prompt">
                 <div class="w-full h-screen p-5 text-gray-800 bg-white border shadow-lg md:h-auto md:rounded dark:bg-dark-900 dark:border-dark-500 dark:text-gray-200">
                     
                     <div v-if="loggedIn" class="">
@@ -49,16 +50,14 @@
                         </div>
 
                         <div class="flex gap-2 mt-4"> 
+
+                            <ListBox class="max-w-40" v-model="allowRuleType" :groups="lbOptions" :modelToString="modelToString" />
+
                             <div class="ml-auto">
                                 <button class="rounded btn sm" @click="close">Close</button>
                             </div>
                             <div>
-                                <button :disabled="selectedKey?.Id == undefined" class="rounded amber btn sm" @click="allow(true)">
-                                    Always Allow
-                                </button>
-                            </div>
-                            <div>
-                                <button :disabled="selectedKey?.Id == undefined" class="rounded btn sm" @click="allow(false)">Allow</button>
+                                <button :disabled="selectedKey?.Id == undefined" class="rounded btn sm" @click="allow()">Allow</button>
                             </div>
                         </div>
                     </div>
@@ -89,13 +88,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
-import { clone, first } from 'lodash';
+import { clone, first, isEqual } from 'lodash';
 import { useStore } from '../../../store';
-import { type PermissionRequest } from '../../../../features' 
+import { CreateRuleType, type PermissionRequest } from '../../../../features' 
+import ListBox, { Option, OptionGroup } from '../../../../components/ListBox.vue';
 
 interface PropmtMessage extends PermissionRequest{
     msg: string;
@@ -106,6 +106,7 @@ const { loggedIn, selectedKey, darkMode } = storeToRefs(store)
 const keyName = computed(() => selectedKey.value?.UserName)
 
 const prompt = ref(null)
+const allowRuleType = shallowRef<CreateRuleType>(CreateRuleType.AllowOnce)
 
 const event = computed<PropmtMessage | undefined>(() => {
     //Use a the current windowpending if set
@@ -120,16 +121,26 @@ const event = computed<PropmtMessage | undefined>(() => {
 const site = computed(() => new URL(event.value?.origin || "https://example.com").host)
 const evData = computed(() => JSON.stringify(event.value || {}, null, 2))
 
+const onSameOrigin = computed(() => isEqual(event.value?.origin, window.location.origin))
+//Only show in-page popup if the event is from the same origin
+const showPopup = computed(() => (store.permissions.isPopup || !store.settings.authPopup))
+const showPrompt = computed(() => (onSameOrigin.value || store.permissions.isPopup) && event.value)
+
 const close = () => {
     if(event.value){
         store.plugins.permission.deny(event.value.uuid);
     }
+
+     //Reset the rule type
+    allowRuleType.value = CreateRuleType.AllowOnce
 }
 
-const allow = (addRule: boolean) => {
+const allow = () => {
    if (event.value) {
-        store.plugins.permission.allow(event.value.uuid, addRule);
+        store.plugins.permission.allow(event.value.uuid, allowRuleType.value);
     }
+    //Reset the rule type
+    allowRuleType.value = CreateRuleType.AllowOnce
 }
 
 //Listen for events
@@ -160,5 +171,52 @@ const getPromptMessage = (perms: PermissionRequest | undefined): PropmtMessage |
     }
     return ev
 }
+
+const getRuleName = (rule: CreateRuleType) => {
+    switch (rule) {
+        default:
+            return 'None'
+        case CreateRuleType.AllowOnce:
+            return "Allow Once"
+        case CreateRuleType.AllowForever:
+            return "Allow Forever"
+        case CreateRuleType.FiveMinutes:
+            return "5 Minutes"
+        case CreateRuleType.OneHour:
+            return "1 Hour"
+        case CreateRuleType.OneDay:
+            return "1 Day"
+        case CreateRuleType.OneWeek:
+            return "1 Week"
+        case CreateRuleType.OneMonth:
+            return "1 Month"
+    }
+}
+
+const createOption = (rule: CreateRuleType): Option<CreateRuleType> => {
+    return { name: getRuleName(rule), value: rule }
+}
+
+const creatGroup = (name: string, options: Option<CreateRuleType>[]): OptionGroup<CreateRuleType> => {
+    return { name, options }
+}
+
+const lbOptions = ((): OptionGroup<CreateRuleType>[] => {
+    return[
+        creatGroup('Allow', [
+            createOption(CreateRuleType.AllowOnce),
+            createOption(CreateRuleType.AllowForever)
+        ]),
+        creatGroup('Allow for', [
+            createOption(CreateRuleType.FiveMinutes),
+            createOption(CreateRuleType.OneHour),
+            createOption(CreateRuleType.OneDay),
+            createOption(CreateRuleType.OneWeek),
+            createOption(CreateRuleType.OneMonth)
+        ])
+    ]
+})()
+
+const modelToString = (rule: CreateRuleType) => getRuleName(rule)
 
 </script>

@@ -31,8 +31,9 @@ export const useStore = defineStore({
     state: (): NostrStoreState =>({
         loggedIn: false,
         userName: '',
-        settings: undefined as any,
-        darkMode: false
+        settings: {} as any,
+        darkMode: false,
+        eventHistory: [],
     }),
     actions: {
 

@@ -68,7 +68,7 @@ const usePlugins = (context: ChannelContext) => {
 export const useBackgroundPiniaPlugin = (context: ChannelContext) => {
     //Create port for context
     const plugins = usePlugins(context)
-    const { user } = plugins;
+    const { user, settings, history } = plugins;
 
     //Plugin store
     return ({ store }: PiniaPluginContext) => {
@@ -84,10 +84,15 @@ export const useBackgroundPiniaPlugin = (context: ChannelContext) => {
         }, { immediate: true })
 
         //Wait for settings changes
-        onWatchableChange(plugins.settings, async () => {
+        onWatchableChange(settings, async () => {
             //Update settings and dark mode on change
-            store.settings = await plugins.settings.getSiteConfig();
-            store.darkMode = await plugins.settings.getDarkMode();
+            store.settings = await settings.getSiteConfig();
+            store.darkMode = await settings.getDarkMode();
+        }, { immediate: true })
+
+        onWatchableChange(history, async () => {
+            //Load event history
+            store.eventHistory = await history.getEvents();
         }, { immediate: true })
 
         return{

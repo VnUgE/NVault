@@ -59,6 +59,7 @@ namespace NVault.Plugins.Vault.Endpoints
         private readonly INostrOperations _vault;
         private readonly NostrRelayStore _relays;
         private readonly NostrKeyMetaStore _publicKeyStore;
+        private readonly NostrEventHistoryStore _eventHistoryStore;
         private readonly bool AllowDelete;
         private readonly ILogProvider? _abnoxiousLog;
 
@@ -69,12 +70,13 @@ namespace NVault.Plugins.Vault.Endpoints
 
             AllowDelete = config.TryGetValue("allow_delete", out JsonElement adEl) && adEl.GetBoolean();
 
-
-            DbContextOptions options = plugin.GetContextOptions();
+            IAsyncLazy<DbContextOptions> options = plugin.GetContextOptionsAsync();
 
             _relays = new NostrRelayStore(options);
             _publicKeyStore = new NostrKeyMetaStore(options);
-            _vault = new NostrOpProvider(plugin);
+            _eventHistoryStore = new NostrEventHistoryStore(options);
+            
+            _vault = new NostrOpProvider(plugin);          
 
             //Check for obnoxious logging
             if (plugin.HostArgs.HasArgument("--nvault-obnoxious"))
@@ -114,6 +116,22 @@ namespace NVault.Plugins.Vault.Endpoints
                 entity.CloseResponseJson(HttpStatusCode.OK, keys);
 
                 _publicKeyStore.ListRental.Return(keys);
+
+                return VfReturnType.VirtualSkip;
+            }
+
+            if(entity.QueryArgs.IsArgumentSet("type", "getEvents"))
+            {
+                //Get the event history
+                List<NostrEventEntry> events = _eventHistoryStore.ListRental.Rent();
+
+                //Get the first page of events for the user
+                await _eventHistoryStore.GetUserPageAsync(events, entity.Session.UserID, 0, 100);
+
+                //Return all events for the user
+                entity.CloseResponseJson(HttpStatusCode.OK, events);
+
+                _eventHistoryStore.ListRental.Return(events);
 
                 return VfReturnType.VirtualSkip;
             }
@@ -174,6 +192,15 @@ namespace NVault.Plugins.Vault.Endpoints
                     return VirtualOk(entity, webm);
                 }
 
+                //Create new event entry and store it
+                NostrEventEntry newEvent = NostrEventEntry.FromEvent(entity.Session.UserID, nEvent);
+                result = await _eventHistoryStore.CreateUserRecordAsync(newEvent, entity.Session.UserID, entity.EventCancellation);
+
+                if (!result)
+                {
+                    Log.Warn("Failed to store event in history, {evid} for user {userid}", nEvent.Id, entity.Session.UserID[..8]);
+                }
+                
                 webm.Result = nEvent;
                 webm.Success = true;
 
@@ -443,21 +470,23 @@ namespace NVault.Plugins.Vault.Endpoints
         {
             ValErrWebMessage webMessage = new ();
 
-            if(entity.QueryArgs.IsArgumentSet("type", "identity"))
+            //common id argument
+            string? id = entity.QueryArgs.GetValueOrDefault("id");
+
+            if (entity.QueryArgs.IsArgumentSet("type", "identity"))
             {
                 if (webMessage.Assert(AllowDelete, "Deleting identies are now allowed"))
                 {
                     return VirtualClose(entity, webMessage, HttpStatusCode.Forbidden);
                 }
 
-                if (!entity.QueryArgs.TryGetNonEmptyValue("key_id", out string? keyId))
+                if (webMessage.Assert(id != null, "No key id specified"))
                 {
-                    webMessage.Result = "No key id specified";
                     return VirtualClose(entity, webMessage, HttpStatusCode.BadRequest);
                 }
 
                 //Get the key metadata
-                NostrKeyMeta? meta = await _publicKeyStore.GetSingleUserRecordAsync(keyId, entity.Session.UserID);
+                NostrKeyMeta? meta = await _publicKeyStore.GetSingleUserRecordAsync(id, entity.Session.UserID);
 
                 if (webMessage.Assert(meta != null, "Key metadata not found"))
                 {
@@ -471,10 +500,53 @@ namespace NVault.Plugins.Vault.Endpoints
                 await _vault.DeleteCredentialAsync(scope, meta, entity.EventCancellation);
 
                 //Remove the key metadata
-                await _publicKeyStore.DeleteUserRecordAsync(keyId, entity.Session.UserID);
+                await _publicKeyStore.DeleteUserRecordAsync(id, entity.Session.UserID);
 
                 webMessage.Result = "Successfully deleted identity";
                 webMessage.Success = true;
+                return VirtualOk(entity, webMessage);
+            }
+
+            if(entity.QueryArgs.IsArgumentSet("type", "relay"))
+            {
+                if(webMessage.Assert(id != null, "No relay id specified"))
+                {
+                    return VirtualClose(entity, webMessage, HttpStatusCode.BadRequest);
+                }
+
+                //Delete the relay
+                if(await _relays.DeleteUserRecordAsync(id, entity.Session.UserID))
+                {
+                    webMessage.Result = "Successfully deleted relay";
+                    webMessage.Success = true;
+                }
+                else
+                {
+                    webMessage.Result = "Failed to delete relay";
+                }
+
+                return VirtualOk(entity, webMessage);
+            }
+
+            if(entity.QueryArgs.IsArgumentSet("type", "event"))
+            {
+                //Internal event id is required
+                if(webMessage.Assert(id != null, "No event id specified"))
+                {
+                    return VirtualClose(entity, webMessage, HttpStatusCode.BadRequest);
+                }
+
+                //Delete the event
+                if(await _eventHistoryStore.DeleteUserRecordAsync(id, entity.Session.UserID))
+                {
+                    webMessage.Result = "Successfully deleted event";
+                    webMessage.Success = true;
+                }
+                else
+                {
+                    webMessage.Result = "Failed to delete event";
+                }
+
                 return VirtualOk(entity, webMessage);
             }
 

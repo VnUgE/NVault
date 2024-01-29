@@ -24,11 +24,10 @@ using VNLib.Plugins.Extensions.Loading;
 
 namespace NVault.Plugins.Vault.Model
 {
-    internal class NostrRelayStore(IAsyncLazy<DbContextOptions> Options) : DbStore<NostrRelay>
+    internal class NostrEventHistoryStore(IAsyncLazy<DbContextOptions> Options) : DbStore<NostrEventEntry>
     {
-
         ///<inheritdoc/>
-        public override IDbQueryLookup<NostrRelay> QueryTable { get; } = new DbQueries();
+        public override IDbQueryLookup<NostrEventEntry> QueryTable { get; } = new DbQueries();
 
         ///<inheritdoc/>
         public override IDbContextHandle GetNewContext() => new NostrContext(Options.Value);
@@ -36,35 +35,32 @@ namespace NVault.Plugins.Vault.Model
         ///<inheritdoc/>
         public override string GetNewRecordId() => Guid.NewGuid().ToString("N");
 
-
-        public override void OnRecordUpdate(NostrRelay newRecord, NostrRelay currentRecord)
+        public override void OnRecordUpdate(NostrEventEntry newRecord, NostrEventEntry existing)
         {
-            currentRecord.Flags = newRecord.Flags;
-            currentRecord.Url = newRecord.Url;
-            currentRecord.UserId = newRecord.UserId;
-
-            //Update times
+            existing.EventData = newRecord.EventData;
+            existing.UserId = newRecord.UserId;
             newRecord.LastModified = DateTime.UtcNow;
         }
 
-        sealed record class DbQueries() : IDbQueryLookup<NostrRelay>
+        sealed record class DbQueries() : IDbQueryLookup<NostrEventEntry>
         {
-            public IQueryable<NostrRelay> GetCollectionQueryBuilder(IDbContextHandle context, params string[] constraints)
+            public IQueryable<NostrEventEntry> GetCollectionQueryBuilder(IDbContextHandle context, params string[] constraints)
             {
                 string userId = constraints[0];
 
-                return from r in context.Set<NostrRelay>()
+                return from r in context.Set<NostrEventEntry>()
                        where r.UserId == userId
+                       orderby r.LastModified descending
                        select r;
             }
 
-            public IQueryable<NostrRelay> GetSingleQueryBuilder(IDbContextHandle context, params string[] constraints)
+            public IQueryable<NostrEventEntry> GetSingleQueryBuilder(IDbContextHandle context, params string[] constraints)
             {
                 string id = constraints[0];
                 string userId = constraints[1];
 
-                //Get relay for the given user by its id
-                return from r in context.Set<NostrRelay>()
+                //Get entity for the given user by its id
+                return from r in context.Set<NostrEventEntry>()
                        where r.Id == id && r.UserId == userId
                        select r;
             }

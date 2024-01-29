@@ -25,6 +25,7 @@ export interface BgRuntime<T> {
     readonly state: T;
     onInstalled(callback: () => Promise<void>): void;
     onConnected(callback: () => Promise<void>): void;
+    openBackChannel<T extends FeatureApi>(name: string, callback: (feature: T | undefined) => void): void;
 }
 
 export type FeatureApi = {
@@ -84,6 +85,8 @@ export const protectMethod = <T extends Function>(func: T, ...protection: Channe
     return func;
 }
 
+type BgCallback = (feature: FeatureApi | undefined) => void
+
 /**
  * Creates a background runtime context for registering background 
  * script feature api handlers 
@@ -92,12 +95,26 @@ export const useBackgroundFeatures = <TState>(state: TState): IBackgroundWrapper
     
     const { openOnMessageChannel } = createMessageChannel('background');
     const { onMessage } = openOnMessageChannel()
+   
+    const backChannels = new Map<string, BgCallback>()
 
+    const openBackChannel = async (name: string, callback: BgCallback) => {
+        backChannels.set(name, callback)
+    }
+
+    const notifyBackChannels = (pool: Map<string, FeatureApi>) => {
+        //Loop through all features
+        for (const [name, waiter] of backChannels.entries()){
+            //Notify the waiter of the feature
+            waiter(pool.get(name))
+        }
+    }
 
     const rt = {
         state,
         onConnected: runtime.onConnect.addListener,
         onInstalled: runtime.onInstalled.addListener,
+        openBackChannel
     }   as BgRuntime<TState>
 
     /**
@@ -109,11 +126,17 @@ export const useBackgroundFeatures = <TState>(state: TState): IBackgroundWrapper
 
     return{
         register: <TFeature extends FeatureApi>(features: FeatureConstructor<TState, TFeature>[]) => {
+            
+            const featurePool = new Map<string, FeatureApi>()
+
             //Loop through features
             for (const feature of features) {
 
                 //Init feature
                 const f = feature().background(rt)
+
+                //Add to pool
+                featurePool.set(feature.name, f)
 
                 //Get all exported function
                 for (const externFuncName in f) {
@@ -155,6 +178,9 @@ export const useBackgroundFeatures = <TState>(state: TState): IBackgroundWrapper
                     });
                 }
             }
+
+            //Notify all back channels that the load is complete
+            notifyBackChannels(featurePool)
         }
     }
 }

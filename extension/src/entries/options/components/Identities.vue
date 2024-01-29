@@ -40,7 +40,7 @@
             </div>
              <div class="">
                 <div class="">
-                    <button class="rounded btn sm" @click="store.refreshIdentities()">
+                    <button class="rounded btn sm" @click="identity.refreshKeys()">
                         <fa-icon icon="refresh" class="" />
                     </button>
                 </div>
@@ -89,8 +89,8 @@
 
 <script setup lang="ts">
 
-import { isEqual, map } from 'lodash'
-import { ref } from "vue";
+import { find, isEqual, map } from 'lodash'
+import { computed, ref } from "vue";
 import {
     Popover,
     PopoverButton,
@@ -103,6 +103,7 @@ import { notify } from "@kyvg/vue3-notification";
 import { get, useClipboard } from '@vueuse/core';
 import { useStore } from '../../store';
 import { storeToRefs } from 'pinia';
+import { useQuery } from '../../../features/util';
 
 const emit = defineEmits(['edit-key'])
 
@@ -111,13 +112,23 @@ configureNotifier({ notify, close: notify.close })
 
 const downloadAnchor = ref<HTMLAnchorElement>()
 const store = useStore()
-const { selectedKey, allKeys } = storeToRefs(store)
+const { identity } = store.plugins
+const { selectedKey } = storeToRefs(store)
 const { copy } = useClipboard()
 const { reveal } = useConfirm()
+const query = useQuery('kid')
 
 const isSelected = (me : NostrPubKey) => isEqual(me, selectedKey.value)
 const editKey = (key : NostrPubKey) => emit('edit-key', key);
-const selectKey = (key: NostrPubKey) => store.selectKey(key)
+const selectKey = (key: NostrPubKey) => identity.selectKey(key)
+const allKeys = computed(() => {
+    const q = query.get();
+    if(q){
+        const val = find(store.allKeys, k => k.Id === q || k.PubKey === q)
+        return val ? [val] : []
+    }
+    return store.allKeys
+})
 
 const onCreate = async (e: Event, onClose : () => void) => {
 
@@ -128,7 +139,7 @@ const onCreate = async (e: Event, onClose : () => void) => {
 
     await apiCall(async () => {
            //Create new identity
-        await store.createIdentity({ UserName, ExistingKey })
+        await identity.createIdentity({ UserName, ExistingKey })
     })
    
     onClose()
@@ -157,7 +168,7 @@ const onDeleteKey = async (key : NostrPubKey) => {
 
     apiCall(async ({ toaster }) => {
         //Delete identity
-        await store.deleteIdentity(key)
+        await identity.deleteIdentity(key)
         toaster.general.success({
             'title': 'Success',
             'text': `${key.UserName} has been deleted`
@@ -169,7 +180,7 @@ const onNip05Download = () => {
     apiCall(async () => {
           //Get all public keys from the server
         const keys = get(allKeys)
-        const nip05 = {}
+        const nip05 = {} as any;
         //Map the keys to the NIP-05 format
         map(keys, k => nip05[k.UserName] = k.PublicKey)
         //create file blob

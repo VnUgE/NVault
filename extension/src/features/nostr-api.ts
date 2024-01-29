@@ -17,8 +17,9 @@ import { cloneDeep } from "lodash";
 import { Endpoints } from "./server-api";
 import { type FeatureApi, type BgRuntime, type IFeatureExport, optionsOnly, exportForegroundApi } from "./framework";
 import { type AppSettings } from "./settings";
-import { useTagFilter } from "./tagfilter-api";
+import { EventTagFilterApi } from "./tagfilter-api";
 import type { NostrRelay, EncryptionRequest, NostrEvent } from './types';
+import { HistoryApi } from "./history";
 
 
 /**
@@ -36,10 +37,16 @@ export interface NostrApi extends FeatureApi {
 export const useNostrApi = (): IFeatureExport<AppSettings, NostrApi> => {
 
     return{
-        background: ({ state }: BgRuntime<AppSettings>) =>{
+        background: ({ state, openBackChannel }: BgRuntime<AppSettings>) =>{
            
             const { execRequest } = state.useServerApi();
-            const { filterTags } = useTagFilter(state)
+
+            let tagFilter: EventTagFilterApi | undefined;
+            let evHistory: HistoryApi | undefined;
+
+            //Register for tag filter, and history back channel
+            openBackChannel<EventTagFilterApi>('useEventTagFilterApi', (feature) => tagFilter = feature)
+            openBackChannel<HistoryApi>('useHistoryApi', (feature) => evHistory = feature)
 
             return {
                 getRelays: async (): Promise<NostrRelay[]> => {
@@ -50,16 +57,21 @@ export const useNostrApi = (): IFeatureExport<AppSettings, NostrApi> => {
                 signEvent: async (req: NostrEvent): Promise<NostrEvent | undefined> => {
 
                     //Store copy to prevent mutation
-                    req = cloneDeep(req)
+                    const event = cloneDeep(req)
 
                     //If tag filter is enabled, filter before continuing
-                    if(state.currentConfig.value.tagFilter){
-                        await filterTags(req)
+                    if (tagFilter){
+                        //Filter tags
+                        await tagFilter.filterTags(event);
                     }
                    
                     //Sign the event
-                    const event = await execRequest(Endpoints.SignEvent, req);
-                    return event;
+                    const result = await execRequest(Endpoints.SignEvent, event);
+                    
+                    //Refresh history
+                    evHistory?.refresh();
+
+                    return result;
                 },
                 nip04Encrypt: async (data: EncryptionRequest): Promise<string> => {
                     const message: EncryptionRequest = {

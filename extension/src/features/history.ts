@@ -13,29 +13,67 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { ref } from "vue";
-import {  } from "./types";
-import { FeatureApi, BgRuntime, IFeatureExport } from "./framework";
+import { shallowRef } from "vue";
+import { watchDebounced, set, get, useToggle } from '@vueuse/core'
+import { EventEntry, NostrEvent, Watchable } from "./types";
+import { FeatureApi, BgRuntime, IFeatureExport, exportForegroundApi, optionsOnly } from "./framework";
 import { AppSettings } from "./settings";
+import { waitForChangeFn } from "./util";
+import { Endpoints } from "./server-api";
+import { useSession } from "@vnuge/vnlib.browser";
+import {  } from "lodash";
 
-export interface HistoryEvent extends Object{
-
+export interface SignedNEvent extends NostrEvent {
+    readonly signature: string    
 }
 
-export interface HistoryApi extends FeatureApi{
-
+export interface HistoryApi extends FeatureApi, Watchable{
+    getEvents: () => Promise<EventEntry[]>;
+    deleteEvent: (entry: EventEntry) => Promise<void>;
+    refresh: () => Promise<void>;
 }
 
 export const useHistoryApi = () : IFeatureExport<AppSettings, HistoryApi> => {
     return{
-        background: ({ }: BgRuntime<AppSettings>): HistoryApi =>{
-            const evHistory = ref([]);
+        background: ({ state }: BgRuntime<AppSettings>): HistoryApi =>{
+            const { loggedIn } = useSession();
+            const { execRequest } = state.useServerApi();
+            const [ onRefresh, refresh ] = useToggle()
 
-            return{ }
+            const history = shallowRef<EventEntry[]>([]);
+
+            //Watch for login changes and manual refreshes
+            watchDebounced([loggedIn, onRefresh], async ([li]) => {
+
+                if(!li){
+                    set(history, [])
+                    return
+                }
+                
+                //load history from server
+                history.value = await execRequest(Endpoints.GetHistory);
+
+            }, { debounce: 1000 })
+
+            return{
+                waitForChange:waitForChangeFn([history]),
+
+                getEvents: () => Promise.resolve(history.value),
+                deleteEvent: optionsOnly(async (entry: EventEntry) => {
+                    await execRequest(Endpoints.DeleteSingleEvent, entry)
+                    refresh()
+                }),
+                refresh () {
+                    refresh()
+                    return Promise.resolve()
+                }
+             }
         },
-        foreground: (): HistoryApi =>{
-            return { }
-        }
+        foreground: exportForegroundApi<HistoryApi>([
+            'waitForChange',
+            'getEvents',
+            'deleteEvent',
+        ])
     }
 }
 

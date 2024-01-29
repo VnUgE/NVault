@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 //Export all shared types
-export type { NostrPubKey, LoginMessage } from './types'
+export type { NostrPubKey, LoginMessage, NostrEvent, NostrRelay, EventEntry } from './types'
 export type * from './framework'
 export type { PluginConfig } from './settings'
 export type { PkiPubKey, EcKeyParams, LocalPkiApi as PkiApi } from './pki-api'
@@ -33,6 +33,6 @@ export { useSettingsApi, useAppSettings } from './settings'
 export { useHistoryApi } from './history'
 export { useEventTagFilterApi } from './tagfilter-api'
 export { useInjectAllowList } from './nip07allow-api'
-export { onWatchableChange } from './util'
+export { onWatchableChange, waitOne, useQuery } from './util'
 export { useMfaConfigApi } from './mfa-api'
-export { usePermissionApi, PrStatus } from './permissions'
+export { usePermissionApi, PrStatus, CreateRuleType } from './permissions'

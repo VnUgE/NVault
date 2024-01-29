@@ -47,6 +47,24 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="mt-3">
+                            <div class="flex flex-row w-fit">
+                                <Switch
+                                    v-model="v$.authPopup.$model"
+                                    :class="v$.authPopup.$model ? 'bg-black dark:bg-white' : 'bg-gray-200 dark:bg-dark-600'"
+                                    class="relative inline-flex items-center h-5 mx-auto rounded-full w-11"
+                                >
+                                    <span class="sr-only">Permissions Popup</span>
+                                    <span
+                                        :class="v$.authPopup.$model ? 'translate-x-6' : 'translate-x-1'"
+                                        class="inline-block w-4 h-4 transition transform rounded-full bg-gray-50 dark:bg-dark-900"
+                                    />
+                                </Switch>
+                                <div class="my-auto ml-2 text-sm dark:text-gray-200">
+                                   Permissions Popup 
+                                </div>
+                            </div>
+                        </div>
                     </fieldset>
                 </div>
                 <h3 class="text-center">
@@ -165,6 +183,7 @@ const vRules = {
         maxLength: maxLength(50),
         alphaNum: helpers.withMessage('Nostr path is not a valid endpoint path that begins with /', path)
     },
+    authPopup: {},
     heartbeat: {},
 }
 
@@ -176,6 +195,7 @@ const [ editMode, toggleEdit ] = useToggle(false);
 
 const autoInject = computed(() => buffer.autoInject)
 const heartbeat = computed(() => buffer.heartbeat)
+const authPopup = computed(() => buffer.authPopup)
 
 const onSave = async () => {
 
@@ -218,6 +238,7 @@ const testConnection = async () =>{
 //Watch for changes to autoinject value and publish changes when it does
 watchDebounced(autoInject, update, { debounce: 500, immediate: false })
 watchDebounced(heartbeat, update, { debounce: 500, immediate: false })
+watchDebounced(authPopup, update, { debounce: 500, immediate: false })
 
 </script>
 

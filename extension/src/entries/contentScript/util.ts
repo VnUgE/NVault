@@ -25,7 +25,7 @@ const registerWindowHandler = (store: Store, extName: string) => {
     const { selectedKey } = storeToRefs(store)
     const { nostr, permission } = store.plugins;
 
-    const onAsyncCall = async ({ source, data, origin } : MessageEvent<any>) => {
+    const onAsyncCall = async ({ data, origin } : MessageEvent<any>) => {
 
         //clean any junk/methods with json parse/stringify
         data = JSON.parse(JSON.stringify(data))
@@ -38,7 +38,7 @@ const registerWindowHandler = (store: Store, extName: string) => {
         }
 
         //Confirm the message format is correct
-        if (!isEqual(source, window) || isEmpty(data) || isNil(data.type)) {
+        if (isEmpty(data) || isNil(data.type)) {
             return
         }
         //Confirm extension is for us
