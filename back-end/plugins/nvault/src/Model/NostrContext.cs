@@ -23,7 +23,7 @@ namespace NVault.Plugins.Vault.Model
 
     internal class NostrContext : TransactionalDbContext, IDbTableDefinition
     {
-        public DbSet<NostrRelay> Relays { get; set; }
+        public DbSet<NostrRelay> NostrRelays { get; set; }
 
         public DbSet<NostrKeyMeta> NostrPublicKeys { get; set; }
 
@@ -38,7 +38,7 @@ namespace NVault.Plugins.Vault.Model
         public void OnDatabaseCreating(IDbContextBuilder builder, object? userState)
         {
             //Configure relay table
-            builder.DefineTable<NostrRelay>(nameof(Relays))
+            builder.DefineTable<NostrRelay>(nameof(NostrRelays))
                 .WithColumn(r => r.Id)
                     .MaxLength(50)
                     .Next()

@@ -1,18 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿// Copyright (C) 2024 Vaughn Nugent
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 using VNLib.Utils;
 using VNLib.Utils.Extensions;
+using VNLib.Utils.Memory;
 using VNLib.Utils.Native;
 
 using NCResult = System.Int64;
 
 namespace NVault.Crypto.Noscrypt
 {
+
+    /// <summary>
+    /// Initializes the native library and provides access to the native functions
+    /// </summary>
+    /// <param name="Library">An existing noscrypt library handle</param>
+    /// <param name="OwnsHandle">A value that indicates if the instance owns the library handle</param>
     public unsafe sealed class LibNoscrypt(SafeLibraryHandle Library, bool OwnsHandle) : VnDisposeable
     {
         //Values that match the noscrypt.h header
@@ -25,62 +44,96 @@ namespace NVault.Crypto.Noscrypt
         public const int NC_MESSAGE_KEY_SIZE = 32;
         public const int CTX_ENTROPY_SIZE = 32;
 
-        //STRUCTS MUST MATCH THE NOSCRYPT.H HEADER
+        public const NCResult NC_SUCCESS = 0;
+        public const byte E_NULL_PTR = 0x01;
+        public const byte E_INVALID_ARG = 0x02;
+        public const byte E_INVALID_CTX = 0x03;
+        public const byte E_ARGUMENT_OUT_OF_RANGE = 0x04;      
+        public const byte E_OPERATION_FAILED = 0x05;
 
-        [StructLayout(LayoutKind.Sequential, Size = NC_SEC_KEY_SIZE)]
-        internal struct NCSecretKey
+        private readonly FunctionTable _functions = FunctionTable.BuildFunctionTable(Library);
+
+        /// <summary>
+        /// Gets a reference to the loaded function table for 
+        /// the native library
+        /// </summary>
+        internal ref readonly FunctionTable Functions
         {
-            public fixed byte key[NC_SEC_KEY_SIZE];
+            get
+            {
+                Check();
+                Library.ThrowIfClosed();
+                return ref _functions;
+            }
         }
 
-        [StructLayout(LayoutKind.Sequential, Size = NC_SEC_PUBKEY_SIZE)]
-        internal struct NCPublicKey
+        /// <summary>
+        /// Gets a value that determines if the library has been released
+        /// </summary>
+        internal bool IsClosed => Library.IsClosed || Library.IsInvalid;
+
+        /// <summary>
+        /// Initialize a new NCContext for use. This may be done once at app startup
+        /// and is thread-safe for the rest of the application lifetime.
+        /// </summary>
+        /// <param name="heap"></param>
+        /// <param name="entropy32">Initialization entropy buffer</param>
+        /// <param name="size">The size of the buffer (must be 32 bytes)</param>
+        /// <returns>The inialized context</returns>
+        /// <exception cref="OutOfMemoryException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public NCContext Initialize(IUnmangedHeap heap, ref readonly byte entropy32, int size)
         {
-            public fixed byte key[NC_SEC_PUBKEY_SIZE];
+            ArgumentNullException.ThrowIfNull(heap);
+
+            //Entropy must be exactly 32 bytes
+            ArgumentOutOfRangeException.ThrowIfNotEqual(size, CTX_ENTROPY_SIZE);
+
+            //Get struct size
+            nuint ctxSize = Functions.NCGetContextStructSize.Invoke();
+
+            //Allocate the context with the struct alignment on a heap
+            IntPtr ctx = heap.Alloc(1, ctxSize, true);
+            try
+            {
+                NCResult result;
+                fixed (byte* p = &entropy32)
+                {
+                    result = Functions.NCInitContext.Invoke(ctx, p);
+                }
+
+                NCUtil.CheckResult<FunctionTable.NCInitContextDelegate>(result);
+
+                Trace.WriteLine($"Initialzied noscrypt context 0x{ctx:x}");
+
+                return new NCContext(ctx, heap, this);
+            }
+            catch
+            {
+                heap.Free(ref ctx);
+                throw;
+            }
         }
 
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct NCCryptoData
+        /// <summary>
+        /// Initialize a new NCContext for use. This may be done once at app startup
+        /// and is thread-safe for the rest of the application lifetime.
+        /// </summary>
+        /// <param name="heap"></param>
+        /// <param name="enropy32">The 32byte random seed/nonce for the noscrypt context</param>
+        /// <returns>The inialized context</returns>
+        /// <exception cref="OutOfMemoryException"></exception>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public NCContext Initialize(IUnmangedHeap heap, ReadOnlySpan<byte> enropy32)
         {
-            public fixed byte nonce[NC_ENCRYPTION_NONCE_SIZE];
-            public void* inputData;
-            public void* outputData;
-            public uint dataSize;
+            return Initialize(
+                heap,
+                ref MemoryMarshal.GetReference(enropy32),
+                enropy32.Length
+            );
         }
-
-        //FUCNTIONS
-        [SafeMethodName("NCGetContextStructSize")]
-        internal delegate uint NCGetContextStructSizeDelegate();
-
-        [SafeMethodName("NCInitContext")]
-        internal delegate NCResult NCInitContextDelegate(void* ctx , byte* entropy32);
-
-        [SafeMethodName("NCReInitContext")]
-        internal delegate NCResult NCReInitContextDelegate(void* ctx, byte* entropy32);
-
-        [SafeMethodName("NCDestroyContext")]
-        internal delegate NCResult NCDestroyContextDelegate(void* ctx);
-
-        [SafeMethodName("NCGetPublicKey")]
-        internal delegate NCResult NCGetPublicKeyDelegate(void* ctx, NCSecretKey* secKey, NCPublicKey* publicKey);
-
-        [SafeMethodName("NCValidateSecretKey")]
-        internal delegate NCResult NCValidateSecretKeyDelegate(void* ctx, NCSecretKey* secKey);
-
-        [SafeMethodName("NCSignData")]
-        internal delegate NCResult NCSignDataDelegate(void* ctx, NCSecretKey* secKey, byte* random32, byte* data, long dataSize, byte* sig64);
-
-        [SafeMethodName("NCVerifyData")]
-        internal delegate NCResult NCVerifyDataDelegate(void* ctx, NCPublicKey* pubKey, byte* data, long dataSize, byte* sig64);
-
-        [SafeMethodName("NCSignDigest")]
-        internal delegate NCResult NCSignDigestDelegate(void* ctx, NCSecretKey* secKey, byte* random32, byte* digest32, byte* sig64);
-
-        [SafeMethodName("NCVerifyDigest")]
-        internal delegate NCResult NCVerifyDigestDelegate(void* ctx, NCPublicKey* pubKey, byte* digest32, byte* sig64);
-
-
-
 
         ///<inheritdoc/>
         protected override void Free()
@@ -88,20 +141,35 @@ namespace NVault.Crypto.Noscrypt
             if (OwnsHandle)
             {
                 Library.Dispose();
+                Trace.WriteLine($"Disposed noscrypt library 0x{Library.DangerousGetHandle():x}");
             }
         }
 
+        /// <summary>
+        /// Loads the native library from the specified path and initializes the 
+        /// function table for use.
+        /// </summary>
+        /// <param name="path">The native library path or name to load</param>
+        /// <param name="search">The search path options</param>
+        /// <returns>The loaded library instance</returns>
         public static LibNoscrypt Load(string path, DllImportSearchPath search)
         {
             //Load the native library
             SafeLibraryHandle handle = SafeLibraryHandle.LoadLibrary(path, search);
 
+            Trace.WriteLine($"Loaded noscrypt library 0x{handle.DangerousGetHandle():x} from {path}");
+
             //Create the wrapper
             return new LibNoscrypt(handle, true);
         }
 
+        /// <summary>
+        /// Loads the native library from the specified path and initializes the 
+        /// function table for use.
+        /// </summary>
+        /// <param name="path">The native library path or name to load</param>
+        /// <returns>The loaded library instance</returns>
         public static LibNoscrypt Load(string path) => Load(path, DllImportSearchPath.SafeDirectories);
-
-
-    }
+       
+    }  
 }

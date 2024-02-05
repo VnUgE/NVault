@@ -16,7 +16,7 @@
     <Description>Provides a managed library for the noscrypt native library, along with other helper types for NVault</Description>
     <Copyright>Copyright © 2024 Vaughn Nugent</Copyright>
     <PackageProjectUrl>https://www.vaughnnugent.com/resources/software/modules/NVault</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/VnUgE/NVault/tree/master/</RepositoryUrl>
+    <RepositoryUrl>https://github.com/VnUgE/NVault/tree/master/lib/NVault.Crypto.Noscrypt</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.Crypto.Secp256k1", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.VaultExtensions", "lib\NVault.VaultExtensions\src\NVault.VaultExtensions.csproj", "{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NVault.Crypto.NoscryptTests", "lib\NVault.Crypto.Noscrypt\NVault.Crypto.NoscryptTests\NVault.Crypto.NoscryptTests.csproj", "{7273CA9C-BA83-4438-8CDF-0B1605CD03CD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7273CA9C-BA83-4438-8CDF-0B1605CD03CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7273CA9C-BA83-4438-8CDF-0B1605CD03CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7273CA9C-BA83-4438-8CDF-0B1605CD03CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7273CA9C-BA83-4438-8CDF-0B1605CD03CD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -48,6 +54,7 @@ Global
 		{686B9DB8-5BA9-49AB-9761-6B661A5027BD} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
 		{7952F25A-DA19-492E-B797-839082053DE4} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
 		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
+		{7273CA9C-BA83-4438-8CDF-0B1605CD03CD} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {ACF01A45-B7F0-4055-84F2-A3596713C9BB}
