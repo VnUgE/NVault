@@ -21,6 +21,7 @@ using VNLib.Utils.Memory;
 
 namespace NVault.Crypto.Noscrypt
 {
+
     /// <summary>
     /// Provides a set of utility methods for working with the Noscrypt library
     /// </summary>
@@ -32,22 +33,24 @@ namespace NVault.Crypto.Noscrypt
         /// </summary>
         /// <param name="dataSize">The size (in bytes) of the encoded data to encrypt</param>
         /// <returns>The exact size of the padded buffer output</returns>
-        public static uint CalcBufferSize(uint dataSize)
+        public static int CalcBufferSize(int dataSize)
         {
-            //always add leading 2 bytes for the encoded data size
-            dataSize += sizeof(ushort);
+            /*
+             * Taken from https://github.com/nostr-protocol/nips/blob/master/44.md
+             * 
+             * Not gonna lie, kinda dumb branches. I guess they want to save space
+             * with really tiny messages... Dunno, but whatever RTFM
+             */
 
             //Min message size is 32 bytes
-            uint minSize = Math.Max(dataSize, 32);
+            int minSize = Math.Max(dataSize, 32);
 
-            //calculate the next power of 2
-            uint nextPow2 = 1;
-            while (nextPow2 < minSize)
-            {
-                nextPow2 <<= 1;
-            }
+            //find the next power of 2 that will fit the min size
+            int nexPower = 1 << ((int)Math.Log2(minSize - 1)) + 1;
 
-            return nextPow2;
+            int chunk = nexPower <= 256 ? 32 : nexPower / 8;
+
+            return chunk * ((int)Math.Floor((double)((minSize - 1) / chunk)) + 1);
         }
 
         /// <summary>
@@ -77,9 +80,9 @@ namespace NVault.Crypto.Noscrypt
             //Copy the plaintext data to the output buffer after the data size
             MemoryUtil.Memmove(
                 ref MemoryMarshal.GetReference(plaintextData),
-                sizeof(ushort),
+                0,
                 ref MemoryMarshal.GetReference(output),
-                0, 
+                 sizeof(ushort), 
                 (uint)plaintextData.Length
             );
 
@@ -92,6 +95,7 @@ namespace NVault.Crypto.Noscrypt
             ref readonly NCPublicKey publicKey, 
             ReadOnlySpan<byte> nonce32, 
             ReadOnlySpan<byte> plainText, 
+            Span<byte> hmackKeyOut32,
             Span<byte> cipherText
         )
         {
@@ -101,7 +105,9 @@ namespace NVault.Crypto.Noscrypt
             ArgumentOutOfRangeException.ThrowIfGreaterThan(plainText.Length, cipherText.Length, nameof(plainText));
 
             //Nonce must be exactly 32 bytes
-            ArgumentOutOfRangeException.ThrowIfNotEqual(nonce32.Length, 32, nameof(nonce32));
+            ArgumentOutOfRangeException.ThrowIfNotEqual(nonce32.Length, LibNoscrypt.NC_ENCRYPTION_NONCE_SIZE, nameof(nonce32));
+
+            ArgumentOutOfRangeException.ThrowIfNotEqual(hmackKeyOut32.Length, LibNoscrypt.NC_HMAC_KEY_SIZE, nameof(hmackKeyOut32));
 
             //Encrypt data, use the plaintext buffer size as the data size
             lib.Encrypt(
@@ -110,7 +116,8 @@ namespace NVault.Crypto.Noscrypt
                 in MemoryMarshal.GetReference(nonce32),
                 in MemoryMarshal.GetReference(plainText),
                 ref MemoryMarshal.GetReference(cipherText), 
-                (uint)plainText.Length
+                (uint)plainText.Length,
+                ref MemoryMarshal.GetReference(hmackKeyOut32)
             );
         }
 
@@ -119,6 +126,7 @@ namespace NVault.Crypto.Noscrypt
             ref NCSecretKey secretKey,
             ref NCPublicKey publicKey,
             void* nonce32,
+            void* hmacKeyOut32, 
             void* plainText,
             void* cipherText,
             uint size
@@ -133,8 +141,9 @@ namespace NVault.Crypto.Noscrypt
                 lib,
                 in secretKey,
                 in publicKey,
-                new Span<byte>(nonce32, 32),
-                new Span<byte>(plainText, (int)size),
+                new ReadOnlySpan<byte>(nonce32, 32),
+                new ReadOnlySpan<byte>(plainText, (int)size),
+                new Span<byte>(hmacKeyOut32, 32),
                 new Span<byte>(cipherText, (int)size)
             );
         }
@@ -190,6 +199,56 @@ namespace NVault.Crypto.Noscrypt
                 new Span<byte>(nonce32, 32),
                 new Span<byte>(cipherText, (int)size),
                 new Span<byte>(plainText, (int)size)
+            );
+        }
+
+        public static bool VerifyMac(
+            this INostrCrypto lib, 
+            ref readonly NCSecretKey secretKey, 
+            ref readonly NCPublicKey publicKey, 
+            ReadOnlySpan<byte> nonce32, 
+            ReadOnlySpan<byte> mac32, 
+            ReadOnlySpan<byte> payload
+        )
+        {
+            ArgumentNullException.ThrowIfNull(lib);
+            ArgumentOutOfRangeException.ThrowIfZero(payload.Length, nameof(payload));
+            ArgumentOutOfRangeException.ThrowIfNotEqual(nonce32.Length, LibNoscrypt.NC_ENCRYPTION_NONCE_SIZE, nameof(nonce32));
+            ArgumentOutOfRangeException.ThrowIfNotEqual(mac32.Length, LibNoscrypt.NC_ENCRYPTION_MAC_SIZE, nameof(mac32));
+
+            //Verify the HMAC
+            return lib.VerifyMac(
+                in secretKey, 
+                in publicKey, 
+                in MemoryMarshal.GetReference(nonce32), 
+                in MemoryMarshal.GetReference(mac32), 
+                in MemoryMarshal.GetReference(payload), 
+                payload.Length
+            );
+        }
+
+        public static unsafe bool VerifyMac(
+            this INostrCrypto lib, 
+            ref readonly NCSecretKey secretKey, 
+            ref readonly NCPublicKey publicKey, 
+            void* nonce32, 
+            void* mac32, 
+            void* payload, 
+            uint payloadSize
+        )
+        {
+            ArgumentNullException.ThrowIfNull(nonce32);
+            ArgumentNullException.ThrowIfNull(mac32);
+            ArgumentNullException.ThrowIfNull(payload);
+
+            //Spans are easer to forward references from pointers without screwing up arguments
+            return VerifyMac(
+                lib,
+                in secretKey,
+                in publicKey,
+                new Span<byte>(nonce32, LibNoscrypt.NC_ENCRYPTION_NONCE_SIZE),
+                new Span<byte>(mac32, LibNoscrypt.NC_ENCRYPTION_MAC_SIZE),
+                new Span<byte>(payload, (int)payloadSize)
             );
         }
     }

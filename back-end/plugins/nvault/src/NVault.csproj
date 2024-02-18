@@ -21,14 +21,13 @@
 
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="11.9.0" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0047" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0047" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Loading.Sql" Version="0.1.0-ci0047" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0049" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0049" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Loading.Sql" Version="0.1.0-ci0049" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\lib\NVault.Crypto.Noscrypt\src\NVault.Crypto.Noscrypt.csproj" />
-    <ProjectReference Include="..\..\..\..\lib\NVault.Crypto.Secp256k1\src\NVault.Crypto.Secp256k1.csproj" />
     <ProjectReference Include="..\..\..\..\lib\NVault.VaultExtensions\src\NVault.VaultExtensions.csproj" />
   </ItemGroup>
   
@@ -44,5 +43,5 @@
     </None>
   </ItemGroup>
 
-
+  
 </Project>

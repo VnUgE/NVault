@@ -18,11 +18,12 @@ using System.Text.Json;
 using System.Collections.Generic;
 
 using VNLib.Utils;
+using VNLib.Utils.Memory;
 using VNLib.Utils.Logging;
 using VNLib.Plugins;
 using VNLib.Plugins.Extensions.Loading;
 
-using NVault.Crypto.Secp256k1;
+using NVault.Crypto.Noscrypt;
 
 namespace NVault.Plugins.Vault
 {
@@ -59,24 +60,27 @@ namespace NVault.Plugins.Vault
             string nativePath = config.GetRequiredProperty("lib_crypto", p => p.GetString()!);
 
             //Load native library path
-            _provider = NativeSecp256k1Library.LoadLibrary(nativePath, random);
-            plugin.Log.Verbose("Loaded native Secp256k1 library from {path}", nativePath);
+            _provider = NoscryptProvider.LoadLibrary(nativePath, random, MemoryUtil.Shared);
+            plugin.Log.Verbose("Loaded native Noscrypt library from {path}", nativePath);
         }
 
         ///<inheritdoc/>
         public int GetSignatureBufferSize() => _provider.GetSignatureBufferSize();
 
         ///<inheritdoc/>
-        public ERRNO SignMessage(ReadOnlySpan<byte> key, ReadOnlySpan<byte> digest, Span<byte> signatureBuffer) => _provider.SignMessage(key, digest, signatureBuffer);
+        public ERRNO SignData(ReadOnlySpan<byte> key, ReadOnlySpan<byte> digest, Span<byte> signatureBuffer) 
+            => _provider.SignData(key, digest, signatureBuffer);
 
         ///<inheritdoc/>
         public KeyBufferSizes GetKeyBufferSize() => _provider.GetKeyBufferSize();
 
         ///<inheritdoc/>
-        public bool TryGenerateKeyPair(Span<byte> publicKey, Span<byte> privateKey) => _provider.TryGenerateKeyPair(publicKey, privateKey);
+        public bool TryGenerateKeyPair(Span<byte> publicKey, Span<byte> privateKey) 
+            => _provider.TryGenerateKeyPair(publicKey, privateKey);
 
         ///<inheritdoc/>
-        public bool RecoverPublicKey(ReadOnlySpan<byte> privateKey, Span<byte> pubKey) => _provider.RecoverPublicKey(privateKey, pubKey);
+        public bool RecoverPublicKey(ReadOnlySpan<byte> privateKey, Span<byte> pubKey) 
+            => _provider.RecoverPublicKey(privateKey, pubKey);
 
         ///<inheritdoc/>
         public ERRNO DecryptMessage(ReadOnlySpan<byte> secretKey, ReadOnlySpan<byte> targetKey, ReadOnlySpan<byte> aseIv, ReadOnlySpan<byte> cyphterText, Span<byte> outputBuffer)

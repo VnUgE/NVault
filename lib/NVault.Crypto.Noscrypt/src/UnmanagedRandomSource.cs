@@ -20,7 +20,7 @@ using VNLib.Utils;
 using VNLib.Utils.Native;
 using VNLib.Utils.Extensions;
 
-namespace NVault.Crypto.Secp256k1
+namespace NVault.Crypto.Noscrypt
 {
 
     /// <summary>
@@ -73,8 +73,8 @@ namespace NVault.Crypto.Secp256k1
             _library = lib;
 
             //get the method delegate
-            _getRandomBytes = lib.DangerousGetMethod<UnmanagedRandomSourceDelegate>(METHOD_NAME);
-            
+            _getRandomBytes = lib.DangerousGetFunction<UnmanagedRandomSourceDelegate>(METHOD_NAME);
+
             OwnsHandle = ownsHandle;
         }
 
@@ -83,7 +83,7 @@ namespace NVault.Crypto.Secp256k1
             _library.ThrowIfClosed();
 
             //Fix buffer and call unmanaged method
-            fixed(byte* ptr = &MemoryMarshal.GetReference(buffer))
+            fixed (byte* ptr = &MemoryMarshal.GetReference(buffer))
             {
                 _getRandomBytes(ptr, buffer.Length);
             }

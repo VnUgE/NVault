@@ -16,6 +16,7 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations;
 
 using VNLib.Plugins.Extensions.Data;
 using VNLib.Plugins.Extensions.Data.Abstractions;
@@ -25,6 +26,8 @@ namespace NVault.Plugins.Vault.Model
 {
     internal sealed class NostrEventEntry : DbModelBase, IUserEntity
     {
+        [Key]
+        [MaxLength(64)]
         public override string Id { get; set; }
         
         public override DateTime Created { get; set; }
@@ -33,8 +36,10 @@ namespace NVault.Plugins.Vault.Model
 
         //Never share userids with the client
         [JsonIgnore]
+        [MaxLength(64)]
         public string? UserId { get; set; }
 
+        [MaxLength(8000)]
         public string? EventData { get; set; }
 
         public static NostrEventEntry FromEvent(string userId, NostrEvent @event) => new()

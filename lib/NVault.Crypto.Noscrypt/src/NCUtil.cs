@@ -18,12 +18,15 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+using VNLib.Utils.Memory;
+
 using static NVault.Crypto.Noscrypt.LibNoscrypt;
 
 using NCResult = System.Int64;
 
 namespace NVault.Crypto.Noscrypt
 {
+
     public static class NCUtil
     {
         /// <summary>
@@ -62,7 +65,7 @@ namespace NVault.Crypto.Noscrypt
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public unsafe static ref NCSecretKey AsSecretKey(Span<byte> span)
         {
-            ArgumentOutOfRangeException.ThrowIfNotEqual(span.Length, sizeof(NCSecretKey), nameof(span));
+            ArgumentOutOfRangeException.ThrowIfLessThan(span.Length, sizeof(NCSecretKey), nameof(span));
 
             ref byte asBytes = ref MemoryMarshal.GetReference(span);
             return ref Unsafe.As<byte, NCSecretKey>(ref asBytes);
@@ -78,7 +81,7 @@ namespace NVault.Crypto.Noscrypt
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public unsafe static ref NCPublicKey AsPublicKey(Span<byte> span)
         {
-            ArgumentOutOfRangeException.ThrowIfNotEqual(span.Length, sizeof(NCPublicKey), nameof(span));
+            ArgumentOutOfRangeException.ThrowIfLessThan(span.Length, sizeof(NCPublicKey), nameof(span));
 
             ref byte asBytes = ref MemoryMarshal.GetReference(span);
             return ref Unsafe.As<byte, NCPublicKey>(ref asBytes);
@@ -93,7 +96,7 @@ namespace NVault.Crypto.Noscrypt
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public unsafe static ref readonly NCSecretKey AsSecretKey(ReadOnlySpan<byte> span)
         {
-            ArgumentOutOfRangeException.ThrowIfNotEqual(span.Length, sizeof(NCSecretKey), nameof(span));
+            ArgumentOutOfRangeException.ThrowIfLessThan(span.Length, sizeof(NCSecretKey), nameof(span));
 
             ref byte asBytes = ref MemoryMarshal.GetReference(span);
             return ref Unsafe.As<byte, NCSecretKey>(ref asBytes);
@@ -108,13 +111,34 @@ namespace NVault.Crypto.Noscrypt
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public unsafe static ref readonly NCPublicKey AsPublicKey(ReadOnlySpan<byte> span)
         {
-            ArgumentOutOfRangeException.ThrowIfNotEqual(span.Length, sizeof(NCPublicKey), nameof(span));
+            ArgumentOutOfRangeException.ThrowIfLessThan(span.Length, sizeof(NCPublicKey), nameof(span));
 
             ref byte asBytes = ref MemoryMarshal.GetReference(span);
             return ref Unsafe.As<byte, NCPublicKey>(ref asBytes);
         }
 
-        internal static void CheckResult<T>(NCResult result) where T : Delegate
+        /// <summary>
+        /// Initializes a new NostrCrypto context wraper directly that owns the internal context.
+        /// This may be done once at app startup and is thread-safe for the rest of the 
+        /// application lifetime. 
+        /// </summary>
+        /// <param name="library"></param>
+        /// <param name="heap">The heap to allocate the context from</param>
+        /// <param name="entropy32">The random entropy data to initialize the context with</param>
+        /// <returns>The library wrapper handle</returns>
+        public static NostrCrypto InitializeCrypto(this LibNoscrypt library, IUnmangedHeap heap, ReadOnlySpan<byte> entropy32)
+        {
+            ArgumentNullException.ThrowIfNull(library);
+            ArgumentNullException.ThrowIfNull(heap);
+
+            //Initialize the context
+            NCContext context = library.Initialize(heap, entropy32);
+
+            //Create the crypto interface
+            return new NostrCrypto(context, true);
+        }
+
+        internal static void CheckResult<T>(NCResult result, bool raiseOnFailure) where T : Delegate
         {
             //Only negative values are errors
             if (result >= NC_SUCCESS)
@@ -143,8 +167,17 @@ namespace NVault.Crypto.Noscrypt
                 case E_INVALID_CTX:
                     throw new InvalidOperationException("The library context object is null or invalid");
                 case E_OPERATION_FAILED:
-                    throw new InvalidOperationException("The operation failed for an unknown reason");
+                    RaiseOperationFailedException(raiseOnFailure);
+                    break;
 
+            }
+        }
+
+        private static void RaiseOperationFailedException(bool raise)
+        {
+            if (raise)
+            {
+                throw new InvalidOperationException("The operation failed for an unknown reason");
             }
         }
 

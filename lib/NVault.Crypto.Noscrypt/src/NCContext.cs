@@ -67,7 +67,7 @@ namespace NVault.Crypto.Noscrypt
             fixed (byte* p = &entropy)
             {
                 NCResult result = Library.Functions.NCReInitContext.Invoke(handle, p);
-                NCUtil.CheckResult<FunctionTable.NCReInitContextDelegate>(result);
+                NCUtil.CheckResult<FunctionTable.NCReInitContextDelegate>(result, true);
             }
         }
 

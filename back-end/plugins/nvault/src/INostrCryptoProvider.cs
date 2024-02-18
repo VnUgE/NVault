@@ -28,14 +28,14 @@ namespace NVault.Plugins.Vault
         int GetSignatureBufferSize();
 
         /// <summary>
-        /// Signs a message digest with the specified private key and writes 
+        /// Signs a message with the specified private key and writes 
         /// the signature to the specified buffer.
         /// </summary>
-        /// <param name="key"></param>
-        /// <param name="digest"></param>
-        /// <param name="signatureBuffer"></param>
+        /// <param name="key">The secret key used to sign the message</param>
+        /// <param name="data">The message data to sign</param>
+        /// <param name="signatureBuffer">The signature output buffer</param>
         /// <returns>The number of bytes written to the signature buffer, 0 or less if the operation failed</returns>
-        ERRNO SignMessage(ReadOnlySpan<byte> key, ReadOnlySpan<byte> digest, Span<byte> signatureBuffer);
+        ERRNO SignData(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data, Span<byte> signatureBuffer);
 
         /// <summary>
         /// Determines the exact size of the buffer required to hold a key pair during 

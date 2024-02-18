@@ -28,9 +28,11 @@ namespace NVault.Plugins.Vault.Model
     internal class NostrKeyMeta : DbModelBase, IUserEntity
     {
         [Key]
-        [MaxLength(50)]
+        [MaxLength(64)]
         public override string Id { get; set; }
+        
         public override DateTime Created { get; set; }
+        
         public override DateTime LastModified { get; set; }
 
         [JsonPropertyName("PublicKey")]
@@ -41,7 +43,7 @@ namespace NVault.Plugins.Vault.Model
         [MaxLength(50)]
         public string? UserId { get; set; }
 
-        [MaxLength(100)]
+        [MaxLength(64)]
         public string? UserName { get; set; }
 
         public void CleanupFromUser()
@@ -60,8 +62,7 @@ namespace NVault.Plugins.Vault.Model
 
         public void Merge(NostrKeyMeta other)
         {
-            if (other == null)
-                throw new ArgumentNullException(nameof(other));
+            ArgumentNullException.ThrowIfNull(other);
 
             //We only update username and key value
             UserName = other.UserName;

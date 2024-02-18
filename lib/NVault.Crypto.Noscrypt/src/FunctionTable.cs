@@ -22,6 +22,7 @@ using NCResult = System.Int64;
 
 namespace NVault.Crypto.Noscrypt
 {
+
     internal unsafe readonly struct FunctionTable
     {
 
@@ -35,22 +36,24 @@ namespace NVault.Crypto.Noscrypt
         public readonly NCVerifyDataDelegate NCVerifyData;
         public readonly NCEncryptDelegate NCEncrypt;
         public readonly NCDecryptDelegate NCDecrypt;
+        public readonly NCVerifyMacDelegate NCVerifyMac;
 
         private FunctionTable(SafeLibraryHandle library)
         {
             //Load the required high-level api functions
-            NCGetContextStructSize = library.DangerousGetMethod<NCGetContextStructSizeDelegate>();
-            NCInitContext = library.DangerousGetMethod<NCInitContextDelegate>();
-            NCReInitContext = library.DangerousGetMethod<NCReInitContextDelegate>();
-            NCDestroyContext = library.DangerousGetMethod<NCDestroyContextDelegate>();
-            NCGetPublicKey = library.DangerousGetMethod<NCGetPublicKeyDelegate>();
-            NCValidateSecretKey = library.DangerousGetMethod<NCValidateSecretKeyDelegate>();
-            NCSignData = library.DangerousGetMethod<NCSignDataDelegate>();
-            NCVerifyData = library.DangerousGetMethod<NCVerifyDataDelegate>();
-            NCSignData = library.DangerousGetMethod<NCSignDataDelegate>();
-            NCVerifyData = library.DangerousGetMethod<NCVerifyDataDelegate>();
-            NCEncrypt = library.DangerousGetMethod<NCEncryptDelegate>();
-            NCDecrypt = library.DangerousGetMethod<NCDecryptDelegate>();
+            NCGetContextStructSize = library.DangerousGetFunction<NCGetContextStructSizeDelegate>();
+            NCInitContext = library.DangerousGetFunction<NCInitContextDelegate>();
+            NCReInitContext = library.DangerousGetFunction<NCReInitContextDelegate>();
+            NCDestroyContext = library.DangerousGetFunction<NCDestroyContextDelegate>();
+            NCGetPublicKey = library.DangerousGetFunction<NCGetPublicKeyDelegate>();
+            NCValidateSecretKey = library.DangerousGetFunction<NCValidateSecretKeyDelegate>();
+            NCSignData = library.DangerousGetFunction<NCSignDataDelegate>();
+            NCVerifyData = library.DangerousGetFunction<NCVerifyDataDelegate>();
+            NCSignData = library.DangerousGetFunction<NCSignDataDelegate>();
+            NCVerifyData = library.DangerousGetFunction<NCVerifyDataDelegate>();
+            NCEncrypt = library.DangerousGetFunction<NCEncryptDelegate>();
+            NCDecrypt = library.DangerousGetFunction<NCDecryptDelegate>();
+            NCVerifyMac = library.DangerousGetFunction<NCVerifyMacDelegate>();
         }
 
         /// <summary>
@@ -88,9 +91,13 @@ namespace NVault.Crypto.Noscrypt
         internal delegate NCResult NCVerifyDataDelegate(IntPtr ctx, NCPublicKey* sk, byte* data, nint dataSize, byte* sig64);
 
         [SafeMethodName("NCEncrypt")]
-        internal delegate NCResult NCEncryptDelegate(IntPtr ctx, NCSecretKey* sk, NCPublicKey* pk, NCCryptoData* data);
+        internal delegate NCResult NCEncryptDelegate(IntPtr ctx, NCSecretKey* sk, NCPublicKey* pk, byte* hmacKeyOut32, NCCryptoData* data);
 
         [SafeMethodName("NCDecrypt")]
         internal delegate NCResult NCDecryptDelegate(IntPtr ctx, NCSecretKey* sk, NCPublicKey* pk, NCCryptoData* data);
+
+        [SafeMethodName("NCVerifyMac")]
+        internal delegate NCResult NCVerifyMacDelegate(IntPtr ctx, NCSecretKey* sk, NCPublicKey* pk, NCMacVerifyArgs* args);
+
     }
 }

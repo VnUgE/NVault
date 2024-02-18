@@ -15,6 +15,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Xml;
 
 using VNLib.Utils;
 
@@ -69,7 +70,7 @@ namespace NVault.Crypto.Noscrypt
                 data.outputData = pTextPtr;
 
                 NCResult result = Functions.NCDecrypt.Invoke(libCtx, pSecKey, pPubKey, &data);
-                NCUtil.CheckResult<FunctionTable.NCDecryptDelegate>(result);
+                NCUtil.CheckResult<FunctionTable.NCDecryptDelegate>(result, true);
             }
         }
 
@@ -80,7 +81,8 @@ namespace NVault.Crypto.Noscrypt
             ref readonly byte nonce, 
             ref readonly byte plainText, 
             ref byte cipherText, 
-            uint size
+            uint size,
+            ref byte hmackKeyOut32
         )
         {
             Check();
@@ -94,19 +96,19 @@ namespace NVault.Crypto.Noscrypt
             Unsafe.CopyBlock(
                 ref Unsafe.AsRef<byte>(data.nonce), 
                 in nonce, 
-                0
+                LibNoscrypt.NC_ENCRYPTION_NONCE_SIZE
             );
 
             fixed (NCSecretKey* pSecKey = &secretKey)
             fixed (NCPublicKey* pPubKey = &publicKey)
-            fixed (byte* pCipherText = &cipherText, pTextPtr = &plainText)
+            fixed (byte* pCipherText = &cipherText, pTextPtr = &plainText, pHmacKeyOut = &hmackKeyOut32)
             {
                 //Set input data to the plaintext to encrypt and the output data to the cipher text buffer
                 data.inputData = pTextPtr;
                 data.outputData = pCipherText;
 
-                NCResult result = Functions.NCEncrypt.Invoke(libCtx, pSecKey, pPubKey, &data);
-                NCUtil.CheckResult<FunctionTable.NCEncryptDelegate>(result);
+                NCResult result = Functions.NCEncrypt.Invoke(libCtx, pSecKey, pPubKey, pHmacKeyOut, &data);
+                NCUtil.CheckResult<FunctionTable.NCEncryptDelegate>(result, true);
             }
         }
 
@@ -121,7 +123,7 @@ namespace NVault.Crypto.Noscrypt
             fixed(NCPublicKey* pPubKey = &publicKey)
             {
                 NCResult result = Functions.NCGetPublicKey.Invoke(libCtx, pSecKey, pPubKey);
-                NCUtil.CheckResult<FunctionTable.NCGetPublicKeyDelegate>(result);
+                NCUtil.CheckResult<FunctionTable.NCGetPublicKeyDelegate>(result, true);
             }
         }
 
@@ -142,7 +144,7 @@ namespace NVault.Crypto.Noscrypt
             fixed(byte* pData = &data, pSig = &sig64, pRandom = &random32)
             {
                 NCResult result = Functions.NCSignData.Invoke(libCtx, pSecKey, pRandom, pData, dataSize, pSig);
-                NCUtil.CheckResult<FunctionTable.NCSignDataDelegate>(result);
+                NCUtil.CheckResult<FunctionTable.NCSignDataDelegate>(result, true);
             }
         }
 
@@ -160,7 +162,7 @@ namespace NVault.Crypto.Noscrypt
                  * or a 0 if it is not.
                  */
                 NCResult result = Functions.NCValidateSecretKey.Invoke(libCtx, pSecKey);
-                NCUtil.CheckResult<FunctionTable.NCValidateSecretKeyDelegate>(result);
+                NCUtil.CheckResult<FunctionTable.NCValidateSecretKeyDelegate>(result, false);
 
                 //Result should be 1 if the secret key is valid
                 return result == 1;
@@ -168,7 +170,7 @@ namespace NVault.Crypto.Noscrypt
         }
 
         ///<inheritdoc/>
-        public void VerifyData(
+        public bool VerifyData(
             ref readonly NCPublicKey pubKey, 
             ref readonly byte data, 
             nint dataSize, 
@@ -183,10 +185,77 @@ namespace NVault.Crypto.Noscrypt
             fixed (byte* pData = &data, pSig = &sig64)
             {
                 NCResult result = Functions.NCVerifyData.Invoke(libCtx, pPubKey, pData, dataSize, pSig);
-                NCUtil.CheckResult<FunctionTable.NCVerifyDataDelegate>(result);
+                NCUtil.CheckResult<FunctionTable.NCVerifyDataDelegate>(result, false);
+
+                return result == LibNoscrypt.NC_SUCCESS;
             }
         }
 
+        ///<inheritdoc/>
+        public bool VerifyMac(
+            ref readonly NCSecretKey secretKey, 
+            ref readonly NCPublicKey publicKey, 
+            ref readonly byte nonce32, 
+            ref readonly byte mac32, 
+            ref readonly byte payload, 
+            nint payloadSize
+        )
+        {
+            Check();
+
+            //Check pointers we need to use
+            if(Unsafe.IsNullRef(in nonce32))
+            {
+                throw new ArgumentNullException(nameof(nonce32));
+            }
+
+            if(Unsafe.IsNullRef(in mac32))
+            {
+                throw new ArgumentNullException(nameof(mac32));
+            }
+
+            if(Unsafe.IsNullRef(in payload))
+            {
+                throw new ArgumentNullException(nameof(payload));
+            }
+
+            IntPtr libCtx = context.DangerousGetHandle();
+
+            NCMacVerifyArgs args = new()
+            {
+                payloadSize = payloadSize,
+            };
+
+            //Copy nonce to struct memory buffer
+            Unsafe.CopyBlock(
+                ref Unsafe.AsRef<byte>(args.nonce), 
+                in nonce32, 
+                LibNoscrypt.NC_ENCRYPTION_NONCE_SIZE
+            );
+
+            //Copy mac to struct memory buffer
+            Unsafe.CopyBlock(
+                ref Unsafe.AsRef<byte>(args.mac), 
+                in mac32, 
+                LibNoscrypt.NC_ENCRYPTION_MAC_SIZE
+            );
+
+            fixed(NCSecretKey* pSecKey = &secretKey)
+            fixed(NCPublicKey* pPubKey = &publicKey)
+            fixed (byte* pPayload = &payload)
+            {
+                args.payload = pPayload;
+
+                //Exec and bypass failure
+                NCResult result = Functions.NCVerifyMac.Invoke(libCtx, pSecKey, pPubKey, &args);
+                NCUtil.CheckResult<FunctionTable.NCVerifyMacDelegate>(result, false);
+
+                //Result should be success if the hmac is valid
+                return result == LibNoscrypt.NC_SUCCESS;
+            }
+        }
+
+      
 
         ///<inheritdoc/>
         protected override void Free()

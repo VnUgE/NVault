@@ -13,11 +13,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.Crypto.Noscrypt", "lib\NVault.Crypto.Noscrypt\src\NVault.Crypto.Noscrypt.csproj", "{686B9DB8-5BA9-49AB-9761-6B661A5027BD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.Crypto.Secp256k1", "lib\NVault.Crypto.Secp256k1\src\NVault.Crypto.Secp256k1.csproj", "{7952F25A-DA19-492E-B797-839082053DE4}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.VaultExtensions", "lib\NVault.VaultExtensions\src\NVault.VaultExtensions.csproj", "{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NVault.Crypto.NoscryptTests", "lib\NVault.Crypto.Noscrypt\NVault.Crypto.NoscryptTests\NVault.Crypto.NoscryptTests.csproj", "{7273CA9C-BA83-4438-8CDF-0B1605CD03CD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NVault.Crypto.NoscryptTests", "lib\NVault.Crypto.Noscrypt\tests\NVault.Crypto.NoscryptTests.csproj", "{79879934-807C-4A39-B987-334249F3F6E7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,18 +31,14 @@ Global
 		{686B9DB8-5BA9-49AB-9761-6B661A5027BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{686B9DB8-5BA9-49AB-9761-6B661A5027BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{686B9DB8-5BA9-49AB-9761-6B661A5027BD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7952F25A-DA19-492E-B797-839082053DE4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7952F25A-DA19-492E-B797-839082053DE4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7952F25A-DA19-492E-B797-839082053DE4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7952F25A-DA19-492E-B797-839082053DE4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7273CA9C-BA83-4438-8CDF-0B1605CD03CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7273CA9C-BA83-4438-8CDF-0B1605CD03CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7273CA9C-BA83-4438-8CDF-0B1605CD03CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7273CA9C-BA83-4438-8CDF-0B1605CD03CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79879934-807C-4A39-B987-334249F3F6E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79879934-807C-4A39-B987-334249F3F6E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79879934-807C-4A39-B987-334249F3F6E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79879934-807C-4A39-B987-334249F3F6E7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,9 +46,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{7ADAE9C2-1739-4E91-B59C-DB3B07909C07} = {352C778E-C12D-483D-9C10-7985D81A8E10}
 		{686B9DB8-5BA9-49AB-9761-6B661A5027BD} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
-		{7952F25A-DA19-492E-B797-839082053DE4} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
 		{91F33820-C0CE-41FA-89A5-2B45FD0CB2B1} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
-		{7273CA9C-BA83-4438-8CDF-0B1605CD03CD} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
+		{79879934-807C-4A39-B987-334249F3F6E7} = {74CA17B7-CE49-4E1F-A84D-0D2ABA0C96F5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {ACF01A45-B7F0-4055-84F2-A3596713C9BB}

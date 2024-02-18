@@ -83,7 +83,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 </template>
 
@@ -91,6 +90,7 @@
 import { ref, shallowRef } from 'vue'
 import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
+import { get, set } from '@vueuse/core';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
 import { clone, first, isEqual } from 'lodash';
 import { useStore } from '../../../store';
@@ -118,13 +118,14 @@ const event = computed<PropmtMessage | undefined>(() => {
     return getPromptMessage(pending)
 });
 
-const site = computed(() => new URL(event.value?.origin || "https://example.com").host)
 const evData = computed(() => JSON.stringify(event.value || {}, null, 2))
 
 const onSameOrigin = computed(() => isEqual(event.value?.origin, window.location.origin))
 //Only show in-page popup if the event is from the same origin
 const showPopup = computed(() => (store.permissions.isPopup || !store.settings.authPopup))
 const showPrompt = computed(() => (onSameOrigin.value || store.permissions.isPopup) && event.value)
+
+const site = computed(() => get(showPrompt) ? new URL(event.value?.origin || "https://example.com").host : "")
 
 const close = () => {
     if(event.value){
@@ -140,7 +141,7 @@ const allow = () => {
         store.plugins.permission.allow(event.value.uuid, allowRuleType.value);
     }
     //Reset the rule type
-    allowRuleType.value = CreateRuleType.AllowOnce
+    set(allowRuleType, CreateRuleType.AllowOnce);
 }
 
 //Listen for events
@@ -193,15 +194,16 @@ const getRuleName = (rule: CreateRuleType) => {
     }
 }
 
-const createOption = (rule: CreateRuleType): Option<CreateRuleType> => {
-    return { name: getRuleName(rule), value: rule }
-}
-
-const creatGroup = (name: string, options: Option<CreateRuleType>[]): OptionGroup<CreateRuleType> => {
-    return { name, options }
-}
-
 const lbOptions = ((): OptionGroup<CreateRuleType>[] => {
+
+    const createOption = (rule: CreateRuleType): Option<CreateRuleType> => {
+        return { name: getRuleName(rule), value: rule }
+    }
+
+    const creatGroup = (name: string, options: Option<CreateRuleType>[]): OptionGroup<CreateRuleType> => {
+        return { name, options }
+    }
+
     return[
         creatGroup('Allow', [
             createOption(CreateRuleType.AllowOnce),

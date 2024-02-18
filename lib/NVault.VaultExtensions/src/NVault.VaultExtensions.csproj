@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <PackageReference Include="VaultSharp" Version="1.13.0.1" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Loading" Version="0.1.0-ci0047" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Loading" Version="0.1.0-ci0049" />
   </ItemGroup>
 
 </Project>

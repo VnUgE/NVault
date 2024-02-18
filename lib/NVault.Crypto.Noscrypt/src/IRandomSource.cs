@@ -15,7 +15,7 @@
 
 using System;
 
-namespace NVault.Crypto.Secp256k1
+namespace NVault.Crypto.Noscrypt
 {
     /// <summary>
     /// Represents a generator for random data, that fills abinary buffer with random bytes

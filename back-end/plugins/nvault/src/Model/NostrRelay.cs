@@ -31,22 +31,24 @@ namespace NVault.Plugins.Vault.Model
     internal class NostrRelay : DbModelBase, IUserEntity
     {
         [Key]
-        [MaxLength(50)]
+        [MaxLength(64)]
         [JsonPropertyName("id")]
         public override string Id { get; set; }
+
         public override DateTime Created { get; set; }
+
         public override DateTime LastModified { get; set; }
 
         [JsonPropertyName("url")]
         [MaxLength(200)]
-        public string Url { get; set; }
+        public string? Url { get; set; }
 
         [JsonPropertyName("flags")]
         public NostrRelayFlags Flags { get; set; }
 
         [JsonIgnore]
-        [MaxLength(50)]
-        public string UserId { get; set; }
+        [MaxLength(64)]
+        public string? UserId { get; set; }
 
         public void CleanupFromUser()
         {

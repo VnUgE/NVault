@@ -21,7 +21,7 @@ using VNLib.Plugins.Extensions.Loading.Sql;
 namespace NVault.Plugins.Vault.Model
 {
 
-    internal class NostrContext : TransactionalDbContext, IDbTableDefinition
+    internal class NostrContext : DBContextBase, IDbTableDefinition
     {
         public DbSet<NostrRelay> NostrRelays { get; set; }
 

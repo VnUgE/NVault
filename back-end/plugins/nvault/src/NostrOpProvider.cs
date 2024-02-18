@@ -36,28 +36,16 @@ using NVault.Plugins.Vault.Model;
 
 namespace NVault.Plugins.Vault
 {
-    internal sealed class NostrOpProvider : INostrOperations
+    internal sealed class NostrOpProvider(PluginBase plugin) : INostrOperations
     {
         public const int AES_IV_SIZE = 16;
         public static int IvMaxBase64EncodedSize { get; } = Base64.GetMaxEncodedToUtf8Length(AES_IV_SIZE);
 
-        private static JavaScriptEncoder _encoder { get; } = GetJsEncoder();
+        private static readonly JavaScriptEncoder _encoder = GetJsEncoder();
 
-        readonly IKvVaultStore _vault;
-        readonly INostrKeyEncoder _keyEncoder;
-        readonly INostrCryptoProvider _cryptoProvider;
-
-        public NostrOpProvider(PluginBase plugin)
-        {
-            //Use base64 key encoder
-            _keyEncoder = new Base64KeyEncoder();
-
-            //Setup crypto provider 
-            _cryptoProvider = plugin.CreateService<ManagedCryptoprovider>();
-
-            //Get the vault
-            _vault = plugin.CreateService<ManagedVaultClient>();
-        }
+        private readonly IKvVaultStore _vault = plugin.CreateService<ManagedVaultClient>();
+        private readonly INostrKeyEncoder _keyEncoder = new Base64KeyEncoder();
+        private readonly INostrCryptoProvider _cryptoProvider = plugin.CreateService<ManagedCryptoprovider>();
 
         ///<inheritdoc/>
         public Task<bool> CreateCredentialAsync(VaultUserScope scope, NostrKeyMeta newKey, CancellationToken cancellation)
@@ -167,62 +155,39 @@ namespace NVault.Plugins.Vault
 
         private bool SignMessage(ReadOnlySpan<char> vaultKey, NostrEvent ev)
         {
-            //Decode the key
-            int keyBufSize = _keyEncoder.GetKeyBufferSize(vaultKey);
-
-            //Get the signature buffer size
-            int sigBufSize = _cryptoProvider.GetSignatureBufferSize();
-
-            //Alloc key buffer
-            using IMemoryHandle<byte> buffHandle = MemoryUtil.SafeAllocNearestPage(keyBufSize + sigBufSize, true);
-
-            //Wrap the buffer
-            EvBuffer buffer = new(buffHandle, keyBufSize, sigBufSize, (int)HashAlg.SHA256);
+            Span<byte> keyBuffer = stackalloc byte[_keyEncoder.GetKeyBufferSize(vaultKey)];
 
             try
             {
                 //Decode the key
-                ERRNO keySize = _keyEncoder.DecodeKey(vaultKey, buffer.KeyBuffer);
+                ERRNO keySize = _keyEncoder.DecodeKey(vaultKey, keyBuffer);
 
                 if (!keySize)
                 {
                     return false;
                 }
 
-                //Get the event id/event digest from the event
-                GetNostrEventId(ev, buffer.HashBuffer);
-
-                //Store the event id
-                ev.Id = Convert.ToHexString(buffer.HashBuffer).ToLower();
-
-                //Sign the event
-                ERRNO sigSize = _cryptoProvider.SignMessage(buffer.KeyBuffer[..(int)keySize], buffer.HashBuffer, buffer.SigBuffer);
-
-                if (!sigSize)
-                {
-                    return false;
-                }
-
-                //Store the signature as loewrcase hex
-                ev.Signature = Convert.ToHexString(buffer.SigBuffer[..(int)sigSize]).ToLower();
-                return true;
+                //Compute the message signature
+                return ComputeMessageSignature(ev, keyBuffer[0.. (int)keySize]);
             }
             finally
             {
-                //Zero the key buffer and key
-                MemoryUtil.InitializeBlock(buffHandle.Span);
+                //Zero the key before returning
+                MemoryUtil.InitializeBlock(keyBuffer);
             }
         }
 
-        private void GetNostrEventId(NostrEvent evnt, Span<byte> idHash)
+        private bool ComputeMessageSignature(NostrEvent evnt, ReadOnlySpan<byte> secKey)
         {
-
             JsonWriterOptions options = new()
             {
                 Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
                 Indented = false,
                 MaxDepth = 4
             };
+
+            Span<byte> idHash = stackalloc byte[(int)HashAlg.SHA256];
+            Span<byte> sigBuffer = stackalloc byte[_cryptoProvider.GetSignatureBufferSize()];
 
             using VnMemoryStream ms = new();
             using (Utf8JsonWriter writer = new(ms, options))
@@ -259,8 +224,23 @@ namespace NVault.Plugins.Vault
             //Compute the hash
             if (!ManagedHash.ComputeHash(ms.AsSpan(), idHash, HashAlg.SHA256))
             {
-                throw new CryptographicException("Failed to compute event data hash");
+                return false;
             }
+
+            //Set message id
+            evnt.Id = Convert.ToHexString(idHash).ToLower();
+
+            if(_cryptoProvider.SignData(secKey, ms.AsSpan(), sigBuffer) != sigBuffer.Length)
+            {
+                return false;
+            }
+
+            //Set the signature as lowercase hex
+            evnt.Signature = Convert.ToHexString(sigBuffer).ToLower();
+           
+            MemoryUtil.InitializeBlock(sigBuffer);
+
+            return true;
         }
 
         private static JavaScriptEncoder GetJsEncoder()
@@ -441,15 +421,6 @@ namespace NVault.Plugins.Vault
                 MemoryUtil.InitializeBlock(privKeyBytes);
                 MemoryUtil.InitializeBlock(ivBuffer);
             }
-        }
-
-        readonly record struct EvBuffer(IMemoryHandle<byte> Handle, int KeySize, int SigSize, int HashSize)
-        {
-            public readonly Span<byte> KeyBuffer => Handle.Span[..KeySize];
-
-            public readonly Span<byte> SigBuffer => Handle.AsSpan(KeySize, SigSize);
-
-            public readonly Span<byte> HashBuffer => Handle.AsSpan(KeySize + SigSize, HashSize);
         }
     }
 }

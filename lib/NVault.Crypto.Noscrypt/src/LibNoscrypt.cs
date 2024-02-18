@@ -42,6 +42,8 @@ namespace NVault.Crypto.Noscrypt
         public const int NC_SIGNATURE_SIZE = 64;
         public const int NC_CONV_KEY_SIZE = 32;
         public const int NC_MESSAGE_KEY_SIZE = 32;
+        public const int NC_HMAC_KEY_SIZE = 32;
+        public const int NC_ENCRYPTION_MAC_SIZE = 32;
         public const int CTX_ENTROPY_SIZE = 32;
 
         public const NCResult NC_SUCCESS = 0;
@@ -103,7 +105,7 @@ namespace NVault.Crypto.Noscrypt
                     result = Functions.NCInitContext.Invoke(ctx, p);
                 }
 
-                NCUtil.CheckResult<FunctionTable.NCInitContextDelegate>(result);
+                NCUtil.CheckResult<FunctionTable.NCInitContextDelegate>(result, true);
 
                 Trace.WriteLine($"Initialzied noscrypt context 0x{ctx:x}");
 
