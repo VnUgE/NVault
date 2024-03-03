@@ -34,6 +34,7 @@ namespace NVault.Plugins.Vault
         {
             //Load the endpoint
             this.Route<Endpoint>();
+            this.Route<WellKnownEndpoint>();
 
             //Create the database
             _ = this.ObserveWork(() => this.EnsureDbCreatedAsync<NostrContext>(this), 1800);

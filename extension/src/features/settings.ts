@@ -14,41 +14,53 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { storage } from "webextension-polyfill"
-import { defaultsDeep } from 'lodash'
+import { defaultsDeep, defer, find, isArray, isEmpty } from 'lodash'
 import { configureApi, debugLog } from '@vnuge/vnlib.browser'
-import { MaybeRefOrGetter, readonly, Ref, shallowRef, watch } from "vue";
+import { computed, MaybeRefOrGetter, readonly, Ref, shallowRef, watch } from "vue";
 import { JsonObject } from "type-fest";
 import { Watchable } from "./types";
 import { BgRuntime, FeatureApi, optionsOnly, IFeatureExport, exportForegroundApi, popupAndOptionsOnly } from './framework'
-import { get, set, toRefs } from "@vueuse/core";
+import { get, set } from "@vueuse/core";
 import { waitForChangeFn, useStorage } from "./util";
 import { ServerApi, useServerApi } from "./server-api";
 
 export interface PluginConfig extends JsonObject {
-    readonly apiUrl: string;
-    readonly accountBasePath: string;
-    readonly nostrEndpoint: string;
+    readonly discoveryUrl: string;
     readonly heartbeat: boolean;
     readonly maxHistory: number;
     readonly tagFilter: boolean;
     readonly authPopup: boolean;
+    readonly darkMode: boolean;
 }
 
 //Default storage config
 const defaultConfig : PluginConfig = Object.freeze({
-    apiUrl: import.meta.env.VITE_API_URL,
-    accountBasePath: import.meta.env.VITE_ACCOUNTS_BASE_PATH,
-    nostrEndpoint: import.meta.env.VITE_NOSTR_ENDPOINT,
+    discoveryUrl: import.meta.env.VITE_DISCOVERY_URL,
     heartbeat: import.meta.env.VITE_HEARTBEAT_ENABLED === 'true',
     maxHistory: 50,
     tagFilter: true,
     authPopup: true,
+    darkMode: false,
 });
+
+export interface EndpointConfig extends JsonObject {
+   readonly apiBaseUrl: string;
+   readonly accountBasePath: string;
+   readonly nostrBasePath: string;
+}
+
+export interface ConfigStatus {
+    readonly EpConfig: EndpointConfig;
+    readonly isDarkMode: boolean;
+    readonly isValid: boolean;
+}
 
 export interface AppSettings{
     saveConfig(config: PluginConfig): void;
     useStorageSlot<T>(slot: string, defaultValue: MaybeRefOrGetter<T>): Ref<T>;
     useServerApi(): ServerApi,
+    setDarkMode(darkMode: boolean): void;
+    readonly status: Readonly<Ref<ConfigStatus>>;
     readonly currentConfig: Readonly<Ref<PluginConfig>>;
 }
 
@@ -56,18 +68,55 @@ export interface SettingsApi extends FeatureApi, Watchable {
     getSiteConfig: () => Promise<PluginConfig>;
     setSiteConfig: (config: PluginConfig) => Promise<PluginConfig>;
     setDarkMode: (darkMode: boolean) => Promise<void>;
-    getDarkMode: () => Promise<boolean>;
+    getStatus: () => Promise<ConfigStatus>;
+    testServerAddress: (address: string) => Promise<boolean>;
+}
+
+interface ServerDiscoveryResult{
+    readonly endpoints: {
+        readonly name: string;
+        readonly path: string;
+    }[]
+}
+
+const discoverAndSetEndpoints = async (discoveryUrl: string, epConfig: Ref<EndpointConfig | undefined>) => {
+    const res = await fetch(discoveryUrl)
+    const { endpoints } = await res.json() as ServerDiscoveryResult;
+
+    const urls: EndpointConfig = {
+        apiBaseUrl: new URL(discoveryUrl).origin,
+        accountBasePath: find(endpoints, p => p.name == "account")?.path || "/account",
+        nostrBasePath: find(endpoints, p => p.name == "nostr")?.path || "/nostr",
+    };
+
+    //Set once the urls are discovered
+    set(epConfig, urls);
 }
 
 export const useAppSettings = (): AppSettings => {
 
     const _storageBackend = storage.local;
+    const _darkMode = shallowRef(false);
     const store = useStorage<PluginConfig>(_storageBackend, 'siteConfig', defaultConfig);
+    const endpointConfig = shallowRef<EndpointConfig>({nostrBasePath: '', accountBasePath: '', apiBaseUrl: ''})
+
+    const status = computed<ConfigStatus>(() => {
+        return{
+            EpConfig: get(endpointConfig),
+            isDarkMode: get(_darkMode),
+            isValid: !isEmpty(get(endpointConfig).nostrBasePath)
+        }
+    })
 
     //Merge the default config for nullables with the current config on startyup
     defaultsDeep(store.value, defaultConfig);
 
-    watch(store, (config, _) => {
+    //Watch for changes to the discovery url, then cause a discovery
+    watch([store], ([{ discoveryUrl }]) => {
+        defer(() => discoverAndSetEndpoints(discoveryUrl, endpointConfig))
+    }, { immediate: true }) //alaways run on startup
+
+    watch([endpointConfig], ([epconf]) => {
         //Configure the vnlib api
         configureApi({
             session: {
@@ -75,10 +124,10 @@ export const useAppSettings = (): AppSettings => {
                 browserIdSize: 32,
             },
             user: {
-                accountBasePath: config.accountBasePath,
+                accountBasePath: epconf?.accountBasePath,
             },
             axios: {
-                baseURL: config.apiUrl,
+                baseURL: epconf?.apiBaseUrl,
                 tokenHeader: import.meta.env.VITE_WEB_TOKEN_HEADER,
             },
             storage: localStorage
@@ -88,18 +137,19 @@ export const useAppSettings = (): AppSettings => {
 
     //Save the config and update the current config
     const saveConfig = (config: PluginConfig) => set(store, config);
-
-    //Reactive urls for server api
-    const { accountBasePath, nostrEndpoint } = toRefs(store)
-    const serverApi = useServerApi(nostrEndpoint, accountBasePath)
+   
+    //Local reactive server api
+    const serverApi = useServerApi(endpointConfig)
 
     return {
         saveConfig,
+        status, 
         currentConfig: readonly(store),
         useStorageSlot: <T>(slot: string, defaultValue: MaybeRefOrGetter<T>) => {
             return useStorage<T>(_storageBackend, slot, defaultValue)
         },
-        useServerApi: () => serverApi
+        useServerApi: () => serverApi,
+        setDarkMode: (darkMode: boolean) => set(_darkMode, darkMode)
     }
 }
 
@@ -108,10 +158,8 @@ export const useSettingsApi = () : IFeatureExport<AppSettings, SettingsApi> =>{
     return{
         background: ({ state }: BgRuntime<AppSettings>) => {
 
-            const _darkMode = shallowRef(false);
-
             return {
-                waitForChange: waitForChangeFn([state.currentConfig, _darkMode]),
+                waitForChange: waitForChangeFn([state.currentConfig, state.status]),
                 getSiteConfig: () => Promise.resolve(state.currentConfig.value),
                 setSiteConfig: optionsOnly(async (config: PluginConfig): Promise<PluginConfig> => {
 
@@ -123,18 +171,29 @@ export const useSettingsApi = () : IFeatureExport<AppSettings, SettingsApi> =>{
                     //Return the config
                     return get(state.currentConfig)
                 }),
-                setDarkMode: popupAndOptionsOnly(async (darkMode: boolean) => {
-                    _darkMode.value = darkMode 
+                setDarkMode: popupAndOptionsOnly((darkMode: boolean) => {
+                    state.setDarkMode(darkMode);
+                    return Promise.resolve();
                 }),
-                getDarkMode: async () => get(_darkMode),
+                getStatus: () => {
+                    //Since value is computed it needs to be manually unwrapped
+                    const { isDarkMode, isValid, EpConfig } = get(state.status);
+                    return Promise.resolve({ isDarkMode, isValid, EpConfig })
+                },
+                testServerAddress: optionsOnly(async (url: string) => {
+                    const res = await fetch(url);
+                    const data = await res.json() as ServerDiscoveryResult;
+                    return isArray(data?.endpoints) && !isEmpty(data.endpoints);
+                })
             }
         },
         foreground: exportForegroundApi([
             'getSiteConfig',
             'setSiteConfig',
             'setDarkMode',
-            'getDarkMode',
-            'waitForChange'
+            'waitForChange',
+            'getStatus',
+            'testServerAddress'
         ]) 
     }
 }

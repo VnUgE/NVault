@@ -19,6 +19,8 @@ using System.Runtime.InteropServices;
 
 using VNLib.Utils.Memory;
 
+using static NVault.Crypto.Noscrypt.LibNoscrypt;
+
 namespace NVault.Crypto.Noscrypt
 {
 
@@ -79,7 +81,7 @@ namespace NVault.Crypto.Noscrypt
 
             //Copy the plaintext data to the output buffer after the data size
             MemoryUtil.Memmove(
-                ref MemoryMarshal.GetReference(plaintextData),
+                in MemoryMarshal.GetReference(plaintextData),
                 0,
                 ref MemoryMarshal.GetReference(output),
                  sizeof(ushort), 
@@ -105,9 +107,9 @@ namespace NVault.Crypto.Noscrypt
             ArgumentOutOfRangeException.ThrowIfGreaterThan(plainText.Length, cipherText.Length, nameof(plainText));
 
             //Nonce must be exactly 32 bytes
-            ArgumentOutOfRangeException.ThrowIfNotEqual(nonce32.Length, LibNoscrypt.NC_ENCRYPTION_NONCE_SIZE, nameof(nonce32));
+            ArgumentOutOfRangeException.ThrowIfNotEqual(nonce32.Length, NC_ENCRYPTION_NONCE_SIZE, nameof(nonce32));
 
-            ArgumentOutOfRangeException.ThrowIfNotEqual(hmackKeyOut32.Length, LibNoscrypt.NC_HMAC_KEY_SIZE, nameof(hmackKeyOut32));
+            ArgumentOutOfRangeException.ThrowIfNotEqual(hmackKeyOut32.Length, NC_HMAC_KEY_SIZE, nameof(hmackKeyOut32));
 
             //Encrypt data, use the plaintext buffer size as the data size
             lib.Encrypt(
@@ -213,8 +215,8 @@ namespace NVault.Crypto.Noscrypt
         {
             ArgumentNullException.ThrowIfNull(lib);
             ArgumentOutOfRangeException.ThrowIfZero(payload.Length, nameof(payload));
-            ArgumentOutOfRangeException.ThrowIfNotEqual(nonce32.Length, LibNoscrypt.NC_ENCRYPTION_NONCE_SIZE, nameof(nonce32));
-            ArgumentOutOfRangeException.ThrowIfNotEqual(mac32.Length, LibNoscrypt.NC_ENCRYPTION_MAC_SIZE, nameof(mac32));
+            ArgumentOutOfRangeException.ThrowIfNotEqual(nonce32.Length, NC_ENCRYPTION_NONCE_SIZE, nameof(nonce32));
+            ArgumentOutOfRangeException.ThrowIfNotEqual(mac32.Length, NC_ENCRYPTION_MAC_SIZE, nameof(mac32));
 
             //Verify the HMAC
             return lib.VerifyMac(
@@ -246,8 +248,8 @@ namespace NVault.Crypto.Noscrypt
                 lib,
                 in secretKey,
                 in publicKey,
-                new Span<byte>(nonce32, LibNoscrypt.NC_ENCRYPTION_NONCE_SIZE),
-                new Span<byte>(mac32, LibNoscrypt.NC_ENCRYPTION_MAC_SIZE),
+                new Span<byte>(nonce32, NC_ENCRYPTION_NONCE_SIZE),
+                new Span<byte>(mac32, NC_ENCRYPTION_MAC_SIZE),
                 new Span<byte>(payload, (int)payloadSize)
             );
         }

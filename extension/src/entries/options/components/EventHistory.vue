@@ -8,13 +8,18 @@
                 <pagination :pages="pagination" />
             </div>
         </div>
-        <div class="">
+        <div class="mt-2">
             <table class="min-w-full text-sm divide-y-2 divide-gray-200 dark:divide-dark-500">
                 <thead class="text-left bg-gray-50 dark:bg-dark-700">
                     <tr>
-                        <th class="pl-2"></th>
                         <th class="p-2 font-medium whitespace-nowrap dark:text-white">
-                            Event
+                            Account
+                        </th>
+                        <th class="p-2 font-medium whitespace-nowrap dark:text-white">
+                            Kind
+                        </th>
+                        <th class="p-2 font-medium whitespace-nowrap dark:text-white">
+                            Note
                         </th>
                         <th class="p-2 font-medium whitespace-nowrap dark:text-white">
                             Time
@@ -25,49 +30,29 @@
 
                 <tbody class="divide-y divide-gray-200 dark:divide-dark-500">
                     <tr v-for="event in evHistory" :key="event.Id" class="">
-                        <td class="pl-2 whitespace-nowrap">
-                            <div class="flex flex-col items-end gap-0.5">
-                                <div class="">
-                                    ID:
-                                </div>
-                                <div class="">
-                                    EventId:
-                                </div>
-                                <div class="">
-                                    PubKey:
-                                </div>
-                                <div class="">
-                                    Content:
-                                </div>
-                            </div>
+                        <td class="pl-2 truncate whitespace-nowrap overflow-ellipsis">
+                            <a href="#" @click="goToKeyView(event)" class="text-blue-500 hover:underline">
+                                {{ lookupKeyFromLoadedKeys(event.pubkey) }}
+                            </a>
                         </td>
                         <td class="p-2">
-                            <div class="flex flex-col flex-1 gap-0.5">
-                                <div class="truncate overflow-ellipsis">
-                                    {{ event.Id }}
-                                </div>
-                            
-                                <div class="truncate overflow-ellipsis">
-                                    {{ event.id }}
-                                </div>
-                            
-                                <div class="truncate overflow-ellipsis">
-                                    <a href="#" @click="goToKeyView(event)" class="text-blue-500 hover:underline">
-                                        {{ event.pubkey }}
-                                    </a>
-                                </div>
-                                <div class="truncate overflow-ellipsis">
-                                    {{ event.content }}
-                                </div>
+                            {{ event.kind }}
+                        </td>
+                        <td class="p-2 max-w-40">
+                            <div class="truncate overflow-ellipsis">
+                                {{ event.content }}
                             </div>
                         </td>
                         <td class="p-2 whitespace-nowrap">
                             {{ timeAgo(event, timeStamp) }}
                         </td>
-                        <td class="p-2 text-right whitespace-nowrap">
-                            <div class="button-group">
-                                <button class="rounded btn xs" @click="deleteEvent(event)">
+                        <td class="flex">
+                            <div class="my-1 button-group">
+                                <button class="btn xs" @click="deleteEvent(event)">
                                     <fa-icon icon="trash" />
+                                </button>
+                                <button class="w-8 btn xs" @click="showEvent(event)">
+                                    <fa-icon icon="ellipsis-v" />
                                 </button>
                             </div>
                         </td>
@@ -76,22 +61,103 @@
             </table>
         </div>
     </div>
+
+    <Dialog :open="openEvent != null" @close="showEvent()">
+
+        <div class="fixed inset-0 bg-black/40" aria-hidden="true" />
+
+        <!-- Full-screen container to center the panel -->
+        <div class="fixed inset-0 flex justify-center w-screen p-4 mt-36">
+            <!-- The actual dialog panel -->
+            <DialogPanel
+                class="w-full max-w-xl p-3 mb-auto bg-white border border-gray-400 dark:bg-dark-800 dark:text-white dark:border-dark-500">
+                <DialogTitle class="text-lg font-bold"> Event Details </DialogTitle>
+                <div class="mt-2">
+
+                </div>
+                <div class="">
+
+                    <div class="grid justify-center grid-flow-row grid-cols-3 text-left">
+
+                        <div class="">
+                            <h5 class="text-sm font-bold">Kind</h5>
+                        </div>
+                        <div class="">
+                            <h5 class="text-sm font-bold">Time</h5>
+                        </div>
+                        <div class="">
+                            <h5 class="text-sm font-bold">User</h5>
+                        </div>
+
+                        <div class="">
+                            <p class="text-sm">{{ openEvent?.kind }}</p>
+                        </div>
+                        <div class="">
+                            <p class="text-sm">{{ createShortDateAndTime(openEvent!) }}</p>
+                        </div>
+                        <div class="">
+                            <p class="text-sm">
+                                {{ lookupKeyFromLoadedKeys(openEvent!.pubkey) }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-4 ">
+                        <h4 class="text-sm font-bold">Content</h4>
+                        <p
+                            class="p-2 mt-2 text-sm text-gray-600 whitespace-pre-wrap bg-gray-100 dark:bg-dark-700 dark:text-gray-300 max-h-[16rem] overflow-y-auto">
+                            {{ openEvent?.content }}
+                        </p>
+                    </div>
+                    <div class="mt-4">
+                        <h4 class="text-sm font-bold">Tags</h4>
+                        <p class="px-2 overflow-x-auto max-w-[100%]">
+                        <ul class="max-h-[16rem] overflow-y-auto">
+                            <li v-for="tag in openEvent?.tags" :key="tag"
+                                class="my-1 text-xs text-gray-600 dark:text-gray-400">
+                                {{ tag }}
+                            </li>
+                        </ul>
+                        </p>
+                    </div>
+                    <div class="mt-4 ">
+                        <h4 class="text-sm font-bold">Event ID</h4>
+                        <p
+                            class="p-2 mt-2 text-sm text-gray-600 whitespace-pre-wrap bg-gray-100 dark:bg-dark-700 dark:text-gray-300 max-h-[16rem] overflow-y-auto">
+                            {{ openEvent?.id }}
+                        </p>
+                    </div>
+                    <div class="mt-4 ">
+                        <h4 class="text-sm font-bold">Signature</h4>
+                        <p
+                            class="p-2 mt-2 text-sm text-gray-600 whitespace-pre-wrap bg-gray-100 dark:bg-dark-700 dark:text-gray-300 max-h-[16rem] overflow-y-auto">
+                            {{ openEvent?.sig }}
+                        </p>
+                    </div>
+                </div>
+
+            </DialogPanel>
+        </div>
+
+    </Dialog>
 </template>
 
 <script setup lang="ts">
-import { apiCall } from '@vnuge/vnlib.browser';
+import { apiCall, useConfirm } from '@vnuge/vnlib.browser';
 import { computed } from 'vue';
 import { formatTimeAgo, get, useOffsetPagination, useTimestamp } from '@vueuse/core';
-import { } from '@headlessui/vue'
 import { useStore } from '../../store';
 import { EventEntry, NostrEvent } from '../../../features';
-import { map, slice } from 'lodash';
+import { find, map, slice } from 'lodash';
 import { useQuery } from '../../../features/util';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/vue'
 
 const store = useStore()
 
 const tabId = useQuery('t');
 const keyId = useQuery('kid');
+const openEvId = useQuery('activeEvent');
+
+const { reveal } = useConfirm()
 
 const pagination = useOffsetPagination({
     pageSize: 10,
@@ -115,8 +181,18 @@ const evHistory = computed<Array<NostrEvent & EventEntry>>(() => {
     })
 })
 
+const openEvent = computed<NostrEvent & EventEntry | undefined>(() => find(evHistory.value, e => e.Id === openEvId.asRef.value))
+const showEvent = (event?: EventEntry) => openEvId.set(event?.Id ?? '')
 
-const deleteEvent = (event: EventEntry) => {
+const deleteEvent = async (event: EventEntry) => {
+
+    const { isCanceled } = await reveal({
+        title: 'Delete Event',
+        text: 'Are you sure you want to delete this event forever?',
+    })
+
+    if(isCanceled) return
+
     //Call delete event function
     apiCall(() => store.plugins.history.deleteEvent(event))
 }
@@ -130,6 +206,10 @@ const createShortDateAndTime = (request: EventEntry) => {
     const month = date.getMonth() + 1
     const year = date.getFullYear()
     return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`
+}
+
+const lookupKeyFromLoadedKeys = (pubkey: string) => {
+    return find(store.allKeys, { PublicKey: pubkey })?.UserName ?? pubkey
 }
 
 const timeAgo = (entry: EventEntry, timeStamp: number) => {

@@ -3,7 +3,7 @@
         <div class="flex justify-end gap-2 text-black dark:text-white">
              <div class="">
                 <div class="">
-                    <button class="rounded btn sm" @click="onNip05Download">
+                    <button class="btn sm" @click="onNip05Download">
                         NIP-05
                         <fa-icon icon="download" class="ml-1" />
                     </button>
@@ -11,7 +11,7 @@
             </div>
             <div class="mb-2">
                 <Popover class="relative" v-slot="{ open }">
-                    <PopoverButton class="rounded btn sm">Create</PopoverButton>
+                    <PopoverButton class="btn sm">Create</PopoverButton>
                     <PopoverOverlay v-if="open" class="fixed inset-0 bg-black opacity-50" />
                     <PopoverPanel class="absolute z-10 mt-2 md:-right-0" v-slot="{ close }">
                         <div class="p-3 bg-white border border-gray-200 rounded shadow-lg dark:border-dark-600 dark:bg-dark-900">
@@ -30,7 +30,7 @@
                                         </div>
                                     </div>
                                     <div class="flex justify-end mt-2">
-                                        <button class="rounded sm btn" type="submit">Create</button>
+                                        <button class="sm btn" type="submit">Create</button>
                                     </div>
                                 </form>
                             </div>
@@ -40,7 +40,7 @@
             </div>
              <div class="">
                 <div class="">
-                    <button class="rounded btn sm" @click="identity.refreshKeys()">
+                    <button class="btn sm" @click="identity.refreshKeys()">
                         <fa-icon icon="refresh" class="" />
                     </button>
                 </div>

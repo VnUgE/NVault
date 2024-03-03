@@ -16,44 +16,31 @@
 import 'pinia'
 import { } from 'lodash'
 import { defineStore } from 'pinia'
-import { PluginConfig } from '../../features/'
-import { NostrStoreState } from './types'
+import { PluginConfig, EventEntry, ConfigStatus } from '../../features/'
+import { computed, shallowRef } from 'vue'
+import { get } from '@vueuse/core'
 
-export type * from './types'
 export * from './allowedOrigins'
 export * from './features'
 export * from './identity'
 export * from './mfaconfig'
 export * from './permissions'
 
-export const useStore = defineStore({
-    id: 'main',
-    state: (): NostrStoreState =>({
-        loggedIn: false,
-        userName: '',
-        settings: {} as any,
-        darkMode: false,
-        eventHistory: [],
-    }),
-    actions: {
+export const useStore = defineStore('main', () => {
 
-        async login (usernameOrToken: string, password?: string) {
-            await this.plugins.user.login(usernameOrToken, password);
-        },
-
-        async logout () {
-            await this.plugins.user.logout();
-        },
-
-        saveSiteConfig(config: PluginConfig) {
-            return this.plugins.settings.setSiteConfig(config)
-        },
-
-        async toggleDarkMode(){
-            await this.plugins.settings.setDarkMode(this.darkMode === false)
-        },
-    },
-    getters:{
-         
-    },
+    const loggedIn = shallowRef<boolean>(false)
+    const userName = shallowRef<string>('')
+    const settings = shallowRef<PluginConfig>({} as PluginConfig)
+    const eventHistory = shallowRef<EventEntry[]>([])
+    const status = shallowRef<ConfigStatus>({} as ConfigStatus)
+    const darkMode = computed<boolean>(() => get(status).isDarkMode)
+   
+    return{
+        loggedIn,
+        userName,
+        settings,
+        status,
+        darkMode,
+        eventHistory
+    } 
 })

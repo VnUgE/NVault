@@ -79,7 +79,7 @@ namespace NVault.Plugins.Vault
             newKey.Value = Convert.ToHexString(pubKey).ToLower();
 
             //Zero the buffers
-            MemoryUtil.InitializeBlock(buffHandle.Span);
+            MemoryUtil.InitializeBlock(ref buffHandle.GetReference(), buffHandle.GetIntLength());
 
             if (privateKey == null)
             {
@@ -126,7 +126,7 @@ namespace NVault.Plugins.Vault
             finally
             {
                 //Always zero the private key buffer
-                MemoryUtil.InitializeBlock(privKeyBuffer.AsSpan());
+                MemoryUtil.InitializeBlock(privKeyBuffer);
             }
         }
 

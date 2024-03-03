@@ -6,7 +6,7 @@
         </fieldset>
         <div class="flex justify-end mt-2">
             <div class="px-3">
-                <button class="w-24 rounded btn sm primary">
+                <button class="w-24 btn sm primary">
                     <fa-icon v-if="waiting" icon="spinner" class="animate-spin" />
                     <span v-else>Submit</span>
                 </button>
@@ -20,7 +20,7 @@ import { apiCall, useWait } from "@vnuge/vnlib.browser";
 import { ref } from "vue";
 import { useStore } from "../../store";
 
-const { login } = useStore()
+const store = useStore()
 const { waiting } = useWait()
 
 const token = ref('')
@@ -28,7 +28,7 @@ const token = ref('')
 const onSubmit = async () => {
     await apiCall(async ({ toaster }) => {
         try{
-            await login(token.value)
+            await store.plugins.user.login(token.value)
 
              toaster.form.success({
                 'title': 'Login successful',

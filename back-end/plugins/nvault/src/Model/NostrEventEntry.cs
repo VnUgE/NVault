@@ -39,12 +39,12 @@ namespace NVault.Plugins.Vault.Model
         [MaxLength(64)]
         public string? UserId { get; set; }
 
-        [MaxLength(8000)]
+        [MaxLength]
         public string? EventData { get; set; }
 
         public static NostrEventEntry FromEvent(string userId, NostrEvent @event) => new()
         {
-            EventData= JsonSerializer.Serialize(@event),
+            EventData = JsonSerializer.Serialize(@event),
             UserId = userId,
         };
        

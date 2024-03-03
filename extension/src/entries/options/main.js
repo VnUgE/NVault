@@ -23,12 +23,12 @@ import Pagination from '../../components/Pagination.vue';
 
 /* FONT AWESOME CONFIG */
 import { library } from '@fortawesome/fontawesome-svg-core'
-import { faCheck, faChevronLeft, faChevronRight, faCopy, faDownload, faEdit, faExternalLinkAlt, faLock, faLockOpen, faMinusCircle, faMoon, faPlus, faRefresh, faSun, faTrash, faTrashCan } from '@fortawesome/free-solid-svg-icons'
+import { faCheck, faChevronLeft, faChevronRight, faCopy, faDownload, faEdit, faEllipsisV, faExternalLinkAlt, faLock, faLockOpen, faMinusCircle, faMoon, faPlus, faRefresh, faSun, faTrash, faTrashCan } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { createPinia } from "pinia";
 import { identityPlugin, mfaConfigPlugin, originPlugin, permissionsPlugin, useBackgroundPiniaPlugin } from "../store";
 
-library.add(faCopy, faEdit, faChevronLeft, faMoon, faSun, faLock, faLockOpen, faExternalLinkAlt, faTrash, faDownload, faChevronRight, faPlus, faRefresh, faTrashCan, faMinusCircle ,faTrashCan, faCheck)
+library.add(faCopy, faEdit, faChevronLeft, faMoon, faSun, faLock, faLockOpen, faExternalLinkAlt, faTrash, faDownload, faChevronRight, faPlus, faRefresh, faTrashCan, faMinusCircle ,faTrashCan, faCheck, faEllipsisV)
 
 //Create the background feature wiring
 const bgPlugins = useBackgroundPiniaPlugin('options')

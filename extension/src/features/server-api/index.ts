@@ -20,6 +20,7 @@ import { type WebMessage, type UserProfile } from "@vnuge/vnlib.browser"
 import { initEndponts } from "./endpoints"
 import { cloneDeep } from "lodash"
 import type { EncryptionRequest, EventEntry, NostrEvent, NostrPubKey, NostrRelay } from "../types"
+import type { EndpointConfig } from "../settings"
 
 export enum Endpoints {
     GetKeys = 'getKeys',
@@ -55,13 +56,16 @@ export interface ServerApi{
     execRequest: ExecRequestHandler
 }
 
-export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): ServerApi => {
+export const useServerApi = (endpoints: Ref<EndpointConfig>): ServerApi => {
     const { registerEndpoint, execRequest } = initEndponts()
+
+    const nostrUrl = () => get(endpoints).nostrBasePath
+    const accUrl = () => get(endpoints).accountBasePath
 
     registerEndpoint({
         id: Endpoints.GetKeys,
         method: 'GET',
-        path: () => `${get(nostrUrl)}?type=getKeys`,
+        path: () => `${nostrUrl()}?type=getKeys`,
         onRequest: () => Promise.resolve(),
         onResponse: (response) => Promise.resolve(response)
     })
@@ -69,7 +73,7 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
     registerEndpoint({
         id: Endpoints.DeleteKey,
         method: 'DELETE',
-        path: (key: NostrPubKey) => `${get(nostrUrl)}?type=identity&id=${key.Id}`,
+        path: (key: NostrPubKey) => `${nostrUrl()}?type=identity&id=${key.Id}`,
         onRequest: () => Promise.resolve(),
         onResponse: async (response: WebMessage) => response.getResultOrThrow()
     })
@@ -77,7 +81,7 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
     registerEndpoint({
         id: Endpoints.SignEvent,
         method: 'POST',
-        path: () => `${get(nostrUrl)}?type=signEvent`,
+        path: () => `${nostrUrl()}?type=signEvent`,
         onRequest: (event) => Promise.resolve(event),
         onResponse: async (response: WebMessage<NostrEvent>) => {
             const res = response.getResultOrThrow()
@@ -89,7 +93,7 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
     registerEndpoint({
         id: Endpoints.GetRelays,
         method: 'GET',
-        path: () => `${get(nostrUrl)}?type=getRelays`,
+        path: () => `${nostrUrl()}?type=getRelays`,
         onRequest: () => Promise.resolve(),
         onResponse: (response) => Promise.resolve(response)
     })
@@ -97,7 +101,7 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
     registerEndpoint({
         id: Endpoints.SetRelay,
         method: 'POST',
-        path: () => `${get(nostrUrl)}?type=relay`,
+        path: () => `${nostrUrl()}?type=relay`,
         onRequest: (relay:NostrRelay) => Promise.resolve(relay),
         onResponse: (response) => Promise.resolve(response)
     })
@@ -105,7 +109,7 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
     registerEndpoint({
         id: Endpoints.CreateId,
         method: 'PUT',
-        path: () => `${get(nostrUrl)}?type=identity`,
+        path: () => `${nostrUrl()}?type=identity`,
         onRequest: (identity: NostrPubKey) => Promise.resolve(identity),
         onResponse: async (response: WebMessage<NostrEvent>) => response.getResultOrThrow()
     })
@@ -113,7 +117,7 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
     registerEndpoint({
         id: Endpoints.UpdateId,
         method: 'PATCH',
-        path: () => `${get(nostrUrl)}?type=identity`,
+        path: () => `${nostrUrl()}?type=identity`,
         onRequest: (identity:NostrPubKey) => {
             const id = cloneDeep(identity) as any;
             delete id.Created;
@@ -126,7 +130,7 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
     registerEndpoint({
         id: Endpoints.UpdateProfile,
         method: 'POST',
-        path: () => `${get(accUrl)}`,
+        path: () => `${accUrl()}`,
         onRequest: (profile: UserProfile) => Promise.resolve(cloneDeep(profile)),
         onResponse: async (response: WebMessage<string>) => response.getResultOrThrow()
     })
@@ -135,7 +139,7 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
     registerEndpoint({
         id:Endpoints.Encrypt,
         method:'POST',
-        path: () => `${get(nostrUrl)}?type=encrypt`,
+        path: () => `${nostrUrl()}?type=encrypt`,
         onRequest: (data: EncryptionRequest) => Promise.resolve(data),
         onResponse: async (response: WebMessage<{ ciphertext:string, iv:string }>) =>{
             const { ciphertext, iv } = response.getResultOrThrow()
@@ -146,7 +150,7 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
     registerEndpoint({
         id:Endpoints.Decrypt,
         method:'POST',
-        path: () => `${get(nostrUrl)}?type=decrypt`,
+        path: () => `${nostrUrl()}?type=decrypt`,
         onRequest: (data: EncryptionRequest) => Promise.resolve(data),
         onResponse: async (response: WebMessage<string>) => response.getResultOrThrow()
     })
@@ -155,7 +159,7 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
     registerEndpoint({
         id: Endpoints.GetHistory,
         method: 'GET',
-        path: () => `${get(nostrUrl)}?type=getEvents`,
+        path: () => `${nostrUrl()}?type=getEvents`,
         onRequest: () => Promise.resolve(),
         onResponse: (response : EventEntry[]) => Promise.resolve(response) //Pass through response, should be an array of events or an error
     })
@@ -163,7 +167,7 @@ export const useServerApi = (nostrUrl: Ref<string>, accUrl: Ref<string>): Server
     registerEndpoint({
         id: Endpoints.DeleteSingleEvent,
         method: 'DELETE',
-        path: (evnt: EventEntry) => `${get(nostrUrl)}?type=event&id=${evnt.Id}`,
+        path: (evnt: EventEntry) => `${nostrUrl()}?type=event&id=${evnt.Id}`,
         onRequest: () => Promise.resolve(),
         onResponse: (response) => Promise.resolve(response)
     })

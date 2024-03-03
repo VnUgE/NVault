@@ -1,5 +1,5 @@
 <template>
-    <div id="ev-history" class="flex flex-col w-full mt-4 sm:px-2">
+    <div id="ev-history" class="flex flex-col w-full mt-4 overflow-x-hidden sm:px-2">
         <form @submit.prevent="">
             <div class="w-full max-w-xl mx-auto">
                 <h3 class="text-center">
@@ -13,24 +13,26 @@
                     <div class="flex justify-center">
                     </div>
                 </div>
-            
+
                 <div class="my-6 ">
-                  <EvHistoryTable :readonly="false" :requests="pending" @deny="deny" @approve="approve" />
+                    <EvHistoryTable :readonly="false" :requests="pending" @deny="deny" @approve="approve" />
                 </div>
 
-                <AutoRules />
+                <div class="">
+                    <AutoRules />
+                </div>
 
                 <div class="flex flex-row justify-between mt-16">
                     <div class="font-bold">
                         History
                     </div>
                     <div class="flex justify-center">
-                      <pagination :pages="pages" />
+                        <pagination :pages="pages" />
                     </div>
                 </div>
 
                 <div class="mt-1">
-                  <EvHistoryTable :readonly="true" :requests="permHistory" @deny="deny" @approve="approve" />
+                    <EvHistoryTable :readonly="true" :requests="permHistory" @deny="deny" @approve="approve" />
                 </div>
 
                 <div class="mt-4 ml-auto w-fit">

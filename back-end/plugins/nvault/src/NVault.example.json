@@ -1,6 +1,13 @@
 {
   "debug": false,
 
+  //well-known discovery path
+  "discovery": {
+    "path": "/.well-known/nvault",
+    "cache_duration_sec": 36000,
+    "accounts_path": "/accounts"
+  },
+
   "endpoint": {
     "path": "/nostr",
 
@@ -28,5 +35,10 @@
       "lib_type": "managed | native",
       "lib_path": "path to dll"
     }
+  },
+
+  //Sync endpoint
+  "sync": {
+    "path": "/sync"
   }
 }

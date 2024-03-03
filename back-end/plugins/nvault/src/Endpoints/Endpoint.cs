@@ -26,7 +26,6 @@ using Microsoft.EntityFrameworkCore;
 using FluentValidation;
 
 using NVault.VaultExtensions;
-
 using VNLib.Utils.Logging;
 using VNLib.Utils.Extensions;
 using VNLib.Plugins;
@@ -40,12 +39,11 @@ using VNLib.Plugins.Extensions.Data.Extensions;
 
 using NVault.Plugins.Vault.Model;
 
-
 namespace NVault.Plugins.Vault.Endpoints
 {
 
     [ConfigurationName("endpoint")]
-    internal class Endpoint : ProtectedWebEndpoint
+    internal sealed class Endpoint : ProtectedWebEndpoint
     {
         const string EventLogTemplate = "Method {m}, UserID {uid}, Type {tp} Payload {p}";
 

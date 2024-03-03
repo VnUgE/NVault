@@ -16,6 +16,7 @@
 import 'pinia'
 import { } from 'lodash'
 import { PiniaPluginContext } from 'pinia'
+import { computed } from 'vue'
 import type { IMfaFlowContinuiation } from '@vnuge/vnlib.browser'
 
 import {
@@ -34,7 +35,7 @@ import {
     usePermissionApi
 } from "../../features"
 
-import { ChannelContext } from '../../messaging'
+import type { ChannelContext } from '../../messaging'
 
 export type BgPlugins = ReturnType<typeof usePlugins>
 export type BgPluginState<T> = { plugins: BgPlugins } & T
@@ -43,6 +44,8 @@ declare module 'pinia' {
     export interface PiniaCustomProperties {
         plugins: BgPlugins
         mfaStatus: Partial<IMfaFlowContinuiation> | null
+        isServerValid: boolean
+        toggleDarkMode: () => void
     }
 }
 
@@ -87,16 +90,19 @@ export const useBackgroundPiniaPlugin = (context: ChannelContext) => {
         onWatchableChange(settings, async () => {
             //Update settings and dark mode on change
             store.settings = await settings.getSiteConfig();
-            store.darkMode = await settings.getDarkMode();
+            store.status = await settings.getStatus();
         }, { immediate: true })
 
         onWatchableChange(history, async () => {
             //Load event history
             store.eventHistory = await history.getEvents();
         }, { immediate: true })
-
+       
         return{
             plugins,
+            isServerValid: computed(() => store.status.isValid),
+            //Main api functions
+            toggleDarkMode: () => settings.setDarkMode(!store.darkMode)
         }
     }
 } 

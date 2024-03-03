@@ -23,17 +23,17 @@
           <form class="" @submit.prevent="onSubmit()">
             <fieldset class="px-4 input-container">
                 <div class="">
-                    <label class="">Username</label>
+                    <label class="text-sm">Username</label>
                     <input type="text" name="username" class="w-full input" v-model="username" />
                 </div>
                 <div class="mt-1">
-                    <label class="">Password</label>
+                    <label class="text-sm">Password</label>
                     <input type="password" name="password" class="w-full input" v-model="password" />
                 </div>
             </fieldset>
             <div class="flex justify-end mt-2">
                 <div class="px-3">
-                    <button class="w-24 rounded btn sm primary">
+                    <button class="w-24 btn sm primary">
                         <fa-icon v-if="waiting" icon="spinner" class="animate-spin" />
                         <span v-else>Submit</span>
                     </button>
@@ -52,6 +52,7 @@ import VOtpInput from "vue3-otp-input";
 
 const { waiting } = useWait()
 const store = useStore();
+const { user } = store.plugins
 
 const showTotp = computed(() => store.mfaStatus?.type === 'totp')
 
@@ -71,19 +72,19 @@ const onSubmit = () => {
             return
         }
         
-        await store.login(username.value, password.value)
+        await user.login(username.value, password.value)
     });
 };
 
 const onSubmitTotp = (code: string) => {
     //Invoke totp login
-    apiCall(() => store.plugins.user.submitMfa({ code: toNumber(code) }));
+    apiCall(() => user.submitMfa({ code: toNumber(code) }));
 };
 
 </script>
 
 <style lang="scss">
    #totp-login .otp-input input {
-    @apply w-10 p-0.5 rounded text-center text-lg mx-1 focus:border-primary-500;
+    @apply w-10 p-0.5 text-center text-lg mx-1 focus:border-primary-500;
 }
 </style>

@@ -16,7 +16,7 @@
 //Export all shared types
 export type { NostrPubKey, LoginMessage, NostrEvent, NostrRelay, EventEntry } from './types'
 export type * from './framework'
-export type { PluginConfig } from './settings'
+export type { PluginConfig, ConfigStatus } from './settings'
 export type { PkiPubKey, EcKeyParams, LocalPkiApi as PkiApi } from './pki-api'
 export type { NostrApi } from './nostr-api'
 export type { UserApi } from './auth-api'

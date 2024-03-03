@@ -1,105 +1,117 @@
 <template>
-    <div 
-      id="injected-root" 
-      class="flex flex-col text-left w-[20rem] min-h-[25rem]"
-    >
-      
-      <div class="flex flex-row w-full gap-2 p-1.5 bg-black text-white dark:bg-dark-600 shadow">
-        <div class="flex flex-row flex-auto my-auto">
-          <div class="my-auto mr-2">
-            <img class="h-6" src="/icons/32.png" />
-          </div>
-          <h3 class="block my-auto">NVault</h3>
-          <div class="px-3 py-.5 m-auto text-sm rounded-full h-fit active-badge" :class="[isTabAllowed ? 'active' : 'inactive']">
-              {{ isTabAllowed ? 'Active' : 'Inactive' }}
-          </div>
+  <div id="injected-root" class="flex flex-col text-left w-[20rem] min-h-[25rem]">
+
+    <div class="flex flex-row w-full gap-2 p-1.5 bg-black text-white dark:bg-dark-600 shadow">
+      <div class="flex flex-row flex-auto my-auto">
+        <div class="my-auto mr-2">
+          <img class="h-6" src="/icons/32.png" />
         </div>
-        <div class="my-auto" v-if="loggedIn">
-          <button class="rounded btn xs" @click.prevent="logout">
-            <fa-icon icon="arrow-right-from-bracket" />
-          </button>
-        </div>
-         <div class="my-auto">
-          <button class="rounded btn xs" @click="toggleDark" >
-            <fa-icon class="w-4" v-if="darkMode" icon="sun"/>
-            <fa-icon class="w-4" v-else icon="moon" />
-          </button>
-        </div>
-        <div class="my-auto">
-          <button class="rounded btn xs" @click="openOptions">
-              <fa-icon :icon="['fas', 'gear']"/>
-          </button>
+        <h3 class="block my-auto">NVault</h3>
+        <div class="px-3 py-.5 m-auto text-sm rounded-full h-fit active-badge"
+          :class="[isTabAllowed ? 'active' : 'inactive']">
+          {{ isTabAllowed ? 'Active' : 'Inactive' }}
         </div>
       </div>
-
-      <div v-if="!loggedIn">
-        <Login></Login>
+      <div class="my-auto" v-if="loggedIn">
+        <button class="rounded btn xs" @click.prevent="logout">
+          <fa-icon icon="arrow-right-from-bracket" />
+        </button>
       </div>
-
-      <div v-else class="flex justify-center">
-        <div class="w-full px-3 m-auto">
-
-            <div class="text-sm text-center">
-               {{ userName }}
-            </div>
-            
-            <div class="">
-              <label class="mb-0.5 text-sm">
-                Identity
-              </label>
-              <IdentitySelection></IdentitySelection>
-            </div>
-            
-            <div class="w-full mt-1">
-              <div class="flex flex-col">
-                <div class="flex flex-row gap-2 p-1.5 bg-gray-100 border border-gray-200 dark:bg-dark-800 dark:border-dark-400">
-                  <div class="text-sm break-all">
-                    {{ pubKey ?? 'No key selected' }}
-                  </div>
-                  <div class="my-auto ml-auto cursor-pointer" :class="{'text-primary-500': copied }">
-                      <fa-icon class="mr-1" icon="copy" @click="copy(pubKey!)"/>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-             <div class="mt-4">
-                <label class="block mb-1 text-xs text-left " >
-                  Current origin
-                </label>
-                
-                <div v-if="isOriginProtectionOn" class="flex flex-row w-full gap-2">
-                  <input :value="currentOrigin" class="flex-1 p-1 mx-0 text-sm input dark:text-dark-100" readonly/>
-
-                  <button v-if="isTabAllowed" class="btn xs" @click="store.dissallowOrigin()">
-                      <fa-icon icon="minus" />
-                  </button>
-                  <button v-else class="btn xs" @click="store.allowOrigin()">
-                      <fa-icon icon="plus" />
-                  </button>
-                </div>
-                
-                <div v-else class="text-xs text-center dark:text-dark-100">
-                  <span class="">Tracking protection disabled</span>
-                </div>
-            </div>
-            <div class="mt-4">
-                  <label class="block mb-1 text-xs text-left " >
-                    Permissions
-                  </label>
-                  <ul class="flex flex-row flex-wrap gap-2 dark:text-dark-100">
-                    <li v-for="rule in ruleTypes" :key="rule" class="text-xs">
-                      {{ rule }}
-                    </li>
-                  </ul>
-              </div>
-        
-        </div>
+      <div class="my-auto">
+        <button class="rounded btn xs" @click="toggleDark">
+          <fa-icon class="w-4" v-if="darkMode" icon="sun" />
+          <fa-icon class="w-4" v-else icon="moon" />
+        </button>
       </div>
-
-      <notifications class="toaster" group="form" position="top-right" />
-
+      <div class="my-auto">
+        <button class="rounded btn xs" @click="openOptions">
+          <fa-icon :icon="['fas', 'gear']" />
+        </button>
+      </div>
     </div>
+    
+    <div v-if="!store.isServerValid" class="flex flex-row gap-2 mx-auto mt-2 text-center text-red-500">
+      <div class="text-center">
+        <svg class="w-6 h-6" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
+          fill="none" viewBox="0 0 24 24">
+          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 13V8m0 8h0m9-4a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        </svg>
+      </div>
+      <div class="text-center">
+        Not connected to server
+      </div>
+    </div>
+
+    <div v-if="!loggedIn">
+      <Login></Login>
+    </div>
+
+    <div v-else class="flex justify-center">
+      <div class="w-full px-3 m-auto">
+
+        <div class="text-sm text-center">
+          {{ userName }}
+        </div>
+
+        <div class="">
+          <label class="mb-0.5 text-sm">
+            Identity
+          </label>
+          <IdentitySelection></IdentitySelection>
+        </div>
+
+        <div class="w-full mt-1">
+          <div class="flex flex-col">
+            <div
+              class="flex flex-row gap-2 p-1.5 bg-gray-100 border border-gray-200 dark:bg-dark-800 dark:border-dark-400">
+              <div class="text-sm break-all">
+                {{ pubKey ?? 'No key selected' }}
+              </div>
+              <div class="my-auto ml-auto cursor-pointer" :class="{'text-primary-500': copied }">
+                <fa-icon class="mr-1" icon="copy" @click="copy(pubKey!)" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="block mb-1 text-xs text-left ">
+            Current origin
+          </label>
+
+          <div v-if="isOriginProtectionOn" class="flex flex-row w-full gap-2">
+            <input :value="currentOrigin" class="flex-1 p-1 mx-0 text-sm input dark:text-dark-100" readonly />
+
+            <button v-if="isTabAllowed" class="btn xs" @click="store.dissallowOrigin()">
+              <fa-icon icon="minus" />
+            </button>
+            <button v-else class="btn xs" @click="store.allowOrigin()">
+              <fa-icon icon="plus" />
+            </button>
+          </div>
+
+          <div v-else class="text-xs text-center dark:text-dark-100">
+            <span class="">Tracking protection disabled</span>
+          </div>
+        </div>
+        <div class="mt-4">
+          <label class="block mb-1 text-xs text-left ">
+            Permissions
+          </label>
+          <ul class="flex flex-row flex-wrap gap-2 dark:text-dark-100">
+            <li v-for="rule in ruleTypes" :key="rule" class="text-xs">
+              {{ rule }}
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+    <notifications class="toaster" group="form" position="top-right" />
+
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -108,11 +120,11 @@ import { storeToRefs } from "pinia";
 import { useStore } from "../../store";
 import { apiCall, configureNotifier } from "@vnuge/vnlib.browser";
 import { useClipboard } from '@vueuse/core'
+import { map } from "lodash";
 import { notify } from "@kyvg/vue3-notification";
 import { runtime } from "webextension-polyfill";
 import Login from "./Login.vue";
 import IdentitySelection from "./IdentitySelection.vue";
-import { map } from "lodash";
 
 configureNotifier({notify, close:notify.close})
 
@@ -132,7 +144,7 @@ watchEffect(() => darkMode.value ? document.body.classList.add('dark') : documen
 
 const logout = () =>{
   apiCall(async ({ toaster }) =>{
-    await store.logout()
+    await store.plugins.user.logout()
     toaster.general.success({
       'title':'Success',
       'text': 'You have been logged out'
