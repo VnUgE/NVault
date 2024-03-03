@@ -28,7 +28,7 @@ using NVault.Crypto.Noscrypt;
 namespace NVault.Plugins.Vault
 {
     [ConfigurationName("crypto")]
-    internal class ManagedCryptoprovider : INostrCryptoProvider
+    internal class ManagedCryptoprovider : INostrCryptoProvider, IDisposable
     {
         private readonly INostrCryptoProvider _provider;
 
@@ -98,6 +98,15 @@ namespace NVault.Plugins.Vault
         public void GetRandomBytes(Span<byte> bytes)
         {
             _provider.GetRandomBytes(bytes);
+        }
+
+        public void Dispose()
+        {
+            //Dont leak the library
+            if(_provider is IDisposable noscrypt)
+            {
+                noscrypt.Dispose();
+            }
         }
     }
 }

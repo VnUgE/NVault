@@ -15,11 +15,11 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Xml;
 
 using VNLib.Utils;
 
 using NCResult = System.Int64;
+using static NVault.Crypto.Noscrypt.LibNoscrypt;
 
 namespace NVault.Crypto.Noscrypt
 {
@@ -56,10 +56,10 @@ namespace NVault.Crypto.Noscrypt
 
             //Copy nonce to struct memory buffer
             Unsafe.CopyBlock(
-                ref Unsafe.AsRef<byte>(data.nonce), 
-                in nonce, 
-                LibNoscrypt.NC_ENCRYPTION_NONCE_SIZE
-            );           
+                ref Unsafe.AsRef<byte>(data.nonce),
+                in nonce,
+                NC_ENCRYPTION_NONCE_SIZE
+            );
 
             fixed (NCSecretKey* pSecKey = &secretKey)
             fixed (NCPublicKey* pPubKey = &publicKey)
@@ -96,7 +96,7 @@ namespace NVault.Crypto.Noscrypt
             Unsafe.CopyBlock(
                 ref Unsafe.AsRef<byte>(data.nonce), 
                 in nonce, 
-                LibNoscrypt.NC_ENCRYPTION_NONCE_SIZE
+                NC_ENCRYPTION_NONCE_SIZE
             );
 
             fixed (NCSecretKey* pSecKey = &secretKey)
@@ -187,7 +187,7 @@ namespace NVault.Crypto.Noscrypt
                 NCResult result = Functions.NCVerifyData.Invoke(libCtx, pPubKey, pData, dataSize, pSig);
                 NCUtil.CheckResult<FunctionTable.NCVerifyDataDelegate>(result, false);
 
-                return result == LibNoscrypt.NC_SUCCESS;
+                return result == NC_SUCCESS;
             }
         }
 
@@ -230,14 +230,14 @@ namespace NVault.Crypto.Noscrypt
             Unsafe.CopyBlock(
                 ref Unsafe.AsRef<byte>(args.nonce), 
                 in nonce32, 
-                LibNoscrypt.NC_ENCRYPTION_NONCE_SIZE
+                NC_ENCRYPTION_NONCE_SIZE
             );
 
             //Copy mac to struct memory buffer
             Unsafe.CopyBlock(
                 ref Unsafe.AsRef<byte>(args.mac), 
                 in mac32, 
-                LibNoscrypt.NC_ENCRYPTION_MAC_SIZE
+                NC_ENCRYPTION_MAC_SIZE
             );
 
             fixed(NCSecretKey* pSecKey = &secretKey)
@@ -251,7 +251,7 @@ namespace NVault.Crypto.Noscrypt
                 NCUtil.CheckResult<FunctionTable.NCVerifyMacDelegate>(result, false);
 
                 //Result should be success if the hmac is valid
-                return result == LibNoscrypt.NC_SUCCESS;
+                return result == NC_SUCCESS;
             }
         }
 
