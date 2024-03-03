@@ -101,6 +101,17 @@ const useRuleSet = (slot: Ref<RuleSlot>) => {
     defaults(slot.value, { rules: [] })
     const { rules } = toRefs(slot)
 
+    const trimExpiredRules = () => {
+        const current = get(rules)
+        const now = Date.now()
+        const wo = filter(current, r => !r.expires || r.expires > now)
+        //see if we need to update
+        if (wo.length !== current.length) {
+            set(rules, wo)
+        }
+        return wo
+    }
+    
     return{
         isAllowed: (request: PermissionRequest): boolean => {
             //find existing rule
@@ -137,10 +148,7 @@ const useRuleSet = (slot: Ref<RuleSlot>) => {
             set(rules, wo)
         },
         getRules:(): AutoAllowRule[] => {
-            //Filter all expired rules
-            const wo = filter(get(rules), r => !r.expires || r.expires > Date.now())
-            set(rules, wo)
-            return wo
+            return trimExpiredRules()
         }
     }
 }
@@ -149,7 +157,7 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
 
     const permPopupUrl = runtime.getURL("src/entries/contentScript/auth-popup.html")
 
-    defaults(slot.value, { rules: [] })
+    defaults(slot.value, { requests: [] })
     const { requests } = toRefs(slot)
 
     const activePopups = new Map<number, PermissionRequest>()
@@ -235,7 +243,7 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
             //set denied
             (req as Mutable<PermissionRequest>).status = PrStatus.Denied
             //popup closed, set to denied
-            updateRequest(req, false)
+            updateRequest(req, CreateRuleType.AllowOnce)
         }
     })
 
@@ -248,7 +256,7 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
         const pending = filter(requests.value, r => r.status == PrStatus.Pending && r.origin == origin)
 
         //update all pending requests to denied
-        forEach(pending, r => updateRequest(r, false))
+        forEach(pending, r => updateRequest(r, CreateRuleType.AllowOnce))
     })
 
     return{
@@ -333,7 +341,7 @@ export const usePermissionApi = (): IFeatureExport<AppSettings, PermissionApi> =
             const permissions = usePermissions(reqStore, ruleSet)
 
             //Computed current time to trigger an update every second
-            const currentTime = useTimestamp({ interval: 1000 })
+            const currentTime = useTimestamp({ interval: 2000 })
 
             return {
                 waitForChange: waitForChangeFn([currentConfig, loggedIn, reqStore, ruleStore, currentTime]),
