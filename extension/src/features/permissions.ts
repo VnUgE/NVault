@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Mutable, get, set, toRefs, useTimestamp } from "@vueuse/core";
+import { Mutable, get, set, toRefs } from "@vueuse/core";
 import { Ref } from "vue";
 import { defaultTo, defaults, defer, filter, find, forEach, isEqual, isNil } from "lodash";
 import { nanoid } from "nanoid";
@@ -340,11 +340,8 @@ export const usePermissionApi = (): IFeatureExport<AppSettings, PermissionApi> =
             const ruleSet = useRuleSet(ruleStore)
             const permissions = usePermissions(reqStore, ruleSet)
 
-            //Computed current time to trigger an update every second
-            const currentTime = useTimestamp({ interval: 2000 })
-
             return {
-                waitForChange: waitForChangeFn([currentConfig, loggedIn, reqStore, ruleStore, currentTime]),
+                waitForChange: waitForChangeFn([currentConfig, loggedIn, reqStore, ruleStore]),
 
                 getRequests: () =>  Promise.resolve(permissions.getAll()),
 

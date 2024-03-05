@@ -63,8 +63,7 @@ import { type AutoAllowRule } from '../../../features'
 
 const store = useStore()
 const { } = storeToRefs(store)
-
-const rules = computed(() => store.permissions.rules)
+const { rules } = store.permissions.getRules();
 
 const pages = useOffsetPagination({
     pageSize: 10,

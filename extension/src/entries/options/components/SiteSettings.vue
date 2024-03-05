@@ -71,7 +71,7 @@
                             <fa-icon v-if="editMode" icon="lock-open" />
                             <fa-icon v-else icon="lock" />
                         </button>
-                        <a :href="store.status.EpConfig.apiBaseUrl" target="_blank">
+                        <a :href="store.status.epConfig.apiBaseUrl" target="_blank">
                             <button type="button" class="rounded btn sm">
                                 <fa-icon icon="external-link-alt" />
                             </button>
@@ -117,7 +117,7 @@ const { settings } = storeToRefs(store)
 const { waiting } = useWait();
 const { setSiteConfig } = store.plugins.settings
 
-const { apply, data, buffer, modified, update } = useDataBuffer(settings.value, async sb =>{
+const { apply, buffer, modified, update } = useDataBuffer(settings.value, async sb =>{
     const newConfig = await setSiteConfig(sb.buffer)
     apply(newConfig)
     return newConfig;

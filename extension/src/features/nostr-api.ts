@@ -18,8 +18,8 @@ import { Endpoints } from "./server-api";
 import { type FeatureApi, type BgRuntime, type IFeatureExport, optionsOnly, exportForegroundApi } from "./framework";
 import { type AppSettings } from "./settings";
 import { EventTagFilterApi } from "./tagfilter-api";
-import type { NostrRelay, EncryptionRequest, NostrEvent } from './types';
 import { HistoryApi } from "./history";
+import type { NostrRelay, EncryptionRequest, NostrEvent } from './types';
 
 
 /**

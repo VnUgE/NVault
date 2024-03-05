@@ -131,10 +131,11 @@ configureNotifier({notify, close:notify.close})
 const store = useStore()
 const { loggedIn, selectedKey, userName, darkMode, isTabAllowed, currentOrigin, isOriginProtectionOn } = storeToRefs(store)
 const { copy, copied } = useClipboard()
+const { rulesForCurrentOrigin } = store.permissions.getRules()
 
 const pubKey = computed(() => selectedKey!.value?.PublicKey)
 
-const ruleTypes = computed<string[]>(() => map(store.permissions.rulesForCurrentOrigin, 'type'))
+const ruleTypes = computed<string[]>(() => map(rulesForCurrentOrigin.value, 'type'))
 
 const openOptions = () => runtime.openOptionsPage();
 const toggleDark = () => store.toggleDarkMode()

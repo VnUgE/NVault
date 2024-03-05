@@ -52,9 +52,9 @@ export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
     return {
         background: ({ state }:BgRuntime<AppSettings>): UserApi =>{
             const { loggedIn, clearLoginState } = useSession();
-            const { currentConfig } = state
+            const { currentConfig, serverEndpoints } = state
             const { logout, getProfile, heartbeat, userName } = useUser();
-            const currentPkiPath = computed(() => `${currentConfig.value.accountBasePath}/pki`)
+            const currentPkiPath = computed(() => `${serverEndpoints.value.accountBasePath}/pki`)
             
             //Use pki login controls
             const pkiAuth = usePkiAuth(currentPkiPath as any)
@@ -120,7 +120,7 @@ export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
             })()
 
             //Configure interval to run every 5 minutes to update the status
-            setInterval(runHeartbeat, 60 * 1000);
+            setInterval(runHeartbeat, 5 * 60 * 1000);
             delay(runHeartbeat, 1000)   //Delay 1 second to allow the extension to load
 
             return {

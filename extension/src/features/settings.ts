@@ -50,7 +50,7 @@ export interface EndpointConfig extends JsonObject {
 }
 
 export interface ConfigStatus {
-    readonly EpConfig: EndpointConfig;
+    readonly epConfig: EndpointConfig;
     readonly isDarkMode: boolean;
     readonly isValid: boolean;
 }
@@ -62,6 +62,7 @@ export interface AppSettings{
     setDarkMode(darkMode: boolean): void;
     readonly status: Readonly<Ref<ConfigStatus>>;
     readonly currentConfig: Readonly<Ref<PluginConfig>>;
+    readonly serverEndpoints: Readonly<Ref<EndpointConfig>>;
 }
 
 export interface SettingsApi extends FeatureApi, Watchable {
@@ -79,18 +80,9 @@ interface ServerDiscoveryResult{
     }[]
 }
 
-const discoverAndSetEndpoints = async (discoveryUrl: string, epConfig: Ref<EndpointConfig | undefined>) => {
+const discoverNvaultServer = async (discoveryUrl: string): Promise<ServerDiscoveryResult> => {
     const res = await fetch(discoveryUrl)
-    const { endpoints } = await res.json() as ServerDiscoveryResult;
-
-    const urls: EndpointConfig = {
-        apiBaseUrl: new URL(discoveryUrl).origin,
-        accountBasePath: find(endpoints, p => p.name == "account")?.path || "/account",
-        nostrBasePath: find(endpoints, p => p.name == "nostr")?.path || "/nostr",
-    };
-
-    //Set once the urls are discovered
-    set(epConfig, urls);
+    return await res.json() as ServerDiscoveryResult;
 }
 
 export const useAppSettings = (): AppSettings => {
@@ -101,39 +93,52 @@ export const useAppSettings = (): AppSettings => {
     const endpointConfig = shallowRef<EndpointConfig>({nostrBasePath: '', accountBasePath: '', apiBaseUrl: ''})
 
     const status = computed<ConfigStatus>(() => {
-        return{
-            EpConfig: get(endpointConfig),
+        //get current endpoint config
+        const { nostrBasePath, accountBasePath } = get(endpointConfig);
+        return {
+            epConfig: get(endpointConfig),
             isDarkMode: get(_darkMode),
-            isValid: !isEmpty(get(endpointConfig).nostrBasePath)
+            isValid: !isEmpty(nostrBasePath) && !isEmpty(accountBasePath)
         }
     })
+
+    const discoverAndSetEndpoints = async (discoveryUrl: string, epConfig: Ref<EndpointConfig | undefined>) => {
+        const { endpoints } = await discoverNvaultServer(discoveryUrl);
+
+        const urls: EndpointConfig = {
+            apiBaseUrl: new URL(discoveryUrl).origin,
+            accountBasePath: find(endpoints, p => p.name == "account")?.path || "/account",
+            nostrBasePath: find(endpoints, p => p.name == "nostr")?.path || "/nostr",
+        };
+
+        //Set once the urls are discovered
+        set(epConfig, urls);
+    }
 
     //Merge the default config for nullables with the current config on startyup
     defaultsDeep(store.value, defaultConfig);
 
     //Watch for changes to the discovery url, then cause a discovery
     watch([store], ([{ discoveryUrl }]) => {
-        defer(() => discoverAndSetEndpoints(discoveryUrl, endpointConfig))
-    }, { immediate: true }) //alaways run on startup
-
-    watch([endpointConfig], ([epconf]) => {
-        //Configure the vnlib api
-        configureApi({
-            session: {
-                cookiesEnabled: false,
-                browserIdSize: 32,
-            },
-            user: {
-                accountBasePath: epconf?.accountBasePath,
-            },
-            axios: {
-                baseURL: epconf?.apiBaseUrl,
-                tokenHeader: import.meta.env.VITE_WEB_TOKEN_HEADER,
-            },
-            storage: localStorage
+        defer(async () => { 
+            await discoverAndSetEndpoints(discoveryUrl, endpointConfig)
+            const { accountBasePath, apiBaseUrl } = get(endpointConfig);
+            if(!isEmpty(accountBasePath) && !isEmpty(apiBaseUrl)){
+                configureApi({
+                    session: {
+                        cookiesEnabled: false,
+                        browserIdSize: 32,
+                    },
+                    user: { accountBasePath },
+                    axios: {
+                        baseURL: apiBaseUrl,
+                        tokenHeader: import.meta.env.VITE_WEB_TOKEN_HEADER,
+                    },
+                    storage: localStorage
+                })
+            }
         })
-
-    }, { deep: true })
+    })
 
     //Save the config and update the current config
     const saveConfig = (config: PluginConfig) => set(store, config);
@@ -149,7 +154,8 @@ export const useAppSettings = (): AppSettings => {
             return useStorage<T>(_storageBackend, slot, defaultValue)
         },
         useServerApi: () => serverApi,
-        setDarkMode: (darkMode: boolean) => set(_darkMode, darkMode)
+        setDarkMode: (darkMode: boolean) => set(_darkMode, darkMode),
+        serverEndpoints: readonly(endpointConfig)
     }
 }
 
@@ -157,7 +163,6 @@ export const useSettingsApi = () : IFeatureExport<AppSettings, SettingsApi> =>{
 
     return{
         background: ({ state }: BgRuntime<AppSettings>) => {
-
             return {
                 waitForChange: waitForChangeFn([state.currentConfig, state.status]),
                 getSiteConfig: () => Promise.resolve(state.currentConfig.value),
@@ -177,12 +182,11 @@ export const useSettingsApi = () : IFeatureExport<AppSettings, SettingsApi> =>{
                 }),
                 getStatus: () => {
                     //Since value is computed it needs to be manually unwrapped
-                    const { isDarkMode, isValid, EpConfig } = get(state.status);
-                    return Promise.resolve({ isDarkMode, isValid, EpConfig })
+                    const { isDarkMode, isValid, epConfig } = get(state.status);
+                    return Promise.resolve({ isDarkMode, isValid, epConfig })
                 },
                 testServerAddress: optionsOnly(async (url: string) => {
-                    const res = await fetch(url);
-                    const data = await res.json() as ServerDiscoveryResult;
+                    const data = await discoverNvaultServer(url)
                     return isArray(data?.endpoints) && !isEmpty(data.endpoints);
                 })
             }

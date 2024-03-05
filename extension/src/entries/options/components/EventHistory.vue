@@ -5,7 +5,12 @@
                 Event History
             </div>
             <div class="flex justify-center">
-                <pagination :pages="pagination" />
+                <pagination :pages="pages" />
+                <div class="ml-2">
+                    <button class="btn borderless sm" @click="refresh()">
+                        <fa-icon :class="{ 'animate-spin': !ready }" icon="sync" />
+                    </button>
+                </div>
             </div>
         </div>
         <div class="mt-2">
@@ -144,7 +149,7 @@
 <script setup lang="ts">
 import { apiCall, useConfirm } from '@vnuge/vnlib.browser';
 import { computed } from 'vue';
-import { formatTimeAgo, get, useOffsetPagination, useTimestamp } from '@vueuse/core';
+import { formatTimeAgo, get, useOffsetPagination, useTimeout, useTimestamp } from '@vueuse/core';
 import { useStore } from '../../store';
 import { EventEntry, NostrEvent } from '../../../features';
 import { find, map, slice } from 'lodash';
@@ -159,7 +164,7 @@ const openEvId = useQuery('activeEvent');
 
 const { reveal } = useConfirm()
 
-const pagination = useOffsetPagination({
+const pages = useOffsetPagination({
     pageSize: 10,
     total: computed(() => store.eventHistory.length)
 })
@@ -169,8 +174,8 @@ const explodeNote = (event: EventEntry) => JSON.parse(event.EventData) as NostrE
 const timeStamp = useTimestamp({interval: 1000})
 
 const evHistory = computed<Array<NostrEvent & EventEntry>>(() => {
-    const start = (get(pagination.currentPage) - 1) * get(pagination.currentPageSize)
-    const end = start + 10
+    const start = (get(pages.currentPage) - 1) * get(pages.currentPageSize)
+    const end = start + get(pages.currentPageSize)
     const page = slice(store.eventHistory, start, end)
     return map(page, event => {
         const exploded = explodeNote(event)
@@ -222,15 +227,18 @@ const goToKeyView = (key: { KeyId:string }) => {
     keyId.set(key.KeyId);
 }
 
+const { ready, start } = useTimeout(500, { controls: true })
+
+const refresh = () => {
+    store.plugins.history.refresh();
+    start();
+}
+
+
 </script>
 
 <style lang="scss">
 #ev-history {
-    button.page-btn {
-        @apply inline-flex items-center px-2 py-2 space-x-2 font-medium rounded-full;
-        @apply bg-white border border-gray-300 rounded-full hover:bg-gray-50 dark:bg-dark-600 dark:hover:bg-dark-500 dark:border-dark-300;
-    }
-
     form tr {
         @apply sm:text-sm text-xs dark:text-gray-400 text-gray-600;
     }

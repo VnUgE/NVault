@@ -73,6 +73,7 @@ export const useHistoryApi = () : IFeatureExport<AppSettings, HistoryApi> => {
             'waitForChange',
             'getEvents',
             'deleteEvent',
+            'refresh'
         ])
     }
 }

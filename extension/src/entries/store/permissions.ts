@@ -16,7 +16,7 @@
 import 'pinia'
 import { filter, find } from 'lodash'
 import { PiniaPluginContext, storeToRefs } from 'pinia'
-import { computed, shallowRef } from 'vue'
+import { computed, shallowRef, type Ref } from 'vue'
 
 import {
     PrStatus,
@@ -27,12 +27,16 @@ import { get } from '@vueuse/core'
 import { AutoAllowRule } from '../../features/permissions'
 
 export interface PermissionApi {
+    getRules(): AutoAllowApi
     readonly pending: PermissionRequest[]
     readonly all: PermissionRequest[]
     readonly windowPending: PermissionRequest | undefined
     readonly isPopup: boolean
-    readonly rules: AutoAllowRule[],
-    readonly rulesForCurrentOrigin: AutoAllowRule[]
+}
+
+export interface AutoAllowApi{
+    readonly rules: Ref<AutoAllowRule[]>,
+    readonly rulesForCurrentOrigin: Ref<AutoAllowRule[]>
 }
 
 declare module 'pinia' {
@@ -50,9 +54,7 @@ export const permissionsPlugin = ({ store }: PiniaPluginContext) => {
     const all = shallowRef<PermissionRequest[]>([])
     const activeRequests = computed(() => filter(all.value, r => r.status == PrStatus.Pending))
     const windowPending = shallowRef<PermissionRequest | undefined>()
-    const rules = shallowRef<AutoAllowRule[]>([])
-
-    const rulesForCurrentOrigin = computed(() => filter(rules.value, r => r.origin == get(currentOrigin)))
+ 
 
     const closeIfPopup = () => {
         const windowQueryArgs = new URLSearchParams(window.location.search)
@@ -76,7 +78,7 @@ export const permissionsPlugin = ({ store }: PiniaPluginContext) => {
     onWatchableChange(permission, async () => {
         //get latest requests and current ruleset
         all.value = await permission.getRequests()
-        rules.value = await permission.getRules()
+       
 
         //update window pending request
         windowPending.value = getPendingWindowRequest()
@@ -92,12 +94,34 @@ export const permissionsPlugin = ({ store }: PiniaPluginContext) => {
         }
 
     }, { immediate: true })
+
+    /**
+     * Get rules is now a separate function for only instances where
+     *  rules need to be accessed. This is to avoid the overhead of
+     *  an interval reactive update when rules are not needed.
+     */
+    const getRules = (): AutoAllowApi => {
+
+        const rules = shallowRef<AutoAllowRule[]>([])
+        const rulesForCurrentOrigin = computed(() => filter(rules.value, r => r.origin == get(currentOrigin)))
+
+        onWatchableChange(permission, async () => {
+            rules.value = await permission.getRules()
+        })
+
+        //also update rules on an interval
+        setInterval(async () => rules.value = await permission.getRules(), 2000)
+
+        return {
+            rules,
+            rulesForCurrentOrigin
+        }
+    }
     
     return {
       permissions:{
             all,
-            rules,
-            rulesForCurrentOrigin,
+            getRules,
             pending: activeRequests,
             isPopup: getWindowUuid() !== null,
         }
