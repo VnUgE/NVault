@@ -44,6 +44,7 @@ namespace NVault.Crypto.Noscrypt
         public const int NC_MESSAGE_KEY_SIZE = 32;
         public const int NC_HMAC_KEY_SIZE = 32;
         public const int NC_ENCRYPTION_MAC_SIZE = 32;
+        public const int NC_CONVERSATION_KEY_SIZE = 32;
         public const int CTX_ENTROPY_SIZE = 32;
 
         public const NCResult NC_SUCCESS = 0;

@@ -38,6 +38,10 @@ namespace NVault.Crypto.Noscrypt
         public readonly NCDecryptDelegate NCDecrypt;
         public readonly NCVerifyMacDelegate NCVerifyMac;
 
+#if DEBUG
+        public readonly NCGetConversationKeyDelegate NCGetConversationKey;
+#endif
+
         private FunctionTable(SafeLibraryHandle library)
         {
             //Load the required high-level api functions
@@ -54,6 +58,10 @@ namespace NVault.Crypto.Noscrypt
             NCEncrypt = library.DangerousGetFunction<NCEncryptDelegate>();
             NCDecrypt = library.DangerousGetFunction<NCDecryptDelegate>();
             NCVerifyMac = library.DangerousGetFunction<NCVerifyMacDelegate>();
+
+#if DEBUG
+            NCGetConversationKey = library.DangerousGetFunction<NCGetConversationKeyDelegate>();
+#endif
         }
 
         /// <summary>
@@ -98,6 +106,9 @@ namespace NVault.Crypto.Noscrypt
 
         [SafeMethodName("NCVerifyMac")]
         internal delegate NCResult NCVerifyMacDelegate(IntPtr ctx, NCSecretKey* sk, NCPublicKey* pk, NCMacVerifyArgs* args);
+
+        [SafeMethodName("NCGetConversationKey")]
+        internal delegate NCResult NCGetConversationKeyDelegate(nint ctx, NCSecretKey* sk, NCPublicKey* pk, byte* keyOut32);
 
     }
 }

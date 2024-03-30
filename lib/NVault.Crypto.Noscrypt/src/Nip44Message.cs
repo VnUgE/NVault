@@ -13,16 +13,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-using System.Runtime.InteropServices;
+using System;
 
 namespace NVault.Crypto.Noscrypt
 {
-    [StructLayout(LayoutKind.Sequential)]
-    internal unsafe struct NCCryptoData
+    public readonly ref struct Nip44Message(ReadOnlySpan<byte> payload)
     {
-        public byte* nonce;
-        public void* inputData;
-        public void* outputData;
-        public uint dataSize;
+        readonly ReadOnlySpan<byte> _payload = payload;
+
+        public ReadOnlySpan<byte> Payload => _payload;
+
+        public ReadOnlySpan<byte> Nonce => Nip44Util.GetNonceFromPayload(_payload);
+
+        public ReadOnlySpan<byte> Ciphertext => Nip44Util.GetCiphertextFromPayload(_payload);
+
+        public ReadOnlySpan<byte> Mac => Nip44Util.GetMacFromPayload(_payload);
+
+        public ReadOnlySpan<byte> NonceAndCiphertext => Nip44Util.GetNonceAndCiphertext(_payload);
+
+        public byte Version => Nip44Util.GetMessageVersion(_payload);
     }
 }

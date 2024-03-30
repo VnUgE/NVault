@@ -2,9 +2,9 @@
 
 using System;
 using System.Buffers.Binary;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Runtime.CompilerServices;
 
 using VNLib.Hashing;
 using VNLib.Utils.Memory;
@@ -14,7 +14,7 @@ namespace NVault.Crypto.Noscrypt.Tests
     [TestClass()]
     public class LibNoscryptTests : IDisposable
     {
-        
+
         const string NoscryptLibWinDebug = @"../../../../../../../noscrypt/out/build/x64-debug/Debug/noscrypt.dll";
 
 
@@ -46,11 +46,9 @@ namespace NVault.Crypto.Noscrypt.Tests
             //Random context seed
             ReadOnlySpan<byte> seed = RandomHash.GetRandomBytes(32);
 
-            using LibNoscrypt library = LibNoscrypt.Load(NoscryptLibWinDebug);
-
             //Init new context and interface
-            NCContext context = library.Initialize(MemoryUtil.Shared, seed);
-           
+            NCContext context = _testLib.Initialize(MemoryUtil.Shared, seed);
+
             using NostrCrypto crypto = new(context, true);
         }
 
@@ -69,9 +67,9 @@ namespace NVault.Crypto.Noscrypt.Tests
 
             //Generate the public key
             crypto.GetPublicKey(
-                in NCUtil.AsSecretKey(secretKey), 
+                in NCUtil.AsSecretKey(secretKey),
                 ref NCUtil.AsPublicKey(publicKey)
-            );           
+            );
 
             //Make sure the does not contain all zeros
             Assert.IsTrue(publicKey.ToArray().Any(b => b != 0));
@@ -134,7 +132,6 @@ namespace NVault.Crypto.Noscrypt.Tests
             //public key
             Assert.ThrowsException<ArgumentNullException>(() => crypto.GetPublicKey(ref Unsafe.NullRef<NCSecretKey>(), ref pubKey));
             Assert.ThrowsException<ArgumentNullException>(() => crypto.GetPublicKey(in secKey, ref Unsafe.NullRef<NCPublicKey>()));
-
         }
 
         [TestMethod()]
@@ -154,40 +151,35 @@ namespace NVault.Crypto.Noscrypt.Tests
 
             foreach ((int len, int paddedLen) in paddedSizes)
             {
-                Assert.AreEqual<int>(paddedLen, Nip44Util.CalcBufferSize(len));
+                Assert.AreEqual<int>(paddedLen, Nip44Util.CalcBufferSize(len) - 2);
             }
         }
 
         [TestMethod()]
-        public void EncryptionTest()
+        public void CorrectEncryptionTest()
         {
-            //get valid encryption test vectors from vector file
-            EncryptionVector[] vectors = _testVectors.RootElement.GetProperty("v2")
-                .GetProperty("valid")
-                .GetProperty("encrypt_decrypt")
-                .EnumerateArray()
-                .Select(v => v.Deserialize<EncryptionVector>()!)
-                .ToArray();
-
             using NostrCrypto nc = _testLib.InitializeCrypto(MemoryUtil.Shared, RandomHash.GetRandomBytes(32));
 
             Span<byte> hmacKeyOut = stackalloc byte[LibNoscrypt.NC_HMAC_KEY_SIZE];
 
-            foreach (EncryptionVector v in vectors)
-            {                
+            foreach (EncryptionVector v in GetEncryptionVectors())
+            {
                 ReadOnlySpan<byte> secKey1 = Convert.FromHexString(v.sec1);
                 ReadOnlySpan<byte> secKey2 = Convert.FromHexString(v.sec2);
                 ReadOnlySpan<byte> plainText = Encoding.UTF8.GetBytes(v.plaintext);
                 ReadOnlySpan<byte> nonce = Convert.FromHexString(v.nonce);
-                ReadOnlySpan<byte> payload = Convert.FromBase64String(v.payload);
+                ReadOnlySpan<byte> message = Convert.FromBase64String(v.payload);
                 ReadOnlySpan<byte> conversationKey = Convert.FromHexString(v.conversation_key);
 
-                //Convert the plaintext data to a valid input buffer
-                ReadOnlySpan<byte> pt = ToInputData(plainText);
-                Span<byte> cipherText = new byte[pt.Length];
+                Nip44Message nip44Message = new(message);
 
-                ReadOnlySpan<byte> mac = payload[..32]; //Last 32 bytes of the payload
-                ReadOnlySpan<byte> validCipherText = payload.Slice(33, pt.Length);
+                //Convert the plaintext data to a valid input buffer
+                ReadOnlySpan<byte> pt = CreateAndFormatPlaintextOutputBuffer(plainText);
+                Span<byte> actualCiphertext = new byte[pt.Length];
+
+                Assert.AreEqual<byte>(nip44Message.Version, 0x02);
+                Assert.IsTrue(nonce.SequenceEqual(nip44Message.Nonce));
+                Assert.AreEqual<int>(nip44Message.Ciphertext.Length, pt.Length);
 
                 NCPublicKey pub1;
                 NCPublicKey pub2;
@@ -196,17 +188,6 @@ namespace NVault.Crypto.Noscrypt.Tests
                 nc.GetPublicKey(in NCUtil.AsSecretKey(secKey1), ref pub1);
                 nc.GetPublicKey(in NCUtil.AsSecretKey(secKey2), ref pub2);
 
-                //Verify mac
-                bool macValid = nc.VerifyMac(
-                    in NCUtil.AsSecretKey(secKey1),
-                    in pub2,
-                    nonce,
-                    mac,
-                    BuildMacData(cipherText, nonce)
-                );
-
-                Assert.IsTrue(macValid);
-
                 //Encrypt the plaintext
                 nc.Encrypt(
                     in NCUtil.AsSecretKey(secKey1),
@@ -214,43 +195,171 @@ namespace NVault.Crypto.Noscrypt.Tests
                     nonce,
                     pt,
                     hmacKeyOut,
-                    cipherText
+                    actualCiphertext
                 );
 
                 //Make sure the cipher text matches the expected payload
-                if (!cipherText.SequenceEqual(validCipherText))
+                if (!actualCiphertext.SequenceEqual(nip44Message.Ciphertext))
                 {
-                    Console.WriteLine($"Input data {v.plaintext}");
-                    Console.WriteLine($"Expected size: {BinaryPrimitives.ReadUInt16BigEndian(validCipherText)}, {plainText.Length}");
-                    Console.WriteLine($"Actual size {BinaryPrimitives.ReadUInt16BigEndian(pt)}, {plainText.Length}");
-                    Console.WriteLine($" \n{Convert.ToHexString(cipherText)}.\n{Convert.ToHexString(validCipherText)}");
+                    Console.WriteLine($"Input data: {v.plaintext}");
+                    Console.WriteLine($" \n{Convert.ToHexString(actualCiphertext)}\n{Convert.ToHexString(nip44Message.Ciphertext)}");
                     Assert.Fail($"Cipher text does not match expected payload");
                 }
             }
+        }
 
-            static byte[] ToInputData(ReadOnlySpan<byte> plaintext)
+        [TestMethod()]
+        public void ValidateMessageMacs()
+        {
+            using NostrCrypto nc = _testLib.InitializeCrypto(MemoryUtil.Shared, RandomHash.GetRandomBytes(32));
+
+            foreach (EncryptionVector v in GetEncryptionVectors())
             {
-                //Compute the required plaintext buffer size
-                int paddedSize = Nip44Util.CalcBufferSize(plaintext.Length + sizeof(ushort));
+                ReadOnlySpan<byte> secKey1 = Convert.FromHexString(v.sec1);
+                ReadOnlySpan<byte> secKey2 = Convert.FromHexString(v.sec2);
+                ReadOnlySpan<byte> message = Convert.FromBase64String(v.payload);
 
-                byte[] data = new byte[paddedSize];
+                Nip44Message nip44Message = new(message);
+                Assert.AreEqual<byte>(nip44Message.Version, 0x02);
 
-                //Format the plaintext buffer
-                Nip44Util.FormatBuffer(plaintext, data, true);
+                NCPublicKey pub2;
 
-                return data;
+                //Recover public key2
+                nc.GetPublicKey(in NCUtil.AsSecretKey(secKey2), ref pub2);
+
+                bool success = nc.VerifyMac(
+                        in NCUtil.AsSecretKey(secKey1),
+                        in pub2,
+                        nip44Message.Nonce,
+                        nip44Message.Mac,
+                        nip44Message.NonceAndCiphertext
+                    );
+
+                if (!success)
+                {
+                    Console.WriteLine($"Failed to validate MAC for message: {v.payload}");
+                    Console.Write($"Mac hex value: {Convert.ToHexString(nip44Message.Mac)}");
+                    Assert.Fail("Failed to validate MAC for message");
+                }
             }
+        }
 
-            static byte[] BuildMacData(ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> nonce)
+        //Converstation key is only available in debug builds
+#if DEBUG
+
+        [TestMethod()]
+        public void ConverstationKeyTest()
+        { 
+            using NostrCrypto nc = _testLib.InitializeCrypto(MemoryUtil.Shared, RandomHash.GetRandomBytes(32));
+         
+            Span<byte> convKeyOut = stackalloc byte[32];
+
+            foreach (EncryptionVector v in GetEncryptionVectors())
             {
-                byte[] macData = new byte[ciphertext.Length + nonce.Length];
+                ReadOnlySpan<byte> secKey1 = Convert.FromHexString(v.sec1);
+                ReadOnlySpan<byte> secKey2 = Convert.FromHexString(v.sec2);
+                ReadOnlySpan<byte> conversationKey = Convert.FromHexString(v.conversation_key);
 
-                //Nonce then cipher text
-                nonce.CopyTo(macData);
-                ciphertext.CopyTo(macData.AsSpan(nonce.Length));
+                NCPublicKey pubkey2 = default;
+                nc.GetPublicKey(in NCUtil.AsSecretKey(secKey2), ref pubkey2);
 
-                return macData;
+                nc.GetConverstationKey(
+                    in NCUtil.AsSecretKey(secKey1),
+                    in pubkey2,
+                    convKeyOut
+                );
+
+                Assert.IsTrue(conversationKey.SequenceEqual(convKeyOut));
+
+                MemoryUtil.InitializeBlock(convKeyOut);
             }
+        }
+#endif
+
+
+        [TestMethod()]
+        public void CorrectDecryptionTest()
+        {
+            using NostrCrypto nc = _testLib.InitializeCrypto(MemoryUtil.Shared, RandomHash.GetRandomBytes(32));
+
+            Span<byte> hmacKeyOut = stackalloc byte[LibNoscrypt.NC_HMAC_KEY_SIZE];
+
+            foreach (EncryptionVector vector in GetEncryptionVectors())
+            {               
+                ReadOnlySpan<byte> secKey1 = Convert.FromHexString(vector.sec1);
+                ReadOnlySpan<byte> secKey2 = Convert.FromHexString(vector.sec2);
+                ReadOnlySpan<byte> expectedPt = Encoding.UTF8.GetBytes(vector.plaintext);
+                ReadOnlySpan<byte> nonce = Convert.FromHexString(vector.nonce);
+                ReadOnlySpan<byte> message = Convert.FromBase64String(vector.payload);
+
+                Nip44Message nip44Message = new(message);
+
+                Assert.IsTrue(nip44Message.Version == 0x02);
+                Assert.IsTrue(nonce.SequenceEqual(nip44Message.Nonce));
+
+                NCPublicKey pub1;
+
+                //Recover public keys
+                nc.GetPublicKey(in NCUtil.AsSecretKey(secKey1), ref pub1);
+             
+                Span<byte> plaintextOut = new byte[ Nip44Util.CalcBufferSize(expectedPt.Length) ];
+
+                Assert.IsTrue(nip44Message.Ciphertext.Length == plaintextOut.Length);
+
+                /*
+                * Decrypting messages requires the public key of the sender
+                * and the secret key of the receiver
+                */
+                nc.Decrypt(
+                    in NCUtil.AsSecretKey(secKey2),
+                    in pub1,
+                    nip44Message.Nonce,
+                    nip44Message.Ciphertext,
+                    plaintextOut
+                );
+
+                ReadOnlySpan<byte> actualPt = Nip44Util.GetPlaintextMessage(plaintextOut);
+
+                Assert.AreEqual<int>(expectedPt.Length, actualPt.Length);
+                Assert.IsTrue(actualPt.SequenceEqual(expectedPt));
+
+                MemoryUtil.InitializeBlock(hmacKeyOut);
+            }
+        }
+
+
+        static byte[] CreateAndFormatPlaintextOutputBuffer(ReadOnlySpan<byte> plaintext)
+        {
+            //Compute the required plaintext buffer size
+            int paddedSize = Nip44Util.CalcBufferSize(plaintext.Length);
+
+            byte[] data = new byte[paddedSize];
+
+            //Format the plaintext buffer
+            Nip44Util.FormatBuffer(plaintext, data, true);
+
+            return data;
+        }
+
+        static byte[] BuildMacData(ReadOnlySpan<byte> ciphertext, ReadOnlySpan<byte> nonce)
+        {
+            byte[] macData = new byte[ciphertext.Length + nonce.Length];
+
+            //Nonce then cipher text
+            nonce.CopyTo(macData);
+            ciphertext.CopyTo(macData.AsSpan(nonce.Length));
+
+            return macData;
+        }
+
+        EncryptionVector[] GetEncryptionVectors()
+        {
+            return _testVectors.RootElement.GetProperty("v2")
+                .GetProperty("valid")
+                .GetProperty("encrypt_decrypt")
+                .EnumerateArray()
+                .Select(v => v.Deserialize<EncryptionVector>()!)
+                .ToArray();
         }
 
         void IDisposable.Dispose()
@@ -271,6 +380,7 @@ namespace NVault.Crypto.Noscrypt.Tests
             public string plaintext { get; set; } = string.Empty;
 
             public string payload { get; set; } = string.Empty;
+
             public string conversation_key { get; set; } = string.Empty;
         }
     }

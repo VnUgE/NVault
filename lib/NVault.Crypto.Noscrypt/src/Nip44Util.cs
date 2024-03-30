@@ -52,7 +52,7 @@ namespace NVault.Crypto.Noscrypt
 
             int chunk = nexPower <= 256 ? 32 : nexPower / 8;
 
-            return chunk * ((int)Math.Floor((double)((minSize - 1) / chunk)) + 1);
+            return (chunk * ((int)Math.Floor((double)((minSize - 1) / chunk)) + 1)) + sizeof(ushort);
         }
 
         /// <summary>
@@ -84,25 +84,63 @@ namespace NVault.Crypto.Noscrypt
                 in MemoryMarshal.GetReference(plaintextData),
                 0,
                 ref MemoryMarshal.GetReference(output),
-                 sizeof(ushort), 
+                 sizeof(ushort),
                 (uint)plaintextData.Length
             );
 
             //We assume the remaining buffer is zeroed out
         }
 
+        public static ReadOnlySpan<byte> GetNonceFromPayload(ReadOnlySpan<byte> message)
+        {
+            //The nonce is 32 bytes following the 1st byte version number of the message
+            return message.Slice(1, NC_ENCRYPTION_NONCE_SIZE);
+        }
+
+        public static ReadOnlySpan<byte> GetCiphertextFromPayload(ReadOnlySpan<byte> message)
+        {
+            //Message is between the nonce and the trailing mac
+            int payloadSize = message.Length - (1 + NC_ENCRYPTION_NONCE_SIZE + NC_ENCRYPTION_MAC_SIZE);
+            return message.Slice(1 + NC_ENCRYPTION_NONCE_SIZE, payloadSize);
+        }
+
+        public static ReadOnlySpan<byte> GetMacFromPayload(ReadOnlySpan<byte> message)
+        {
+            //The mac is the last 32 bytes of the message
+            return message[^NC_ENCRYPTION_MAC_SIZE..];
+        }
+
+        public static ReadOnlySpan<byte> GetNonceAndCiphertext(ReadOnlySpan<byte> message)
+        {
+            //The nonce is 32 bytes following the 1st byte version number of the message
+            return message.Slice(1, NC_ENCRYPTION_NONCE_SIZE + GetCiphertextFromPayload(message).Length);
+        }
+
+        public static byte GetMessageVersion(ReadOnlySpan<byte> message)
+        {
+            //The first byte is the message version
+            return message[0];
+        }
+
+        public static ReadOnlySpan<byte> GetPlaintextMessage(ReadOnlySpan<byte> plaintextPayload)
+        {
+            ushort ptLength = BinaryPrimitives.ReadUInt16BigEndian(plaintextPayload);
+            return plaintextPayload.Slice(sizeof(ushort), ptLength);
+        }
+
+
         public static void Encrypt(
-            this INostrCrypto lib, 
-            ref readonly NCSecretKey secretKey, 
-            ref readonly NCPublicKey publicKey, 
-            ReadOnlySpan<byte> nonce32, 
-            ReadOnlySpan<byte> plainText, 
+            this INostrCrypto lib,
+            ref readonly NCSecretKey secretKey,
+            ref readonly NCPublicKey publicKey,
+            ReadOnlySpan<byte> nonce32,
+            ReadOnlySpan<byte> plainText,
             Span<byte> hmackKeyOut32,
             Span<byte> cipherText
         )
         {
             ArgumentNullException.ThrowIfNull(lib);
-            
+
             //Chacha requires the output buffer to be at-least the size of the input buffer
             ArgumentOutOfRangeException.ThrowIfGreaterThan(plainText.Length, cipherText.Length, nameof(plainText));
 
@@ -113,11 +151,11 @@ namespace NVault.Crypto.Noscrypt
 
             //Encrypt data, use the plaintext buffer size as the data size
             lib.Encrypt(
-                in secretKey, 
+                in secretKey,
                 in publicKey,
                 in MemoryMarshal.GetReference(nonce32),
                 in MemoryMarshal.GetReference(plainText),
-                ref MemoryMarshal.GetReference(cipherText), 
+                ref MemoryMarshal.GetReference(cipherText),
                 (uint)plainText.Length,
                 ref MemoryMarshal.GetReference(hmackKeyOut32)
             );
@@ -128,7 +166,7 @@ namespace NVault.Crypto.Noscrypt
             ref NCSecretKey secretKey,
             ref NCPublicKey publicKey,
             void* nonce32,
-            void* hmacKeyOut32, 
+            void* hmacKeyOut32,
             void* plainText,
             void* cipherText,
             uint size
@@ -149,14 +187,14 @@ namespace NVault.Crypto.Noscrypt
                 new Span<byte>(cipherText, (int)size)
             );
         }
-     
+
 
         public static void Decrypt(
-            this INostrCrypto lib, 
-            ref readonly NCSecretKey secretKey, 
-            ref readonly NCPublicKey publicKey, 
-            ReadOnlySpan<byte> nonce32, 
-            ReadOnlySpan<byte> cipherText, 
+            this INostrCrypto lib,
+            ref readonly NCSecretKey secretKey,
+            ref readonly NCPublicKey publicKey,
+            ReadOnlySpan<byte> nonce32,
+            ReadOnlySpan<byte> cipherText,
             Span<byte> plainText
         )
         {
@@ -170,28 +208,28 @@ namespace NVault.Crypto.Noscrypt
 
             //Decrypt data, use the ciphertext buffer size as the data size
             lib.Decrypt(
-                in secretKey, 
-                in publicKey, 
-                in MemoryMarshal.GetReference(nonce32), 
-                in MemoryMarshal.GetReference(cipherText), 
-                ref MemoryMarshal.GetReference(plainText), 
+                in secretKey,
+                in publicKey,
+                in MemoryMarshal.GetReference(nonce32),
+                in MemoryMarshal.GetReference(cipherText),
+                ref MemoryMarshal.GetReference(plainText),
                 (uint)cipherText.Length
             );
         }
 
         public static unsafe void Decrypt(
-            this INostrCrypto lib, 
-            ref readonly NCSecretKey secretKey, 
-            ref readonly NCPublicKey publicKey, 
-            void* nonce32, 
-            void* cipherText, 
-            void* plainText, 
+            this INostrCrypto lib,
+            ref readonly NCSecretKey secretKey,
+            ref readonly NCPublicKey publicKey,
+            void* nonce32,
+            void* cipherText,
+            void* plainText,
             uint size
         )
         {
             ArgumentNullException.ThrowIfNull(nonce32);
             ArgumentNullException.ThrowIfNull(cipherText);
-            ArgumentNullException.ThrowIfNull(plainText);            
+            ArgumentNullException.ThrowIfNull(plainText);
 
             //Spans are easer to forward references from pointers without screwing up arguments
             Decrypt(
@@ -205,11 +243,11 @@ namespace NVault.Crypto.Noscrypt
         }
 
         public static bool VerifyMac(
-            this INostrCrypto lib, 
-            ref readonly NCSecretKey secretKey, 
-            ref readonly NCPublicKey publicKey, 
-            ReadOnlySpan<byte> nonce32, 
-            ReadOnlySpan<byte> mac32, 
+            this INostrCrypto lib,
+            ref readonly NCSecretKey secretKey,
+            ref readonly NCPublicKey publicKey,
+            ReadOnlySpan<byte> nonce32,
+            ReadOnlySpan<byte> mac32,
             ReadOnlySpan<byte> payload
         )
         {
@@ -220,22 +258,22 @@ namespace NVault.Crypto.Noscrypt
 
             //Verify the HMAC
             return lib.VerifyMac(
-                in secretKey, 
-                in publicKey, 
-                in MemoryMarshal.GetReference(nonce32), 
-                in MemoryMarshal.GetReference(mac32), 
-                in MemoryMarshal.GetReference(payload), 
+                in secretKey,
+                in publicKey,
+                in MemoryMarshal.GetReference(nonce32),
+                in MemoryMarshal.GetReference(mac32),
+                in MemoryMarshal.GetReference(payload),
                 payload.Length
             );
         }
 
         public static unsafe bool VerifyMac(
-            this INostrCrypto lib, 
-            ref readonly NCSecretKey secretKey, 
-            ref readonly NCPublicKey publicKey, 
-            void* nonce32, 
-            void* mac32, 
-            void* payload, 
+            this INostrCrypto lib,
+            ref readonly NCSecretKey secretKey,
+            ref readonly NCPublicKey publicKey,
+            void* nonce32,
+            void* mac32,
+            void* payload,
             uint payloadSize
         )
         {
@@ -253,5 +291,34 @@ namespace NVault.Crypto.Noscrypt
                 new Span<byte>(payload, (int)payloadSize)
             );
         }
+
+#if DEBUG
+        /*
+         * Conversation key is not meant to be a public api. Callers 
+         * should use Encrypt/Decrypt methods to handle encryption.
+         * 
+         * This method exists for vector testing purposes only.
+         */
+        public static void GetConverstationKey(
+            this NostrCrypto lib,
+            ref readonly NCSecretKey secretKey,
+            ref readonly NCPublicKey publicKey,
+            Span<byte> conversationKeyOut32
+        )
+        {
+            ArgumentNullException.ThrowIfNull(lib);
+            ArgumentOutOfRangeException.ThrowIfNotEqual(conversationKeyOut32.Length, NC_CONVERSATION_KEY_SIZE, nameof(conversationKeyOut32));
+
+            //Get the conversation key
+            lib.GetConverstationKey(
+                in secretKey,
+                in publicKey,
+                ref MemoryMarshal.GetReference(conversationKeyOut32)
+            );
+
+        }
+#endif
+
     }
+
 }

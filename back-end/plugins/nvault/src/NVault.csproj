@@ -21,9 +21,9 @@
 
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="11.9.0" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0050" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0050" />
-    <PackageReference Include="VNLib.Plugins.Extensions.Loading.Sql" Version="0.1.0-ci0050" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Data" Version="0.1.0-ci0053" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Validation" Version="0.1.0-ci0053" />
+    <PackageReference Include="VNLib.Plugins.Extensions.Loading.Sql" Version="0.1.0-ci0053" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,11 +37,9 @@
     </None>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Update="NVault.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
 
+  <Target Condition="'$(BuildingInsideVisualStudio)' == true" Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="start xcopy &quot;$(TargetDir)&quot; &quot;F:\Programming\VNLib\devplugins\NVault&quot; /E /Y /R" />
+  </Target>
   
 </Project>

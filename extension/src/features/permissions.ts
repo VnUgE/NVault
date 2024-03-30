@@ -61,7 +61,7 @@ export type MfaUpdateResult = TotpUpdateMessage
 export interface PermissionApi extends FeatureApi, Watchable {
     getRequests(): Promise<PermissionRequest[]>   
     allow(requestId: string, addRule: CreateRuleType): Promise<void>
-    deny(requestId: string): Promise<void>
+    deny(requestId: string, addRule: CreateRuleType): Promise<void>
     clearRequests(): Promise<void>
     requestAndWaitResult(request: Partial<PermissionRequest>): Promise<PrStatus>
 
@@ -155,6 +155,7 @@ const useRuleSet = (slot: Ref<RuleSlot>) => {
 
 const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useRuleSet>) => {
 
+    //Get the page html for the popup to show
     const permPopupUrl = runtime.getURL("src/entries/contentScript/auth-popup.html")
 
     defaults(slot.value, { requests: [] })
@@ -297,7 +298,7 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
             updateRequest(request, addRule)
         },
 
-        deny(requestId: string): void {
+        deny(requestId: string, addRule: CreateRuleType): void {
             const request = getRequest(requestId)
             if (!request) {
                 throw new Error("Request not found")
@@ -305,7 +306,7 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
             //set denied
             (request as Mutable<PermissionRequest>).status = PrStatus.Denied
             //update request
-            updateRequest(request, CreateRuleType.AllowOnce)
+            updateRequest(request, addRule)
         },
 
         clearAll: () => {
@@ -345,8 +346,8 @@ export const usePermissionApi = (): IFeatureExport<AppSettings, PermissionApi> =
 
                 getRequests: () =>  Promise.resolve(permissions.getAll()),
 
-                deny(requestId: string) {
-                    permissions.deny(requestId)
+                deny(requestId: string, addRule: CreateRuleType) {
+                    permissions.deny(requestId, addRule)
                     return Promise.resolve()
                 },
 
@@ -362,7 +363,7 @@ export const usePermissionApi = (): IFeatureExport<AppSettings, PermissionApi> =
                 }),
 
                 async requestAndWaitResult(request: Partial<PermissionRequest>) {
-                    
+
                     debugLog("Requesting permission", request)
 
                     //push request and show popup only if enabled

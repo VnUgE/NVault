@@ -13,17 +13,15 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-using static NVault.Crypto.Noscrypt.LibNoscrypt;
-
 namespace NVault.Crypto.Noscrypt
 {
     internal unsafe struct NCMacVerifyArgs
     {
         /* The message authentication code certifying the Nip44 payload */
-        public fixed byte mac[NC_ENCRYPTION_MAC_SIZE];
+        public byte* mac;
 
         /* The nonce used for the original message encryption */
-        public fixed byte nonce[NC_ENCRYPTION_NONCE_SIZE];
+        public byte* nonce;
 
         /* The message payload data */
         public byte* payload;

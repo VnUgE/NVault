@@ -14,12 +14,15 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Diagnostics.CodeAnalysis;
 
 using VNLib.Utils;
 
 using NCResult = System.Int64;
 using static NVault.Crypto.Noscrypt.LibNoscrypt;
+
 
 namespace NVault.Crypto.Noscrypt
 {
@@ -41,7 +44,7 @@ namespace NVault.Crypto.Noscrypt
         public void Decrypt(
             ref readonly NCSecretKey secretKey, 
             ref readonly NCPublicKey publicKey, 
-            ref readonly byte nonce, 
+            ref readonly byte nonce32, 
             ref readonly byte cipherText, 
             ref byte plainText, 
             uint size
@@ -49,27 +52,22 @@ namespace NVault.Crypto.Noscrypt
         {
             Check();
 
-            IntPtr libCtx = context.DangerousGetHandle();
-
-            NCCryptoData data = default;
-            data.dataSize = size;
-
-            //Copy nonce to struct memory buffer
-            Unsafe.CopyBlock(
-                ref Unsafe.AsRef<byte>(data.nonce),
-                in nonce,
-                NC_ENCRYPTION_NONCE_SIZE
-            );
-
+            ThrowIfNullRef(in nonce32, nameof(nonce32));
+        
             fixed (NCSecretKey* pSecKey = &secretKey)
             fixed (NCPublicKey* pPubKey = &publicKey)
-            fixed (byte* pCipherText = &cipherText, pTextPtr = &plainText)
+            fixed (byte* pCipherText = &cipherText, pTextPtr = &plainText, pNonce = &nonce32)
             {
-                //Set input data to the cipher text to decrypt and the output data to the plaintext buffer
-                data.inputData = pCipherText;
-                data.outputData = pTextPtr;
+                NCCryptoData data = new()
+                {
+                     //Set input data to the cipher text to decrypt and the output data to the plaintext buffer
+                    dataSize = size,                
+                    inputData = pCipherText,
+                    outputData = pTextPtr,
+                    nonce = pNonce
+                };
 
-                NCResult result = Functions.NCDecrypt.Invoke(libCtx, pSecKey, pPubKey, &data);
+                NCResult result = Functions.NCDecrypt.Invoke(context.DangerousGetHandle(), pSecKey, pPubKey, &data);
                 NCUtil.CheckResult<FunctionTable.NCDecryptDelegate>(result, true);
             }
         }
@@ -77,37 +75,32 @@ namespace NVault.Crypto.Noscrypt
         ///<inheritdoc/>
         public void Encrypt(
             ref readonly NCSecretKey secretKey,
-            ref readonly NCPublicKey publicKey, 
-            ref readonly byte nonce, 
-            ref readonly byte plainText, 
-            ref byte cipherText, 
+            ref readonly NCPublicKey publicKey,
+            ref readonly byte nonce32,
+            ref readonly byte plainText,
+            ref byte cipherText,
             uint size,
             ref byte hmackKeyOut32
         )
         {
             Check();
 
-            IntPtr libCtx = context.DangerousGetHandle();
-
-            NCCryptoData data = default;
-            data.dataSize = size;
-
-            //Copy nonce to struct memory buffer           
-            Unsafe.CopyBlock(
-                ref Unsafe.AsRef<byte>(data.nonce), 
-                in nonce, 
-                NC_ENCRYPTION_NONCE_SIZE
-            );
-
+            ThrowIfNullRef(in nonce32, nameof(nonce32));
+           
             fixed (NCSecretKey* pSecKey = &secretKey)
             fixed (NCPublicKey* pPubKey = &publicKey)
-            fixed (byte* pCipherText = &cipherText, pTextPtr = &plainText, pHmacKeyOut = &hmackKeyOut32)
+            fixed (byte* pCipherText = &cipherText, pTextPtr = &plainText, pHmacKeyOut = &hmackKeyOut32, pNonce = &nonce32)
             {
-                //Set input data to the plaintext to encrypt and the output data to the cipher text buffer
-                data.inputData = pTextPtr;
-                data.outputData = pCipherText;
+                NCCryptoData data = new()
+                {
+                    dataSize = size,
+                    //Set input data to the plaintext to encrypt and the output data to the cipher text buffer
+                    inputData = pTextPtr,
+                    outputData = pCipherText,
+                    nonce = pNonce
+                };
 
-                NCResult result = Functions.NCEncrypt.Invoke(libCtx, pSecKey, pPubKey, pHmacKeyOut, &data);
+                NCResult result = Functions.NCEncrypt.Invoke(context.DangerousGetHandle(), pSecKey, pPubKey, pHmacKeyOut, &data);
                 NCUtil.CheckResult<FunctionTable.NCEncryptDelegate>(result, true);
             }
         }
@@ -117,12 +110,10 @@ namespace NVault.Crypto.Noscrypt
         {
             Check();
 
-            IntPtr libCtx = context.DangerousGetHandle();
-
             fixed(NCSecretKey* pSecKey = &secretKey)
             fixed(NCPublicKey* pPubKey = &publicKey)
             {
-                NCResult result = Functions.NCGetPublicKey.Invoke(libCtx, pSecKey, pPubKey);
+                NCResult result = Functions.NCGetPublicKey.Invoke(context.DangerousGetHandle(), pSecKey, pPubKey);
                 NCUtil.CheckResult<FunctionTable.NCGetPublicKeyDelegate>(result, true);
             }
         }
@@ -137,13 +128,11 @@ namespace NVault.Crypto.Noscrypt
         )
         {
             Check();
-
-            IntPtr libCtx = context.DangerousGetHandle();
-
+       
             fixed (NCSecretKey* pSecKey = &secretKey)
             fixed(byte* pData = &data, pSig = &sig64, pRandom = &random32)
             {
-                NCResult result = Functions.NCSignData.Invoke(libCtx, pSecKey, pRandom, pData, dataSize, pSig);
+                NCResult result = Functions.NCSignData.Invoke(context.DangerousGetHandle(), pSecKey, pRandom, pData, dataSize, pSig);
                 NCUtil.CheckResult<FunctionTable.NCSignDataDelegate>(result, true);
             }
         }
@@ -178,13 +167,11 @@ namespace NVault.Crypto.Noscrypt
         )
         {
             Check();
-
-            IntPtr libCtx = context.DangerousGetHandle();
             
             fixed(NCPublicKey* pPubKey = &pubKey)
             fixed (byte* pData = &data, pSig = &sig64)
             {
-                NCResult result = Functions.NCVerifyData.Invoke(libCtx, pPubKey, pData, dataSize, pSig);
+                NCResult result = Functions.NCVerifyData.Invoke(context.DangerousGetHandle(), pPubKey, pData, dataSize, pSig);
                 NCUtil.CheckResult<FunctionTable.NCVerifyDataDelegate>(result, false);
 
                 return result == NC_SUCCESS;
@@ -204,50 +191,25 @@ namespace NVault.Crypto.Noscrypt
             Check();
 
             //Check pointers we need to use
-            if(Unsafe.IsNullRef(in nonce32))
+            ThrowIfNullRef(in nonce32, nameof(nonce32));
+            ThrowIfNullRef(in mac32, nameof(mac32));
+            ThrowIfNullRef(in payload, nameof(payload));
+
+            fixed (NCSecretKey* pSecKey = &secretKey)
+            fixed (NCPublicKey* pPubKey = &publicKey)
+            fixed (byte* pPayload = &payload, pMac = &mac32, pNonce = &nonce32)
             {
-                throw new ArgumentNullException(nameof(nonce32));
-            }
 
-            if(Unsafe.IsNullRef(in mac32))
-            {
-                throw new ArgumentNullException(nameof(mac32));
-            }
-
-            if(Unsafe.IsNullRef(in payload))
-            {
-                throw new ArgumentNullException(nameof(payload));
-            }
-
-            IntPtr libCtx = context.DangerousGetHandle();
-
-            NCMacVerifyArgs args = new()
-            {
-                payloadSize = payloadSize,
-            };
-
-            //Copy nonce to struct memory buffer
-            Unsafe.CopyBlock(
-                ref Unsafe.AsRef<byte>(args.nonce), 
-                in nonce32, 
-                NC_ENCRYPTION_NONCE_SIZE
-            );
-
-            //Copy mac to struct memory buffer
-            Unsafe.CopyBlock(
-                ref Unsafe.AsRef<byte>(args.mac), 
-                in mac32, 
-                NC_ENCRYPTION_MAC_SIZE
-            );
-
-            fixed(NCSecretKey* pSecKey = &secretKey)
-            fixed(NCPublicKey* pPubKey = &publicKey)
-            fixed (byte* pPayload = &payload)
-            {
-                args.payload = pPayload;
+                NCMacVerifyArgs args = new()
+                {
+                    payloadSize = payloadSize,
+                    payload = pPayload,
+                    mac = pMac,
+                    nonce = pNonce
+                };
 
                 //Exec and bypass failure
-                NCResult result = Functions.NCVerifyMac.Invoke(libCtx, pSecKey, pPubKey, &args);
+                NCResult result = Functions.NCVerifyMac.Invoke(context.DangerousGetHandle(), pSecKey, pPubKey, &args);
                 NCUtil.CheckResult<FunctionTable.NCVerifyMacDelegate>(result, false);
 
                 //Result should be success if the hmac is valid
@@ -255,7 +217,23 @@ namespace NVault.Crypto.Noscrypt
             }
         }
 
-      
+        [Conditional("DEBUG")]
+        public void GetConverstationKey(
+            ref readonly NCSecretKey secretKey,
+            ref readonly NCPublicKey publicKey,
+            ref byte key32
+        )
+        {
+            Check();
+
+            fixed (NCSecretKey* pSecKey = &secretKey)
+            fixed (NCPublicKey* pPubKey = &publicKey)
+            fixed (byte* pKey = &key32)
+            {
+                NCResult result = Functions.NCGetConversationKey.Invoke(context.DangerousGetHandle(), pSecKey, pPubKey, pKey);
+                NCUtil.CheckResult<FunctionTable.NCGetConversationKeyDelegate>(result, true);
+            }
+        }
 
         ///<inheritdoc/>
         protected override void Free()
@@ -263,6 +241,14 @@ namespace NVault.Crypto.Noscrypt
             if(ownsContext)
             {
                 context.Dispose();
+            }
+        }
+        
+        private static void ThrowIfNullRef([DoesNotReturnIf(false)] ref readonly byte value, string name)
+        {
+            if(Unsafe.IsNullRef(in value))
+            {
+                throw new ArgumentNullException(name);
             }
         }
     }
