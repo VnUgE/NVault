@@ -47,12 +47,16 @@ namespace NVault.Crypto.Noscrypt
         public const int NC_CONVERSATION_KEY_SIZE = 32;
         public const int CTX_ENTROPY_SIZE = 32;
 
+        public const uint NC_ENC_VERSION_NIP04 = 0x00000004u;
+        public const uint NC_ENC_VERSION_NIP44 = 0x00000002c;
+
         public const NCResult NC_SUCCESS = 0;
         public const byte E_NULL_PTR = 0x01;
         public const byte E_INVALID_ARG = 0x02;
         public const byte E_INVALID_CTX = 0x03;
         public const byte E_ARGUMENT_OUT_OF_RANGE = 0x04;      
         public const byte E_OPERATION_FAILED = 0x05;
+        public const byte E_VERSION_NOT_SUPPORTED = 0x06;
 
         private readonly FunctionTable _functions = FunctionTable.BuildFunctionTable(Library);
 

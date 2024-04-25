@@ -1,3 +1,49 @@
+<script setup lang="ts">
+import { computed, watchEffect } from "vue";
+import { storeToRefs } from "pinia";
+import { useStore } from "../../store";
+import { apiCall, configureNotifier } from "@vnuge/vnlib.browser";
+import { useClipboard, useToggle } from '@vueuse/core'
+import { map } from "lodash";
+import { notify } from "@kyvg/vue3-notification";
+import { runtime } from "webextension-polyfill";
+import Login from "./Login.vue";
+import IdentitySelection from "./IdentitySelection.vue";
+
+configureNotifier({ notify, close: notify.close })
+
+const store = useStore()
+const { loggedIn, selectedKey, userName, isTabAllowed, currentOrigin, isOriginProtectionOn } = storeToRefs(store)
+const { copy, copied } = useClipboard()
+const { rulesForCurrentOrigin } = store.permissions.getRules()
+
+const darkMode = computed({
+  get: () => store.preferences.darkMode,
+  set: (value) => store.setPreferences({ darkMode: value })
+})
+
+const toggleDark = useToggle(darkMode)
+
+const pubKey = computed(() => selectedKey!.value?.PublicKey)
+const ruleTypes = computed<string[]>(() => map(rulesForCurrentOrigin.value, 'type'))
+
+const openOptions = () => runtime.openOptionsPage();
+
+//Watch for dark mode changes and update the body class
+watchEffect(() => darkMode.value ? document.body.classList.add('dark') : document.body.classList.remove('dark'));
+
+const logout = () => {
+  apiCall(async ({ toaster }) => {
+    await store.plugins.user.logout()
+    toaster.general.success({
+      'title': 'Success',
+      'text': 'You have been logged out'
+    })
+  })
+}
+
+</script>
+
 <template>
   <div id="injected-root" class="flex flex-col text-left w-[20rem] min-h-[25rem]">
 
@@ -18,7 +64,7 @@
         </button>
       </div>
       <div class="my-auto">
-        <button class="rounded btn xs" @click="toggleDark">
+        <button class="rounded btn xs" @click="toggleDark()">
           <fa-icon class="w-4" v-if="darkMode" icon="sun" />
           <fa-icon class="w-4" v-else icon="moon" />
         </button>
@@ -113,44 +159,3 @@
 
   </div>
 </template>
-
-<script setup lang="ts">
-import { computed, watchEffect } from "vue";
-import { storeToRefs } from "pinia";
-import { useStore } from "../../store";
-import { apiCall, configureNotifier } from "@vnuge/vnlib.browser";
-import { useClipboard } from '@vueuse/core'
-import { map } from "lodash";
-import { notify } from "@kyvg/vue3-notification";
-import { runtime } from "webextension-polyfill";
-import Login from "./Login.vue";
-import IdentitySelection from "./IdentitySelection.vue";
-
-configureNotifier({notify, close:notify.close})
-
-const store = useStore()
-const { loggedIn, selectedKey, userName, darkMode, isTabAllowed, currentOrigin, isOriginProtectionOn } = storeToRefs(store)
-const { copy, copied } = useClipboard()
-const { rulesForCurrentOrigin } = store.permissions.getRules()
-
-const pubKey = computed(() => selectedKey!.value?.PublicKey)
-
-const ruleTypes = computed<string[]>(() => map(rulesForCurrentOrigin.value, 'type'))
-
-const openOptions = () => runtime.openOptionsPage();
-const toggleDark = () => store.toggleDarkMode()
-
-//Watch for dark mode changes and update the body class
-watchEffect(() => darkMode.value ? document.body.classList.add('dark') : document.body.classList.remove('dark'));
-
-const logout = () =>{
-  apiCall(async ({ toaster }) =>{
-    await store.plugins.user.logout()
-    toaster.general.success({
-      'title':'Success',
-      'text': 'You have been logged out'
-    })
-  })
-}
-
-</script>

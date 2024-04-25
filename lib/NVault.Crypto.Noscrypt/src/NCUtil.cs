@@ -169,6 +169,15 @@ namespace NVault.Crypto.Noscrypt
                 case E_OPERATION_FAILED:
                     RaiseOperationFailedException(raiseOnFailure);
                     break;
+                case E_VERSION_NOT_SUPPORTED:
+                    throw new NotSupportedException("The requested version is not supported");
+
+                default:
+                    if(raiseOnFailure)
+                    {
+                        throw new InvalidOperationException($"The operation failed for an unknown reason, code: {errorCode:x}");
+                    }
+                    break;
 
             }
         }

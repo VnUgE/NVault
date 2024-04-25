@@ -332,10 +332,10 @@ export const usePermissionApi = (): IFeatureExport<AppSettings, PermissionApi> =
         background: ({ state }: BgRuntime<AppSettings>): PermissionApi => {
             const { loggedIn } = useSession();
             const { currentConfig } = state
-
-            //Open storage slot for permissions
+           
+            //Open lcoal storage slot for permissions, and server slot for shared rules
             const reqStore = state.useStorageSlot<PermissionSlot>("permissions", { requests: [] })
-            const ruleStore = state.useStorageSlot<RuleSlot>("rules", { rules: [] })
+            const { state: ruleStore } = state.useServerSlot('nvault-site-rules', true, { rules: [] })
 
             //init rules api
             const ruleSet = useRuleSet(ruleStore)

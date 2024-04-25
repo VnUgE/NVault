@@ -15,10 +15,10 @@
 
 import { tabs, type Tabs } from "webextension-polyfill";
 import { Watchable } from "./types";
-import { defaultTo, filter, includes, isEqual } from "lodash";
+import { defaultTo, includes, defer } from "lodash";
 import { BgRuntime, FeatureApi, IFeatureExport, exportForegroundApi, popupAndOptionsOnly } from "./framework";
 import { AppSettings } from "./settings";
-import { set, get, toRefs } from "@vueuse/core";
+import { set, get, toRefs, watchDebounced, watchThrottled, controlledRef } from "@vueuse/core";
 import { computed, shallowRef } from "vue";
 import { waitForChangeFn, push, remove } from "./util";
 
@@ -44,13 +44,20 @@ export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlis
     return {
         background: ({ state }: BgRuntime<AppSettings>) => {
 
-            const store = state.useStorageSlot<AllowedSites>('nip07-allowlist', { origins: [], enabled: true });
+            const { state: store, sync } = state.useServerSlot<AllowedSites>('nvault-site-whitelist', true, { origins: [], enabled: true });
             const { origins, enabled } = toRefs(store)
 
             const { currentOrigin, currentTab } = (() => {
 
                 const currentTab = shallowRef<Tabs.Tab | undefined>(undefined)
-                const currentOrigin = computed(() => currentTab.value?.url ? new URL(currentTab.value.url).origin : undefined)
+                const currentOrigin = computed(() => {
+                    try{
+                        return new URL(currentTab.value!.url!).origin 
+                    }
+                    catch{
+                        return ''
+                    }
+                })
 
                 //Watch for changes to the current tab
                 tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -126,7 +133,9 @@ export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlis
                     await tabs.reload(currentTab.value?.id)
                 }
             }
-
+           
+            watchThrottled([currentTab], sync, { throttle: 10000 })
+            
             return {
                 waitForChange: waitForChangeFn([currentTab, enabled, origins]),
                 addOrigin: popupAndOptionsOnly(addOrigin),

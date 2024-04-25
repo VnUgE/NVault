@@ -93,16 +93,16 @@ namespace NVault.Crypto.Noscrypt
         internal delegate NCResult NCValidateSecretKeyDelegate(IntPtr ctx, NCSecretKey* secKey);
 
         [SafeMethodName("NCSignData")]
-        internal delegate NCResult NCSignDataDelegate(IntPtr ctx, NCSecretKey* sk, byte* random32, byte* data, nint dataSize, byte* sig64);
+        internal delegate NCResult NCSignDataDelegate(IntPtr ctx, NCSecretKey* sk, byte* random32, byte* data, uint dataSize, byte* sig64);
 
         [SafeMethodName("NCVerifyData")]
-        internal delegate NCResult NCVerifyDataDelegate(IntPtr ctx, NCPublicKey* sk, byte* data, nint dataSize, byte* sig64);
+        internal delegate NCResult NCVerifyDataDelegate(IntPtr ctx, NCPublicKey* sk, byte* data, uint dataSize, byte* sig64);
 
         [SafeMethodName("NCEncrypt")]
-        internal delegate NCResult NCEncryptDelegate(IntPtr ctx, NCSecretKey* sk, NCPublicKey* pk, byte* hmacKeyOut32, NCCryptoData* data);
+        internal delegate NCResult NCEncryptDelegate(IntPtr ctx, NCSecretKey* sk, NCPublicKey* pk, NCEncryptionArgs* data);
 
         [SafeMethodName("NCDecrypt")]
-        internal delegate NCResult NCDecryptDelegate(IntPtr ctx, NCSecretKey* sk, NCPublicKey* pk, NCCryptoData* data);
+        internal delegate NCResult NCDecryptDelegate(IntPtr ctx, NCSecretKey* sk, NCPublicKey* pk, NCEncryptionArgs* data);
 
         [SafeMethodName("NCVerifyMac")]
         internal delegate NCResult NCVerifyMacDelegate(IntPtr ctx, NCSecretKey* sk, NCPublicKey* pk, NCMacVerifyArgs* args);

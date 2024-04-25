@@ -1,7 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using System;
-using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
 using System.Runtime.CompilerServices;
@@ -228,12 +227,12 @@ namespace NVault.Crypto.Noscrypt.Tests
                 nc.GetPublicKey(in NCUtil.AsSecretKey(secKey2), ref pub2);
 
                 bool success = nc.VerifyMac(
-                        in NCUtil.AsSecretKey(secKey1),
-                        in pub2,
-                        nip44Message.Nonce,
-                        nip44Message.Mac,
-                        nip44Message.NonceAndCiphertext
-                    );
+                    in NCUtil.AsSecretKey(secKey1),
+                    in pub2,
+                    nip44Message.Nonce,
+                    nip44Message.Mac,
+                    nip44Message.NonceAndCiphertext
+                );
 
                 if (!success)
                 {

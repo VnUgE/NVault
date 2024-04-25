@@ -1,3 +1,88 @@
+<script setup lang="ts">
+import { computed, ref, watchEffect } from "vue";
+import {
+  TabGroup,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
+} from '@headlessui/vue'
+import { apiCall, configureNotifier } from '@vnuge/vnlib.browser';
+import { storeToRefs } from "pinia";
+import { useQuery, type NostrPubKey } from '../../features/';
+import { notify } from "@kyvg/vue3-notification";
+import { useToggle } from "@vueuse/core";
+import { toSafeInteger } from "lodash";
+import { useStore } from "../store";
+import Account from "./components/Account.vue";
+import ConfirmPrompt from "../../components/ConfirmPrompt.vue";
+import PasswordPrompt from "../../components/PasswordPrompt.vue";
+import Activity from "./components/Activity.vue";
+import SiteSettings from './components/SiteSettings.vue';
+import Identities from './components/Identities.vue';
+import Privacy from "./components/Privacy.vue";
+
+
+//Configure the notifier to use the notification library
+configureNotifier({ notify, close: notify.close })
+
+const store = useStore()
+const { identity } = store.plugins
+const { allKeys, userName } = storeToRefs(store)
+
+const keyBuffer = ref<Partial<NostrPubKey>>({} as NostrPubKey)
+
+const darkMode = computed({
+  get: () => !!store.preferences.darkMode,
+  set: (value) => store.setPreferences({ darkMode: value })
+})
+
+const toggleDark = useToggle(darkMode)
+
+const tabIdQuery = useQuery('t')
+const selectTab = (id: number) => tabIdQuery.set(id.toString())
+const selectedTab = computed({
+  get: () => toSafeInteger(tabIdQuery.asRef.value) || 0,
+  set: (value) => selectTab(value)
+});
+
+const editKey = (key: NostrPubKey) => {
+  //Goto hidden tab
+  selectedTab.value = 5
+  //Set selected key
+  keyBuffer.value = { ...key }
+}
+
+const doneEditing = () => {
+  //Goto hidden tab
+  selectedTab.value = 0
+  //Set selected key
+  keyBuffer.value = {}
+}
+
+const onUpdate = async () => {
+
+  await apiCall(async ({ toaster }) => {
+    //Update identity
+    await identity.updateIdentity(keyBuffer.value)
+    //Show success
+    toaster.general.success({
+      'title': 'Success',
+      'text': `Successfully updated ${keyBuffer.value!.UserName}`
+    })
+  })
+
+  //Goto hidden tab
+  selectedTab.value = 0
+  //Set selected key
+  keyBuffer.value = {}
+}
+
+//Watch for dark mode changes and update the body class
+watchEffect(() => darkMode.value ? document.body.classList.add('dark') : document.body.classList.remove('dark'));
+
+</script>
+
 <template>
   <main id="injected-root">
     
@@ -114,83 +199,6 @@
     </div>
   </main>
 </template>
-
-<script setup lang="ts">
-import { computed, ref, watchEffect } from "vue";
-import { 
-  TabGroup,
-  TabList,
-  Tab,
-  TabPanels,
-  TabPanel,
-} from '@headlessui/vue'
-import { apiCall, configureNotifier } from '@vnuge/vnlib.browser';
-import { storeToRefs } from "pinia";
-import { useQuery, type NostrPubKey } from '../../features/';
-import { notify } from "@kyvg/vue3-notification";
-import { toSafeInteger } from "lodash";
-import { useStore } from "../store";
-import Account from "./components/Account.vue";
-import ConfirmPrompt from "../../components/ConfirmPrompt.vue";
-import PasswordPrompt from "../../components/PasswordPrompt.vue";
-import Activity from "./components/Activity.vue";
-import SiteSettings from './components/SiteSettings.vue';
-import Identities from './components/Identities.vue';
-import Privacy from "./components/Privacy.vue";
-
-
-//Configure the notifier to use the notification library
-configureNotifier({ notify, close: notify.close })
-
-const store = useStore()
-const { identity } = store.plugins
-const { allKeys, darkMode, userName } = storeToRefs(store)
-
-const keyBuffer = ref<Partial<NostrPubKey>>({} as NostrPubKey)
-
-const tabIdQuery = useQuery('t')
-const selectedTab = computed(() => toSafeInteger(tabIdQuery.asRef.value));
-const selectTab = (id: number) => tabIdQuery.set(id.toString())
-
-
-const editKey = (key: NostrPubKey) =>{
-  //Goto hidden tab
-  selectedTab.value = 5
-  //Set selected key
-  keyBuffer.value = { ...key }
-}
-
-const doneEditing = () =>{
-  //Goto hidden tab
-  selectedTab.value = 0
-  //Set selected key
-  keyBuffer.value = {}
-}
-
-const onUpdate = async () =>{
-  
-  await apiCall(async ({ toaster }) => {
-    //Update identity
-    await identity.updateIdentity(keyBuffer.value)
-    //Show success
-    toaster.general.success({
-      'title':'Success',
-      'text': `Successfully updated ${keyBuffer.value!.UserName}`
-    })
-  })
-  
-  //Goto hidden tab
-  selectedTab.value = 0
-  //Set selected key
-  keyBuffer.value = {}
-}
-
-const toggleDark = () => store.toggleDarkMode()
-
-//Watch for dark mode changes and update the body class
-watchEffect(() => darkMode.value ? document.body.classList.add('dark') : document.body.classList.remove('dark'));
-
-</script>
 
 <style lang="scss">
 

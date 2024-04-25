@@ -18,7 +18,7 @@ import { ArrayToHexString, Base64ToUint8Array } from "@vnuge/vnlib.browser/dist/
 import { JsonObject } from "type-fest";
 import { computed, shallowRef } from "vue";
 import { JWK, SignJWT, importJWK } from "jose";
-import { clone } from "lodash";
+import { clone, isEmpty } from "lodash";
 import { FeatureApi, BgRuntime, IFeatureExport, exportForegroundApi, optionsOnly } from "./framework";
 import { AppSettings } from "./settings";
 import { get, set, toRefs, useToggle, watchDebounced } from "@vueuse/core";
@@ -67,8 +67,13 @@ export const usePkiApi = (): IFeatureExport<AppSettings, PkiApi> => {
                     return
                 }
 
+                if(isEmpty(accountPath.value)){
+                    return
+                }
+
                 const res = await pkiConfig.getAllKeys()
                 set(keys, res as PkiPubKey[])
+               
             }, {debounce: 100});
 
             return{
@@ -191,7 +196,7 @@ export const useLocalPki = (): IFeatureExport<AppSettings, LocalPkiApi> => {
 
                     const token = await jwt.setIssuedAt()
                         .setProtectedHeader({ alg: privateKey.value.alg! })
-                        .setIssuer(state.currentConfig.value.apiUrl)
+                        .setIssuer(state.currentConfig.value.discoveryUrl)
                         .setExpirationTime('30s')
                         .sign(privKey)
 

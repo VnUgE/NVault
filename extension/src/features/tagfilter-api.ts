@@ -39,7 +39,7 @@ export const useEventTagFilterApi = (): IFeatureExport<AppSettings, EventTagFilt
         background: ({ state }: BgRuntime<AppSettings>) => {
 
             //use storage
-            const store = state.useStorageSlot<EventTagFilteStorage>('tag-filter-struct', { filters: [], enabled: false });
+            const store = state.useServerSlot<EventTagFilteStorage>('nvault-tag-filter', { filters: [], enabled: false });
 
             const { filters, enabled } = toRefs(store)
 

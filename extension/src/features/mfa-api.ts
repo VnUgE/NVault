@@ -50,6 +50,11 @@ export const useMfaConfigApi = (): IFeatureExport<AppSettings, MfaConfigApi> => 
                     set(mfaEnabledMethods, [])
                     return
                 }
+
+                if(!currentConfig.value.accountBasePath){
+                    return;
+                }
+
                 const methods = await mfaConfig.getMethods()
                 set(mfaEnabledMethods, methods)
             }, { debounce: 100  })
@@ -79,7 +84,7 @@ export const useMfaConfigApi = (): IFeatureExport<AppSettings, MfaConfigApi> => 
         foreground: exportForegroundApi<MfaConfigApi>([
             'waitForChange',
             'getMfaMethods',
-            'enableOrUpdate',            
+            'enableOrUpdate',
             'disableMethod',
             'refresh'
         ]),

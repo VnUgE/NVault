@@ -13,18 +13,19 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-using VNLib.Plugins;
-using VNLib.Plugins.Essentials.Endpoints;
-using VNLib.Plugins.Extensions.Loading;
+using System;
+using System.Runtime.InteropServices;
 
-namespace NVault.Plugins.Vault.Endpoints
+namespace NVault.Crypto.Noscrypt
 {
-    [ConfigurationName("sync")]
-    internal sealed class SettingSyncEndpoint : ProtectedWebEndpoint
+    [StructLayout(LayoutKind.Sequential)]
+    internal unsafe struct NCEncryptionArgs
     {
-        public SettingSyncEndpoint(PluginBase plugin, IConfigScope config)
-        {
-            
-        }
+        public byte* nonce32;
+        public byte* hmacKeyOut32;
+        public byte* inputData;
+        public byte* outputData;
+        public UInt32 dataSize;
+        public UInt32 version;
     }
 }

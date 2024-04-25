@@ -21,9 +21,9 @@ namespace NVault.Crypto.Noscrypt
 
         bool ValidateSecretKey(ref readonly NCSecretKey secretKey);
 
-        void SignData(ref readonly NCSecretKey secretKey, ref readonly byte random32, ref readonly byte data, nint dataSize, ref byte sig64);
+        void SignData(ref readonly NCSecretKey secretKey, ref readonly byte random32, ref readonly byte data, uint dataSize, ref byte sig64);
 
-        bool VerifyData(ref readonly NCPublicKey pubKey, ref readonly byte data, nint dataSize, ref byte sig64);
+        bool VerifyData(ref readonly NCPublicKey pubKey, ref readonly byte data, uint dataSize, ref byte sig64);
 
         bool VerifyMac(
             ref readonly NCSecretKey secretKey, 
@@ -31,7 +31,7 @@ namespace NVault.Crypto.Noscrypt
             ref readonly byte nonce32,
             ref readonly byte mac32,
             ref readonly byte payload,
-            nint payloadSize
+            uint payloadSize
         );
 
         void Encrypt(
@@ -39,7 +39,7 @@ namespace NVault.Crypto.Noscrypt
             ref readonly NCPublicKey publicKey, 
             ref readonly byte nonce, 
             ref readonly byte plainText, 
-            ref byte cipherText, 
+            ref byte cipherText,
             uint size,
             ref byte hmacKeyOut32
         );
@@ -49,7 +49,7 @@ namespace NVault.Crypto.Noscrypt
             ref readonly NCPublicKey publicKey, 
             ref readonly byte nonce, 
             ref readonly byte cipherText, 
-            ref byte plainText, 
+            ref byte plainText,
             uint size
         );
     }

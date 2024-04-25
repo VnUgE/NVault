@@ -14,10 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'pinia'
-import { } from 'lodash'
 import { PiniaPluginContext } from 'pinia'
-import { computed } from 'vue'
+import { computed, shallowRef } from 'vue'
 import type { IMfaFlowContinuiation } from '@vnuge/vnlib.browser'
+import {  } from '@vueuse/core'
 
 import {
     useAuthApi,
@@ -32,20 +32,21 @@ import {
     useInjectAllowList,
     onWatchableChange,
     useMfaConfigApi,
-    usePermissionApi
+    usePermissionApi,
+    usePreferencesApi,
+    type AppPreferences
 } from "../../features"
 
 import type { ChannelContext } from '../../messaging'
 
-export type BgPlugins = ReturnType<typeof usePlugins>
-export type BgPluginState<T> = { plugins: BgPlugins } & T
 
 declare module 'pinia' {
     export interface PiniaCustomProperties {
         plugins: BgPlugins
         mfaStatus: Partial<IMfaFlowContinuiation> | null
         isServerValid: boolean
-        toggleDarkMode: () => void
+        preferences: Readonly<Partial<AppPreferences>>
+        setPreferences: (prefs: Partial<AppPreferences>) => void
     }
 }
 
@@ -64,17 +65,23 @@ const usePlugins = (context: ChannelContext) => {
         tagFilter: use(useEventTagFilterApi),
         allowedOrigins: use(useInjectAllowList),
         mfaConfig: use(useMfaConfigApi),
-        permission: use(usePermissionApi)
+        permission: use(usePermissionApi),
+        preferences: use(usePreferencesApi)
     }
 }
+
+export type BgPlugins = ReturnType<typeof usePlugins>
+export type BgPluginState<T> = { plugins: BgPlugins } & T
 
 export const useBackgroundPiniaPlugin = (context: ChannelContext) => {
     //Create port for context
     const plugins = usePlugins(context)
-    const { user, settings, history } = plugins;
+    const { user, settings, history, preferences } = plugins;
 
     //Plugin store
     return ({ store }: PiniaPluginContext) => {
+
+        const prefs = shallowRef<Partial<AppPreferences>>({})
 
         //watch for status changes
         onWatchableChange(user, async () => {
@@ -97,12 +104,25 @@ export const useBackgroundPiniaPlugin = (context: ChannelContext) => {
             //Load event history
             store.eventHistory = await history.getEvents();
         }, { immediate: true })
+
+        onWatchableChange(preferences, async () => {
+            //Load preferences
+            prefs.value = await preferences.read() || {};
+        }, { immediate: true })
+
+       const setPreferences = async (prefs: Partial<AppPreferences>) => {
+            //get current preferences
+            const current = await preferences.read() || {};
+            console.log('Setting preferences', { ...current, ...prefs })
+            //merge new preferences
+            await preferences.write({ ...current, ...prefs });
+       }
        
         return{
             plugins,
+            preferences: prefs,
             isServerValid: computed(() => store.status.isValid),
-            //Main api functions
-            toggleDarkMode: () => settings.setDarkMode(!store.darkMode)
+            setPreferences
         }
     }
 } 

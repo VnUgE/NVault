@@ -53,12 +53,11 @@ namespace NVault.Plugins.Vault.Endpoints
 
             //We cant get the account's path programatically, so the user will have to configure it manually
             string accountsPath = config.GetRequiredProperty("accounts_path", p => p.GetString()!);
+            string appDataPath = config.GetRequiredProperty("appdata_path", p => p.GetString()!);
 
             IConfigScope vaultEp = plugin.GetConfigForType<Endpoint>();
             string nvaultPath = vaultEp.GetRequiredProperty("path", p => p.GetString()!);
-
-            IConfigScope syncConfig = plugin.GetConfigForType<SettingSyncEndpoint>();
-            string syncPath = syncConfig.GetRequiredProperty("path", p => p.GetString()!);
+         
 
             //Build the discovery result to serialize to json
             NvaultDiscoveryResult res = new()
@@ -67,7 +66,7 @@ namespace NVault.Plugins.Vault.Endpoints
                 Endpoints = [
                     GetEndpoint("accounts", accountsPath),
                     GetEndpoint("nostr", nvaultPath),
-                    GetEndpoint("sync", syncPath)
+                    GetEndpoint("sync", appDataPath)
                 ]
             };
 

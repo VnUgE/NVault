@@ -14,13 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { storage } from "webextension-polyfill"
-import { defaultsDeep, defer, find, isArray, isEmpty } from 'lodash'
-import { configureApi, debugLog } from '@vnuge/vnlib.browser'
-import { computed, MaybeRefOrGetter, readonly, Ref, shallowRef, watch } from "vue";
+import { defaultTo, defaultsDeep, defer, find, isArray, isEmpty, noop } from 'lodash'
+import { configureApi, debugLog, useAppDataApi, useSession } from '@vnuge/vnlib.browser'
+import { computed, type MaybeRef, readonly, Ref, shallowRef, watch } from "vue";
 import { JsonObject } from "type-fest";
 import { Watchable } from "./types";
-import { BgRuntime, FeatureApi, optionsOnly, IFeatureExport, exportForegroundApi, popupAndOptionsOnly } from './framework'
-import { get, set } from "@vueuse/core";
+import { BgRuntime, FeatureApi, optionsOnly, IFeatureExport, exportForegroundApi } from './framework'
+import { get, set, watchDebounced, useToggle, watchThrottled, controlledRef } from "@vueuse/core";
 import { waitForChangeFn, useStorage } from "./util";
 import { ServerApi, useServerApi } from "./server-api";
 
@@ -30,7 +30,6 @@ export interface PluginConfig extends JsonObject {
     readonly maxHistory: number;
     readonly tagFilter: boolean;
     readonly authPopup: boolean;
-    readonly darkMode: boolean;
 }
 
 //Default storage config
@@ -39,27 +38,29 @@ const defaultConfig : PluginConfig = Object.freeze({
     heartbeat: import.meta.env.VITE_HEARTBEAT_ENABLED === 'true',
     maxHistory: 50,
     tagFilter: true,
-    authPopup: true,
-    darkMode: false,
+    authPopup: true
 });
 
 export interface EndpointConfig extends JsonObject {
    readonly apiBaseUrl: string;
    readonly accountBasePath: string;
    readonly nostrBasePath: string;
+   readonly dataSyncPath?: string;
 }
 
 export interface ConfigStatus {
     readonly epConfig: EndpointConfig;
-    readonly isDarkMode: boolean;
     readonly isValid: boolean;
 }
 
 export interface AppSettings{
     saveConfig(config: PluginConfig): void;
-    useStorageSlot<T>(slot: string, defaultValue: MaybeRefOrGetter<T>): Ref<T>;
+    useStorageSlot<T>(slot: string, defaultValue: MaybeRef<T>): Ref<T>;
+    useServerSlot<T>(slot: string, silent: boolean, defaultValue: MaybeRef<T>): {
+        state: Ref<T>,
+        sync: () => void
+    }
     useServerApi(): ServerApi,
-    setDarkMode(darkMode: boolean): void;
     readonly status: Readonly<Ref<ConfigStatus>>;
     readonly currentConfig: Readonly<Ref<PluginConfig>>;
     readonly serverEndpoints: Readonly<Ref<EndpointConfig>>;
@@ -68,7 +69,6 @@ export interface AppSettings{
 export interface SettingsApi extends FeatureApi, Watchable {
     getSiteConfig: () => Promise<PluginConfig>;
     setSiteConfig: (config: PluginConfig) => Promise<PluginConfig>;
-    setDarkMode: (darkMode: boolean) => Promise<void>;
     getStatus: () => Promise<ConfigStatus>;
     testServerAddress: (address: string) => Promise<boolean>;
 }
@@ -88,16 +88,16 @@ const discoverNvaultServer = async (discoveryUrl: string): Promise<ServerDiscove
 export const useAppSettings = (): AppSettings => {
 
     const _storageBackend = storage.local;
-    const _darkMode = shallowRef(false);
     const store = useStorage<PluginConfig>(_storageBackend, 'siteConfig', defaultConfig);
     const endpointConfig = shallowRef<EndpointConfig>({nostrBasePath: '', accountBasePath: '', apiBaseUrl: ''})
+    const syncEndpoint = computed(() => get(endpointConfig).dataSyncPath || '/app-data')
+    const serverSyncApi = useAppDataApi(syncEndpoint);
 
     const status = computed<ConfigStatus>(() => {
         //get current endpoint config
         const { nostrBasePath, accountBasePath } = get(endpointConfig);
         return {
             epConfig: get(endpointConfig),
-            isDarkMode: get(_darkMode),
             isValid: !isEmpty(nostrBasePath) && !isEmpty(accountBasePath)
         }
     })
@@ -109,6 +109,7 @@ export const useAppSettings = (): AppSettings => {
             apiBaseUrl: new URL(discoveryUrl).origin,
             accountBasePath: find(endpoints, p => p.name == "account")?.path || "/account",
             nostrBasePath: find(endpoints, p => p.name == "nostr")?.path || "/nostr",
+            dataSyncPath: find(endpoints, p => p.name == "sync")?.path
         };
 
         //Set once the urls are discovered
@@ -150,11 +151,38 @@ export const useAppSettings = (): AppSettings => {
         saveConfig,
         status, 
         currentConfig: readonly(store),
-        useStorageSlot: <T>(slot: string, defaultValue: MaybeRefOrGetter<T>) => {
+        useStorageSlot: <T>(slot: string, defaultValue: MaybeRef<T>) => {
             return useStorage<T>(_storageBackend, slot, defaultValue)
         },
+        useServerSlot: <T>(slot: string, silent: boolean, defaultValue: MaybeRef<T>) => {
+            const session = useSession();
+
+            const [onManualTrigger, sync] = useToggle()
+            const state = controlledRef<T>(get(defaultValue));
+            
+            const syncFromServer = async () => {
+                if (session.loggedIn.value === false) 
+                    return get(defaultValue);
+                
+                const data = await serverSyncApi.get<T>(slot, false);
+                delete (data as any).getResultOrThrow;
+                return defaultsDeep(data, get(defaultValue))
+            }
+
+            const syncToServer = async (value: T) => {
+                if (session.loggedIn.value === false) return;
+                await serverSyncApi.set(slot, value, false);
+            }
+
+            const syncStateForward = () => defer(syncToServer, state.value)
+            const syncState = async () => silent ? state.silentSet(await syncFromServer()) : state.set(await syncFromServer())
+
+            watchThrottled([endpointConfig, session.loggedIn, onManualTrigger], syncState, { throttle: 500 })
+            watchDebounced(state, syncStateForward, { debounce: 500 })
+
+            return { sync, state }
+        },
         useServerApi: () => serverApi,
-        setDarkMode: (darkMode: boolean) => set(_darkMode, darkMode),
         serverEndpoints: readonly(endpointConfig)
     }
 }
@@ -176,14 +204,10 @@ export const useSettingsApi = () : IFeatureExport<AppSettings, SettingsApi> =>{
                     //Return the config
                     return get(state.currentConfig)
                 }),
-                setDarkMode: popupAndOptionsOnly((darkMode: boolean) => {
-                    state.setDarkMode(darkMode);
-                    return Promise.resolve();
-                }),
                 getStatus: () => {
                     //Since value is computed it needs to be manually unwrapped
-                    const { isDarkMode, isValid, epConfig } = get(state.status);
-                    return Promise.resolve({ isDarkMode, isValid, epConfig })
+                    const { isValid, epConfig } = get(state.status);
+                    return Promise.resolve({ isValid, epConfig })
                 },
                 testServerAddress: optionsOnly(async (url: string) => {
                     const data = await discoverNvaultServer(url)
@@ -194,7 +218,6 @@ export const useSettingsApi = () : IFeatureExport<AppSettings, SettingsApi> =>{
         foreground: exportForegroundApi([
             'getSiteConfig',
             'setSiteConfig',
-            'setDarkMode',
             'waitForChange',
             'getStatus',
             'testServerAddress'

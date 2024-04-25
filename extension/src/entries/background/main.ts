@@ -25,7 +25,8 @@ import {
   useEventTagFilterApi,
   useInjectAllowList,
   useMfaConfigApi,
-  usePermissionApi
+  usePermissionApi,
+  usePreferencesApi
 } from "../../features";
 import { useBackgroundFeatures } from "../../features/framework";
 
@@ -44,5 +45,6 @@ register([
   useEventTagFilterApi,
   useInjectAllowList,
   useMfaConfigApi,
-  usePermissionApi
+  usePermissionApi,
+  usePreferencesApi
 ])

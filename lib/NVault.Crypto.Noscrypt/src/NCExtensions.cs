@@ -38,7 +38,7 @@ namespace NVault.Crypto.Noscrypt
                 in secKey,
                 in MemoryMarshal.GetReference(random32),
                 in MemoryMarshal.GetReference(data),
-                data.Length,
+                (uint)data.Length,
                 ref MemoryMarshal.GetReference(signatureBuffer)
             );
         }

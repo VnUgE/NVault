@@ -263,7 +263,7 @@ namespace NVault.Crypto.Noscrypt
                 in MemoryMarshal.GetReference(nonce32),
                 in MemoryMarshal.GetReference(mac32),
                 in MemoryMarshal.GetReference(payload),
-                payload.Length
+                (uint)payload.Length
             );
         }
 

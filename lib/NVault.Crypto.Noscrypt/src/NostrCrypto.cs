@@ -46,7 +46,7 @@ namespace NVault.Crypto.Noscrypt
             ref readonly NCPublicKey publicKey, 
             ref readonly byte nonce32, 
             ref readonly byte cipherText, 
-            ref byte plainText, 
+            ref byte plainText,
             uint size
         )
         {
@@ -58,13 +58,15 @@ namespace NVault.Crypto.Noscrypt
             fixed (NCPublicKey* pPubKey = &publicKey)
             fixed (byte* pCipherText = &cipherText, pTextPtr = &plainText, pNonce = &nonce32)
             {
-                NCCryptoData data = new()
+                NCEncryptionArgs data = new()
                 {
                      //Set input data to the cipher text to decrypt and the output data to the plaintext buffer
-                    dataSize = size,                
+                    dataSize = size,    
+                    hmacKeyOut32 = null,
                     inputData = pCipherText,
                     outputData = pTextPtr,
-                    nonce = pNonce
+                    nonce32 = pNonce,
+                    version = NC_ENC_VERSION_NIP44
                 };
 
                 NCResult result = Functions.NCDecrypt.Invoke(context.DangerousGetHandle(), pSecKey, pPubKey, &data);
@@ -89,18 +91,20 @@ namespace NVault.Crypto.Noscrypt
            
             fixed (NCSecretKey* pSecKey = &secretKey)
             fixed (NCPublicKey* pPubKey = &publicKey)
-            fixed (byte* pCipherText = &cipherText, pTextPtr = &plainText, pHmacKeyOut = &hmackKeyOut32, pNonce = &nonce32)
+            fixed (byte* pCipherText = &cipherText, pTextPtr = &plainText,  pHmacKeyOut = &hmackKeyOut32, pNonce = &nonce32)
             {
-                NCCryptoData data = new()
+                NCEncryptionArgs data = new()
                 {
-                    dataSize = size,
+                    nonce32 = pNonce,
+                    hmacKeyOut32 = pHmacKeyOut,
                     //Set input data to the plaintext to encrypt and the output data to the cipher text buffer
                     inputData = pTextPtr,
                     outputData = pCipherText,
-                    nonce = pNonce
+                    dataSize = size,
+                    version = NC_ENC_VERSION_NIP44  //Force nip44 encryption
                 };
 
-                NCResult result = Functions.NCEncrypt.Invoke(context.DangerousGetHandle(), pSecKey, pPubKey, pHmacKeyOut, &data);
+                NCResult result = Functions.NCEncrypt.Invoke(context.DangerousGetHandle(), pSecKey, pPubKey, &data);
                 NCUtil.CheckResult<FunctionTable.NCEncryptDelegate>(result, true);
             }
         }
@@ -110,8 +114,8 @@ namespace NVault.Crypto.Noscrypt
         {
             Check();
 
-            fixed(NCSecretKey* pSecKey = &secretKey)
-            fixed(NCPublicKey* pPubKey = &publicKey)
+            fixed (NCSecretKey* pSecKey = &secretKey)
+            fixed (NCPublicKey* pPubKey = &publicKey)
             {
                 NCResult result = Functions.NCGetPublicKey.Invoke(context.DangerousGetHandle(), pSecKey, pPubKey);
                 NCUtil.CheckResult<FunctionTable.NCGetPublicKeyDelegate>(result, true);
@@ -122,15 +126,15 @@ namespace NVault.Crypto.Noscrypt
         public void SignData(
             ref readonly NCSecretKey secretKey, 
             ref readonly byte random32, 
-            ref readonly byte data, 
-            nint dataSize, 
+            ref readonly byte data,
+            uint dataSize, 
             ref byte sig64
         )
         {
             Check();
        
             fixed (NCSecretKey* pSecKey = &secretKey)
-            fixed(byte* pData = &data, pSig = &sig64, pRandom = &random32)
+            fixed (byte* pData = &data, pSig = &sig64, pRandom = &random32)
             {
                 NCResult result = Functions.NCSignData.Invoke(context.DangerousGetHandle(), pSecKey, pRandom, pData, dataSize, pSig);
                 NCUtil.CheckResult<FunctionTable.NCSignDataDelegate>(result, true);
@@ -161,8 +165,8 @@ namespace NVault.Crypto.Noscrypt
         ///<inheritdoc/>
         public bool VerifyData(
             ref readonly NCPublicKey pubKey, 
-            ref readonly byte data, 
-            nint dataSize, 
+            ref readonly byte data,
+            uint dataSize, 
             ref byte sig64
         )
         {
@@ -185,7 +189,7 @@ namespace NVault.Crypto.Noscrypt
             ref readonly byte nonce32, 
             ref readonly byte mac32, 
             ref readonly byte payload, 
-            nint payloadSize
+            uint payloadSize
         )
         {
             Check();
@@ -204,8 +208,8 @@ namespace NVault.Crypto.Noscrypt
                 {
                     payloadSize = payloadSize,
                     payload = pPayload,
-                    mac = pMac,
-                    nonce = pNonce
+                    mac32 = pMac,
+                    nonce32 = pNonce
                 };
 
                 //Exec and bypass failure

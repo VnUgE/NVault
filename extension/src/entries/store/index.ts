@@ -17,8 +17,7 @@ import 'pinia'
 import { } from 'lodash'
 import { defineStore } from 'pinia'
 import { PluginConfig, EventEntry, ConfigStatus } from '../../features/'
-import { computed, shallowRef } from 'vue'
-import { get } from '@vueuse/core'
+import { shallowRef } from 'vue'
 
 export * from './allowedOrigins'
 export * from './features'
@@ -33,14 +32,12 @@ export const useStore = defineStore('main', () => {
     const settings = shallowRef<PluginConfig>({} as PluginConfig)
     const eventHistory = shallowRef<EventEntry[]>([])
     const status = shallowRef<ConfigStatus>({} as ConfigStatus)
-    const darkMode = computed<boolean>(() => get(status).isDarkMode)
    
     return{
         loggedIn,
         userName,
         settings,
         status,
-        darkMode,
         eventHistory
     } 
 })

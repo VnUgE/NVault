@@ -102,7 +102,8 @@ interface PropmtMessage extends PermissionRequest{
 }
 
 const store = useStore()
-const { loggedIn, selectedKey, darkMode } = storeToRefs(store)
+const { loggedIn, selectedKey } = storeToRefs(store)
+const darkMode = computed(() => !!store.preferences.darkMode);
 const keyName = computed(() => selectedKey.value?.UserName)
 
 const prompt = ref(null)
