@@ -20,7 +20,7 @@ This project is probably best explained by the features it has an that need to b
 - ✔ Note encryption/decryption
 - Support a connected, or network based signing hardware
 - Optionally support network based, event authorization applications
-- Server backed event history to preserve your notes
+- ✔ Server backed event history to preserve your notes
 - Support for NIP-46 event signing using an extern library
 - Add new support for NIP-44 private messages (fast tracked)
 
@@ -35,7 +35,7 @@ This project is probably best explained by the features it has an that need to b
 - ✔ NIP-07 encryption
 - Preferred relay storage (also NIP-05 relays)
 - Fine grained event permissions
-- Event history
+- ✔ Event history
 - A good looking UI (in progress)
 - Chrome and Firefox support (mobile would be nice also)
 - Build fully featured library/API for other extension builders
@@ -60,9 +60,7 @@ Builds or docs are not yet available (I have my own CI pipeline for producing th
 This project is licensed under the GNU AGPL v3 open source license. See LICENSE.txt for more information.  
 
 ## Contributing
-Right now I am too busy to worry about copyrights, prs and such so I will not be accepting contributions at the moment. Suggestions are MORE than welcome, I prefer contact via email (see my GH profile or my website for my email address). This will change in the future if I get more time or an alternate source of income.  
-
-Actually, if you are a front-end developer with some good UI/design skils and are intersted in making the UI look better, let me know! 
+Right now I am too busy to worry about copyrights, prs and such so I will not be accepting contributions at the moment. Suggestions are MORE than welcome, I prefer contact via email (see my GH profile or my website for my email address), or feel free to [tag me on nostr](nostr:nprofile1qyv8wumn8ghj7cmp9ehhyctwvajhq6tvdshxgetk9uq3zamnwvaz7tmwdaehgu3wwa5kuef0qqsqxefne258ydmfgm2wfl02fsdqgs0d5wx29kweg9amxcqxew4t7kq5c5tj7).   
 
 ## Donations
 If you like this project and want to support it or motivate me for faster development you can donate with fiat or on-chain BTC for now.  
