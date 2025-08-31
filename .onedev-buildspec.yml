@@ -1,44 +1,27 @@
-version: 17
+version: 40
 jobs:
-- name: GitHub Push
+- name: Repo Sync Push
   steps:
   - !PushRepository
     name: Github push sync
-    remoteUrl: https://github.com/VnUgE/NVault.git
+    remoteUrl: https://github.com/VnUgE/nvault.git
     userName: VnUgE
     passwordSecret: github-access-token
-    withLfs: false
-    force: false
-    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+    force: true
+    condition: SUCCESSFUL
+    optional: false
+  - !PushRepository
+    name: Codeberg push sync
+    remoteUrl: https://codeberg.org/VnUgE/nvault.git
+    userName: VnUgE
+    passwordSecret: codeberg-access-token
+    force: true
+    condition: SUCCESSFUL
+    optional: false
   triggers:
-  - !TagCreateTrigger
-    projects: NVault
-  - !BranchUpdateTrigger
-    projects: NVault
+  - !TagCreateTrigger {}
+  - !BranchUpdateTrigger {}
   retryCondition: never
   maxRetries: 3
   retryDelay: 30
-  cpuRequirement: 250
-  memoryRequirement: 256
-  timeout: 3600
-- name: GitHub Pull
-  steps:
-  - !PullRepository
-    name: GitHub sync pull
-    remoteUrl: https://github.com/VnUgE/NVault.git
-    userName: VnUgE
-    passwordSecret: github-access-token
-    refs: refs/heads/* refs/tags/*
-    withLfs: false
-    force: false
-    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
-  triggers:
-  - !ScheduleTrigger
-    cronExpression: 0 15 10 ? * *
-    projects: NVault
-  retryCondition: never
-  maxRetries: 3
-  retryDelay: 30
-  cpuRequirement: 250
-  memoryRequirement: 256
   timeout: 3600
