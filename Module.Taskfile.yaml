@@ -1,29 +1,102 @@
+# https://taskfile.dev
 
-#This allows the Task build system to run commands to build components of the project
-#You must install Task before executing this file, https://taskfile.dev
+#Called by the vnbuild system to produce builds for my website
+#https://www.vaughnnugent.com/resources/software
+
+#This taskfile performs the build operations for a module, it handles
+#git code updates, msbuild on solutions, and sleet NuGet feed pushes.
+
+#this file must be in the same directory as the solution file
 
 version: '3'
 
+vars:  
+  ARCHIVE_FILE_NAME: '{{ .ARCHIVE_FILE_NAME | default "archive.tgz" }}'
+
 tasks:
 
-  #update project source code
+  default:
+    desc: 'Builds the managed libraries in this module for development'
+    cmds:
+     - cmd: dotnet build -c debug {{ .CLI_ARGS }}
+
+  #called by build pipeline to sync repo
   update:
     cmds:
-     - git remote update
-     - git reset --hard  
-     - git pull origin {{.BRANCH_NAME}} --verify-signatures
-      #re-write semver for back-end after hard reset
-     - dotnet-gitversion.exe /updateprojectfiles
-
-  build:
+     - cmd: git reset --hard  #clean up any local changes
+     - cmd: git remote update
+     - cmd: git pull origin {{ .BRANCH_NAME }} --verify-signatures 
+  
+  tag-current-commit:
+    desc: 'Tags the current commit with the current build version from gitversion'  
+    vars:
+    #get the current build version from gitversion
+      BUILD_VERSION:
+        sh: dotnet gitversion /showvariable FullSemver
+    #ensure the current branch is master
+    status:
+      #see if tag already exists otherwise error on windows
+      - git tag --list v{{ .BUILD_VERSION }} | findstr . >nul
     cmds:
-    
-  #copy artifacts to temp directory
-  postbuild_success:
+     - cmd: echo "Tagging current commit with version v{{ .BUILD_VERSION }}"
+     - cmd: git tag -s -a v{{ .BUILD_VERSION }} -m "CI Build version {{ .BUILD_VERSION }}"
+     - cmd: git push origin v{{ .BUILD_VERSION }}
+
+#called by build pipeline to build module
+  build:
+    desc: "Used by vnbuild to build the entire module at CI time"
+    vars:
+      PACK_OUT: '{{ .OUTPUT_DIR }}/{{ .HEAD_SHA }}/pkg'
+      INT_DIR: '{{ .SCRATCH_DIR }}/obj/{{ .MODULE_NAME }}/'
+      MS_ARGS: '
+        --nologo
+        /p:UseCommonOutputDirectory=true 
+        /p:IntermediateOutputPath="{{ .INT_DIR }}"'
+    cmds:
+     - cmd: echo "building module {{ .MODULE_NAME }}" 
+       silent: true
+
+     #re-write semver after hard reset
+     - cmd: dotnet gitversion /updateprojectfiles
+
+    #build debug mode first
+     - cmd: dotnet publish -c debug {{ .MS_ARGS }}
+     - cmd: dotnet publish -c release {{ .MS_ARGS }}
+
+     # ONLY Pack release config with debug symbols
+     # pack can be run without build or restore because the previous commands build it
+     - cmd: dotnet pack 
+        --no-build 
+        --no-restore
+        --include-symbols
+        --configuration release
+        --output "{{ .PACK_OUT }}/release/" 
+        {{ .MS_ARGS }}
+
+  publish:
+    desc: "Used by vnbuild to prepare the packages for build servers"
     cmds:
      #git archive in the module directory
-     - git archive --format {{.ARCHIVE_FILE_FORMAT}} --output {{.ARCHIVE_FILE_NAME}} HEAD
+     - cmd: git archive --format {{ .ARCHIVE_FILE_FORMAT }} --output {{ .ARCHIVE_FILE_NAME }} HEAD
 
-  #clean hook
+  test:
+    desc: "Runs managed unit testing"
+    cmds: []
+
+#called by build pipeline to clean module
   clean:
+    desc: "Used by vnbuild to clean the entire module"
+    ignore_error: true
     cmds:
+    #clean solution
+     - cmd: dotnet clean
+     - cmd: powershell rm '{{ .ARCHIVE_FILE_NAME }}' --Force 
+
+  write-changelog:
+    cmds:
+     - cmd: git-cliff
+         --verbose
+         --config ci/cliff.toml
+         --output 'CHANGELOG.md'
+         --tag v{{ .VERSION }}
+         {{ .CLI_ARGS }}
