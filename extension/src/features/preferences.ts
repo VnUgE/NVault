@@ -39,7 +39,7 @@ export const usePreferencesApi = (): IFeatureExport<AppSettings, PreferencesApi>
     return {
         background: ({ state }: BgRuntime<AppSettings>) => {
             
-            const { state: prefs } = state.useServerSlot<Partial<AppPreferences>>('nvault-preferences', true, { 
+            const { state: prefs } = state.useServerSlot<Partial<AppPreferences>>('nvault-preferences', { 
                 darkMode: false,
                 useSystemTheme: true, 
                 showNotifications: true, 

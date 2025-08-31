@@ -151,10 +151,14 @@ export const useAuthApi = (): IFeatureExport<AppSettings, UserApi> => {
                     return true;
                 }),
                 logout: popupOnly(async (): Promise<void> => {
-                    //Perform logout
-                    await logout()
-                    //Cleanup after logout
-                    clearLoginState()
+                    try {
+                        //Perform logout
+                        await logout()
+                    }
+                    finally{
+                        //Cleanup after logout
+                        clearLoginState()
+                    }
                 }),
                 submitMfa: popupOnly(async (submission: IMfaSubmission): Promise<boolean> => {
                     const cont = get(mfaUpgrade.continuation)

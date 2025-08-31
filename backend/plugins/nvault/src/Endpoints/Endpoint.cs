@@ -38,10 +38,26 @@ using VNLib.Plugins.Extensions.Loading.Sql;
 using VNLib.Plugins.Extensions.Data.Extensions;
 
 using NVault.Plugins.Vault.Model;
+using VNLib.Plugins.Extensions.Loading.Routing;
 
 namespace NVault.Plugins.Vault.Endpoints
 {
 
+    internal interface INVaultRpcController
+    {
+        INVaultRpcMethod[] GetMethods();
+    }
+
+    internal interface INVaultRpcMethod
+    {
+        string Name { get; }
+
+        ValueTask<object?> ExecuteAsync(HttpEntity entity, JsonElement args);
+    }
+
+
+    [EndpointPath("{{path}}")]
+    [EndpointLogName("Endoint")]
     [ConfigurationName("endpoint")]
     internal sealed class Endpoint : ProtectedWebEndpoint
     {
@@ -63,18 +79,15 @@ namespace NVault.Plugins.Vault.Endpoints
 
         public Endpoint(PluginBase plugin, IConfigScope config)
         {
-            string? path = config["path"].GetString();
-            InitPathAndLog(path, plugin.Log);
-
-            AllowDelete = config.TryGetValue("allow_delete", out JsonElement adEl) && adEl.GetBoolean();
+            AllowDelete = config.GetValueOrDefault("allow_delete", defaultValue: false);
 
             IAsyncLazy<DbContextOptions> options = plugin.GetContextOptionsAsync();
 
             _relays = new NostrRelayStore(options);
             _publicKeyStore = new NostrKeyMetaStore(options);
             _eventHistoryStore = new NostrEventHistoryStore(options);
-            
-            _vault = new NostrOpProvider(plugin);          
+
+            _vault = new NostrOpProvider(plugin);
 
             //Check for obnoxious logging
             if (plugin.HostArgs.HasArgument("--nvault-obnoxious"))
@@ -87,14 +100,12 @@ namespace NVault.Plugins.Vault.Endpoints
         protected override async ValueTask<VfReturnType> GetAsync(HttpEntity entity)
         {
             //Check the operation flag
-            if(entity.QueryArgs.IsArgumentSet("type", "getRelays"))
+            if (entity.QueryArgs.IsArgumentSet("type", "getRelays"))
             {
-                //Get all relays
                 List<NostrRelay> relays = _relays.ListRental.Rent();
 
                 await _relays.GetUserPageAsync(relays, entity.Session.UserID, 0, 100);
 
-                //Return all relays for the user
                 entity.CloseResponseJson(HttpStatusCode.OK, relays);
 
                 _relays.ListRental.Return(relays);
@@ -118,15 +129,12 @@ namespace NVault.Plugins.Vault.Endpoints
                 return VfReturnType.VirtualSkip;
             }
 
-            if(entity.QueryArgs.IsArgumentSet("type", "getEvents"))
+            if (entity.QueryArgs.IsArgumentSet("type", "getEvents"))
             {
-                //Get the event history
                 List<NostrEventEntry> events = _eventHistoryStore.ListRental.Rent();
 
-                //Get the first page of events for the user
                 await _eventHistoryStore.GetUserPageAsync(events, entity.Session.UserID, 0, 100);
 
-                //Return all events for the user
                 entity.CloseResponseJson(HttpStatusCode.OK, events);
 
                 _eventHistoryStore.ListRental.Return(events);
@@ -139,7 +147,7 @@ namespace NVault.Plugins.Vault.Endpoints
 
         protected override async ValueTask<VfReturnType> PostAsync(HttpEntity entity)
         {
-            ValErrWebMessage webm = new();
+            WebMessage webm = new();
 
             //Get the operation argument
             if (entity.QueryArgs.IsArgumentSet("type", "signEvent"))
@@ -147,32 +155,32 @@ namespace NVault.Plugins.Vault.Endpoints
                 //Get the event
                 NostrEvent? nEvent = await entity.GetJsonFromFileAsync<NostrEvent>();
 
-                if(webm.Assert(nEvent != null, "Bad request"))
+                if (webm.Assert(nEvent != null, "Bad request"))
                 {
                     return VirtualClose(entity, webm, HttpStatusCode.BadRequest);
                 }
 
                 //Basic validate the message
-                if(!EventValidator.Validate(nEvent, webm))
+                if (!EventValidator.Validate(nEvent, webm))
                 {
                     return VirtualClose(entity, webm, HttpStatusCode.UnprocessableEntity);
                 }
 
                 //Get the key metadata
                 NostrKeyMeta? keyMeta = await _publicKeyStore.GetSingleUserRecordAsync(nEvent.KeyId, entity.Session.UserID);
-                if(webm.Assert(keyMeta?.Value != null, "Key not found"))
+                if (webm.Assert(keyMeta?.Value != null, "Key not found"))
                 {
                     return VirtualClose(entity, webm, HttpStatusCode.NotFound);
                 }
 
                 //If no public key is set, use the key metadata
-                if(string.IsNullOrWhiteSpace(nEvent.PublicKey))
+                if (string.IsNullOrWhiteSpace(nEvent.PublicKey))
                 {
                     nEvent.PublicKey = keyMeta.Value;
                 }
 
                 //Event public key must match the key metadata
-                if(webm.Assert(keyMeta.Value.Equals(nEvent.PublicKey, StringComparison.OrdinalIgnoreCase), "Key mismatch"))
+                if (webm.Assert(keyMeta.Value.Equals(nEvent.PublicKey, StringComparison.OrdinalIgnoreCase), "Key mismatch"))
                 {
                     return VirtualOk(entity, webm);
                 }
@@ -185,7 +193,7 @@ namespace NVault.Plugins.Vault.Endpoints
                 //try to sign the event
                 bool result = await _vault.SignEventAsync(scope, keyMeta, nEvent, entity.EventCancellation);
 
-                if(webm.Assert(result, "Failed to sign nostr event"))
+                if (webm.Assert(result, "Failed to sign nostr event"))
                 {
                     return VirtualOk(entity, webm);
                 }
@@ -198,7 +206,7 @@ namespace NVault.Plugins.Vault.Endpoints
                 {
                     Log.Warn("Failed to store event in history, {evid} for user {userid}", nEvent.Id, entity.Session.UserID[..8]);
                 }
-                
+
                 webm.Result = nEvent;
                 webm.Success = true;
 
@@ -236,13 +244,13 @@ namespace NVault.Plugins.Vault.Endpoints
 
                 //Try to decrypt the message
                 webm.Result = await _vault.DecryptNoteAsync(
-                    scope, 
-                    key, 
-                    request.OtherPubKey!, 
-                    request.Ciphertext!, 
+                    scope,
+                    key,
+                    request.OtherPubKey!,
+                    request.Ciphertext!,
                     entity.EventCancellation
                 );
-                
+
                 webm.Success = true;
 
                 return VirtualOk(entity, webm);
@@ -278,13 +286,13 @@ namespace NVault.Plugins.Vault.Endpoints
                 try
                 {
                     //Try to encrypt the message
-                    webm.Result = await _vault.EncryptNoteAsync(
+                    webm.Result = null; /* await _vault.EncryptNoteAsync(
                         scope,
                         key,
                         request.OtherPubKey!,
                         request.PlainText!,
                         entity.EventCancellation
-                    );
+                    );*/
 
                     webm.Success = true;
                 }
@@ -301,7 +309,7 @@ namespace NVault.Plugins.Vault.Endpoints
 
         protected override async ValueTask<VfReturnType> PatchAsync(HttpEntity entity)
         {
-            ValErrWebMessage webm = new();
+            WebMessage webm = new();
 
             //Check for relay update
             if (entity.QueryArgs.IsArgumentSet("type", "relay"))
@@ -309,12 +317,11 @@ namespace NVault.Plugins.Vault.Endpoints
                 //Get the new relay item
                 NostrRelay? relay = await entity.GetJsonFromFileAsync<NostrRelay>();
 
-                if(webm.Assert(relay != null, "No relay specified"))
+                if (webm.Assert(relay != null, "No relay specified"))
                 {
                     return VirtualClose(entity, webm, HttpStatusCode.BadRequest);
                 }
-
-                //Validate 
+                
                 if (!RelayValidator.Validate(relay, webm))
                 {
                     return VirtualClose(entity, webm, HttpStatusCode.UnprocessableEntity);
@@ -324,7 +331,7 @@ namespace NVault.Plugins.Vault.Endpoints
                 relay.CleanupFromUser();
 
                 //Update or create the relay for the user
-                if(await _relays.CreateUserRecordAsync(relay, entity.Session.UserID))
+                if (await _relays.CreateUserRecordAsync(relay, entity.Session.UserID))
                 {
                     webm.Result = "Successfully updated relay";
                     webm.Success = true;
@@ -338,18 +345,18 @@ namespace NVault.Plugins.Vault.Endpoints
             }
 
             //Allow updating key metdata
-            if(entity.QueryArgs.IsArgumentSet("type", "identity"))
+            if (entity.QueryArgs.IsArgumentSet("type", "identity"))
             {
                 //Get the key metadata
                 NostrKeyMeta? meta = await entity.GetJsonFromFileAsync<NostrKeyMeta>();
 
-                if(webm.Assert(meta != null, "No key metadata specified"))
+                if (webm.Assert(meta != null, "No key metadata specified"))
                 {
                     return VirtualClose(entity, webm, HttpStatusCode.BadRequest);
                 }
 
                 //Validate the key metadata
-                if(!KeyMetaValidator.Validate(meta, webm))
+                if (!KeyMetaValidator.Validate(meta, webm))
                 {
                     return VirtualClose(entity, webm, HttpStatusCode.UnprocessableEntity);
                 }
@@ -359,16 +366,16 @@ namespace NVault.Plugins.Vault.Endpoints
                 //Get the original record
                 NostrKeyMeta? original = await _publicKeyStore.GetSingleUserRecordAsync(meta.Id, entity.Session.UserID);
 
-                if(webm.Assert(original != null, "Key metadata not found"))
+                if (webm.Assert(original != null, "Key metadata not found"))
                 {
                     return VirtualClose(entity, webm, HttpStatusCode.NotFound);
                 }
 
                 //Merge the metadata
                 original.Merge(meta);
-                
+
                 //Update the key metadata for the user
-                if(await _publicKeyStore.UpdateUserRecordAsync(original, entity.Session.UserID))
+                if (await _publicKeyStore.UpdateUserRecordAsync(original, entity.Session.UserID))
                 {
                     webm.Result = "Successfully updated key metadata";
                     webm.Success = true;
@@ -387,18 +394,18 @@ namespace NVault.Plugins.Vault.Endpoints
         protected override async ValueTask<VfReturnType> PutAsync(HttpEntity entity)
         {
             //Allow creating a new identity
-            if(entity.QueryArgs.IsArgumentSet("type", "identity"))
+            if (entity.QueryArgs.IsArgumentSet("type", "identity"))
             {
-                ValErrWebMessage webm = new();
+                WebMessage webm = new();
 
                 CreateKeyRequest? request = await entity.GetJsonFromFileAsync<CreateKeyRequest>();
 
-                if(webm.Assert(request != null, "Invalid key request"))
+                if (webm.Assert(request != null, "Invalid key request"))
                 {
                     return VirtualClose(entity, webm, HttpStatusCode.BadRequest);
                 }
 
-                if(!CreateKeyRequestValidator.Validate(request, webm))
+                if (!CreateKeyRequestValidator.Validate(request, webm))
                 {
                     return VirtualClose(entity, webm, HttpStatusCode.UnprocessableEntity);
                 }
@@ -413,7 +420,7 @@ namespace NVault.Plugins.Vault.Endpoints
                 };
 
                 //Create the key metadata record before we generate the keypair
-                if(!await _publicKeyStore.CreateUserRecordAsync(newKey, entity.Session.UserID))
+                if (!await _publicKeyStore.CreateUserRecordAsync(newKey, entity.Session.UserID))
                 {
                     //Failed to create key metadata record
                     webm.Result = "Failed to create key";
@@ -466,7 +473,7 @@ namespace NVault.Plugins.Vault.Endpoints
 
         protected override async ValueTask<VfReturnType> DeleteAsync(HttpEntity entity)
         {
-            ValErrWebMessage webMessage = new ();
+            WebMessage webMessage = new ();
 
             //common id argument
             string? id = entity.QueryArgs.GetValueOrDefault("id");
@@ -505,15 +512,15 @@ namespace NVault.Plugins.Vault.Endpoints
                 return VirtualOk(entity, webMessage);
             }
 
-            if(entity.QueryArgs.IsArgumentSet("type", "relay"))
+            if (entity.QueryArgs.IsArgumentSet("type", "relay"))
             {
-                if(webMessage.Assert(id != null, "No relay id specified"))
+                if (webMessage.Assert(id != null, "No relay id specified"))
                 {
                     return VirtualClose(entity, webMessage, HttpStatusCode.BadRequest);
                 }
 
                 //Delete the relay
-                if(await _relays.DeleteUserRecordAsync(id, entity.Session.UserID))
+                if (await _relays.DeleteUserRecordAsync(id, entity.Session.UserID))
                 {
                     webMessage.Result = "Successfully deleted relay";
                     webMessage.Success = true;
@@ -526,16 +533,16 @@ namespace NVault.Plugins.Vault.Endpoints
                 return VirtualOk(entity, webMessage);
             }
 
-            if(entity.QueryArgs.IsArgumentSet("type", "event"))
+            if (entity.QueryArgs.IsArgumentSet("type", "event"))
             {
                 //Internal event id is required
-                if(webMessage.Assert(id != null, "No event id specified"))
+                if (webMessage.Assert(id != null, "No event id specified"))
                 {
                     return VirtualClose(entity, webMessage, HttpStatusCode.BadRequest);
                 }
 
                 //Delete the event
-                if(await _eventHistoryStore.DeleteUserRecordAsync(id, entity.Session.UserID))
+                if (await _eventHistoryStore.DeleteUserRecordAsync(id, entity.Session.UserID))
                 {
                     webMessage.Result = "Successfully deleted event";
                     webMessage.Success = true;
@@ -577,7 +584,7 @@ namespace NVault.Plugins.Vault.Endpoints
                 return val;
             }
         }
- 
+
 
         sealed class Nip04DecryptRequest
         {
@@ -652,5 +659,6 @@ namespace NVault.Plugins.Vault.Endpoints
                 return validationRules;
             }
         }
+
     }
 }

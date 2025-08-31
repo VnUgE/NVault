@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2024 Vaughn Nugent
+﻿// Copyright (C) 2025 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -19,6 +19,29 @@ using VNLib.Utils;
 
 namespace NVault.Plugins.Vault
 {
+    public enum NostrCipherVersion
+    {
+        None    = 0,
+        Nip04   = 1,
+        Nip44   = 2
+    }
+
+
+    public interface INostrCipher : IDisposable
+    {
+        int GetIvSize();
+
+        void SetIv(ReadOnlySpan<byte> iv);
+
+        void ReadIv(Span<byte> ivBuffer);
+
+        void Update(ReadOnlySpan<byte> secretKey, ReadOnlySpan<byte> targetKey, ReadOnlySpan<byte> inputData);
+
+        int GetOutputSize();
+
+        int Read(Span<byte> outputBuffer);
+    }
+
     internal interface INostrCryptoProvider
     {
         /// <summary>
@@ -36,6 +59,15 @@ namespace NVault.Plugins.Vault
         /// <param name="signatureBuffer">The signature output buffer</param>
         /// <returns>The number of bytes written to the signature buffer, 0 or less if the operation failed</returns>
         ERRNO SignData(ReadOnlySpan<byte> key, ReadOnlySpan<byte> data, Span<byte> signatureBuffer);
+
+        /// <summary>
+        /// Signs a message with the specified private key and writes 
+        /// the signature to the specified buffer.
+        /// </summary>
+        /// <param name="secretKey">Hex encoded secret key</param>
+        /// <param name="data">The message data to sign</param>
+        /// <returns>The signature as a string</returns>
+        string SignData(ReadOnlySpan<char> secretKey, ReadOnlySpan<byte> data);
 
         /// <summary>
         /// Determines the exact size of the buffer required to hold a key pair during 
@@ -61,28 +93,7 @@ namespace NVault.Plugins.Vault
         /// <returns>True if the operation succeeded, false otherwise</returns>
         bool RecoverPublicKey(ReadOnlySpan<byte> privateKey, Span<byte> pubKey);
 
-        /// <summary>
-        /// Decrypts a Nostr encrypted message by the target's public key, and the local secret key. 
-        /// Both keys will be used to compute the shared secret that will be used to decrypt the message.
-        /// </summary>
-        /// <param name="secretKey">The local secret key</param>
-        /// <param name="targetKey">The message's target public key for the shared secret</param>
-        /// <param name="aseIv">The initialization vector used to encrypt the message</param>
-        /// <param name="cyphterText">The cyphertext to decrypt</param>
-        /// <param name="outputBuffer">The output buffer to write plaintext data to</param>
-        /// <returns>The number of bytes written to the output, 0 or negative for an error</returns>
-        ERRNO DecryptMessage(ReadOnlySpan<byte> secretKey, ReadOnlySpan<byte> targetKey, ReadOnlySpan<byte> aseIv, ReadOnlySpan<byte> cyphterText, Span<byte> outputBuffer);
-
-        /// <summary>
-        /// Encrypts a message with the specified secret key, target public key, and initialization vector.
-        /// </summary>
-        /// <param name="secretKey"></param>
-        /// <param name="targetKey"></param>
-        /// <param name="aesIv">The initalization vector used by the AES cipher to encrypt data</param>
-        /// <param name="plainText">The plaintext data to encrypt</param>
-        /// <param name="cipherText">The ciphertext output buffer</param>
-        /// <returns>The number of bytes written to the output buffer, 0 or negative on error</returns>
-        ERRNO EncryptMessage(ReadOnlySpan<byte> secretKey, ReadOnlySpan<byte> targetKey, ReadOnlySpan<byte> aesIv, ReadOnlySpan<byte> plainText, Span<byte> cipherText);
+        INostrCipher GetMessageCipher(NostrCipherVersion version, bool isEncrypting);
 
         /// <summary>
         /// Fill a buffer with secure randomness/entropy

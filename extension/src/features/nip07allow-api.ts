@@ -44,7 +44,7 @@ export const useInjectAllowList = (): IFeatureExport<AppSettings, InjectAllowlis
     return {
         background: ({ state }: BgRuntime<AppSettings>) => {
 
-            const { state: store, sync } = state.useServerSlot<AllowedSites>('nvault-site-whitelist', true, { origins: [], enabled: true });
+            const { state: store, sync } = state.useServerSlot<AllowedSites>('nvault-site-whitelist', { origins: [], enabled: true });
             const { origins, enabled } = toRefs(store)
 
             const { currentOrigin, currentTab } = (() => {

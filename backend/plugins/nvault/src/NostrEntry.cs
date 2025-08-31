@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2024 Vaughn Nugent
+﻿// Copyright (C) 2025 Vaughn Nugent
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -17,9 +17,10 @@ using System;
 
 using VNLib.Utils.Logging;
 using VNLib.Plugins;
-using VNLib.Plugins.Extensions.Loading.Routing;
 using VNLib.Plugins.Extensions.Loading;
 using VNLib.Plugins.Extensions.Loading.Sql;
+using VNLib.Plugins.Extensions.Loading.Routing;
+using VNLib.Plugins.Extensions.Loading.Routing.Mvc;
 
 using NVault.Plugins.Vault.Model;
 using NVault.Plugins.Vault.Endpoints;

@@ -14,13 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { storage } from "webextension-polyfill"
-import { defaultTo, defaultsDeep, defer, find, isArray, isEmpty, noop } from 'lodash'
-import { configureApi, debugLog, useAppDataApi, useSession } from '@vnuge/vnlib.browser'
+import { defaultsDeep, defer, find, isArray, isEmpty, throttle } from 'lodash'
+import { type AccountRpcGetResult, configureApi, debugLog, useAppDataApi } from '@vnuge/vnlib.browser'
 import { computed, type MaybeRef, readonly, Ref, shallowRef, watch } from "vue";
 import { JsonObject } from "type-fest";
 import { Watchable } from "./types";
 import { BgRuntime, FeatureApi, optionsOnly, IFeatureExport, exportForegroundApi } from './framework'
-import { get, set, watchDebounced, useToggle, watchThrottled, controlledRef } from "@vueuse/core";
+import { get, set, useToggle, watchThrottled, controlledRef } from "@vueuse/core";
 import { waitForChangeFn, useStorage } from "./util";
 import { ServerApi, useServerApi } from "./server-api";
 
@@ -43,9 +43,6 @@ const defaultConfig : PluginConfig = Object.freeze({
 
 export interface EndpointConfig extends JsonObject {
    readonly apiBaseUrl: string;
-   readonly accountBasePath: string;
-   readonly nostrBasePath: string;
-   readonly dataSyncPath?: string;
 }
 
 export interface ConfigStatus {
@@ -56,14 +53,14 @@ export interface ConfigStatus {
 export interface AppSettings{
     saveConfig(config: PluginConfig): void;
     useStorageSlot<T>(slot: string, defaultValue: MaybeRef<T>): Ref<T>;
-    useServerSlot<T>(slot: string, silent: boolean, defaultValue: MaybeRef<T>): {
+    useServerSlot<T>(slot: string, defaultValue: MaybeRef<T>): {
         state: Ref<T>,
         sync: () => void
     }
     useServerApi(): ServerApi,
+    readonly accountStatus: Readonly<Ref<AccountRpcGetResult>>
     readonly status: Readonly<Ref<ConfigStatus>>;
     readonly currentConfig: Readonly<Ref<PluginConfig>>;
-    readonly serverEndpoints: Readonly<Ref<EndpointConfig>>;
 }
 
 export interface SettingsApi extends FeatureApi, Watchable {
@@ -154,14 +151,13 @@ export const useAppSettings = (): AppSettings => {
         useStorageSlot: <T>(slot: string, defaultValue: MaybeRef<T>) => {
             return useStorage<T>(_storageBackend, slot, defaultValue)
         },
-        useServerSlot: <T>(slot: string, silent: boolean, defaultValue: MaybeRef<T>) => {
-            const session = useSession();
+        useServerSlot: <T>(slot: string, defaultValue: MaybeRef<T>) => {
 
             const [onManualTrigger, sync] = useToggle()
-            const state = controlledRef<T>(get(defaultValue));
+            const _state = controlledRef<T>(get(defaultValue));
             
             const syncFromServer = async () => {
-                if (session.loggedIn.value === false) 
+                if (loggedIn.value === false) 
                     return get(defaultValue);
                 
                 const data = await serverSyncApi.get<T>(slot, false);
@@ -170,15 +166,34 @@ export const useAppSettings = (): AppSettings => {
             }
 
             const syncToServer = async (value: T) => {
-                if (session.loggedIn.value === false) return;
+                if (loggedIn.value === false) return;
                 await serverSyncApi.set(slot, value, false);
             }
 
-            const syncStateForward = () => defer(syncToServer, state.value)
-            const syncState = async () => silent ? state.silentSet(await syncFromServer()) : state.set(await syncFromServer())
+            const pullAndSetValue = async () => {
+                const val = await syncFromServer()
+                _state.set(val)
+            }
 
-            watchThrottled([endpointConfig, session.loggedIn, onManualTrigger], syncState, { throttle: 500 })
-            watchDebounced(state, syncStateForward, { debounce: 500 })
+            const fullSync = async (newValue: T) => {
+               
+                //If the user is not logged-in, save the state locally
+                if(!loggedIn.value) {
+                     _state.set(newValue)
+                     return;
+                }
+
+                //Otherwise defer round trip sync to server
+                await syncToServer(newValue);
+                await pullAndSetValue();
+            }
+
+            watchThrottled([endpointConfig, loggedIn, onManualTrigger], pullAndSetValue, { throttle: 500 })
+
+            const state = computed({
+                get: () => _state.get(true),
+                set: throttle(fullSync, 300)    //triggler a full sync
+            })
 
             return { sync, state }
         },

@@ -237,6 +237,18 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
         activePopups.set(id!, request)
     }
 
+    const upshiftEvent = async (req: PermissionRequest) => {
+        const current = get(requests)
+        current.unshift(req)
+
+        //remove any over 50
+        if(current.length > 50){
+            current.pop()
+        }
+
+        set(requests, current)
+    }
+
     //Listen for popup close to cleanup request
     windows.onRemoved.addListener(async (id) => {
         const req = activePopups.get(id)
@@ -275,9 +287,7 @@ const usePermissions = (slot: Ref<PermissionSlot>, rules: ReturnType<typeof useR
                showPopup = false
             }
 
-            const current = get(requests)
-            current.unshift(req)
-            set(requests, current)
+            upshiftEvent(req)
             
             //Show popup if needed
             if (showPopup) {
@@ -335,7 +345,7 @@ export const usePermissionApi = (): IFeatureExport<AppSettings, PermissionApi> =
            
             //Open lcoal storage slot for permissions, and server slot for shared rules
             const reqStore = state.useStorageSlot<PermissionSlot>("permissions", { requests: [] })
-            const { state: ruleStore } = state.useServerSlot('nvault-site-rules', true, { rules: [] })
+            const { state: ruleStore } = state.useServerSlot('nvault-site-rules', { rules: [] })
 
             //init rules api
             const ruleSet = useRuleSet(ruleStore)
