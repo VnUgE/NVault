@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "NVault.Crypto.NoscryptTests": {
-      "commandName": "Project",
-      "nativeDebugging": true
-    }
-  }
-}
