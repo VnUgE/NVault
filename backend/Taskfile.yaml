@@ -1,0 +1,85 @@
+# https://taskfile.dev
+
+#Called by the vnbuild system to produce builds for my website
+#https://www.vaughnnugent.com/resources/software
+
+#This taskfile is called from the root of a project that is being built
+#and the purpose of this taskfile is to package up the output of a build 
+#from the solution file, and package it up into a tgz files for distribution
+
+version: '3'
+
+vars:
+  BINARY_DIR: 'bin'
+  TARGET_FRAMEWORK: '{{ .TARGET_FRAMEWORK | default "net8.0" }}'
+  RELEASE_DIR: "./bin/release/{{ .TARGET_FRAMEWORK }}/publish"
+  TARGET_DIR: '{{ .USER_WORKING_DIR }}/{{ .BINARY_DIR }}'
+
+tasks:
+
+  default:
+    desc: 'When run from a library directory, builds the managed project'
+    dir: "{{ .USER_WORKING_DIR }}"
+    vars:
+      CONFIGURATION: '{{ .CONFIGURATION | default "release" }}'
+    cmds:
+     - cmd: cd src/ && 
+        dotnet build 
+        --configuration {{ .CONFIGURATION }} 
+        --verbosity detailed
+        {{ .MS_ARGS }} 
+        {{ .CLI_ARGS }}
+
+  #when build succeeds, archive the output into a tgz 
+  postbuild_success:
+    dir: '{{ .USER_WORKING_DIR }}'
+    cmds:
+     #remove uncessary files from the release dir
+     - cmd: powershell -Command "Get-ChildItem -Recurse '{{ .RELEASE_DIR }}/' -Include *.pdb,*.xml | Remove-Item"
+
+     - task: pack-parallel
+
+  pack-parallel:
+    internal: true
+    deps:
+     - task: pack-source
+
+     - task: postbuild
+       vars: { BUILD_MODE: debug }
+     
+     - task: postbuild
+       vars: { BUILD_MODE: release }
+
+  postbuild:
+    dir: '{{ .USER_WORKING_DIR }}'
+    internal: true
+    vars:
+      #the build output directory
+      BUILD_OUT: "{{ .BINARY_DIR }}/{{ .BUILD_MODE }}/{{ .TARGET_FRAMEWORK }}/publish"
+    cmds:
+     - cmd: powershell cp ../build.readme.txt '{{ .BUILD_OUT }}/readme.txt'
+
+     #tar outputs
+     - cmd: cd "{{ .BUILD_OUT }}" && tar -czf "{{ .TARGET_DIR }}/{{ .BUILD_MODE }}.tgz" .
+ 
+  pack-source:
+    internal: true
+    dir: '{{ .USER_WORKING_DIR }}'
+    vars:
+      EXCLUDES:
+        --exclude='src/bin/*'
+        --exclude='src/obj/*'
+      INCLUDES:
+        src/*
+
+    cmds:
+      #pack up source code and put in output
+     - cmd: cd .. && tar {{ .EXCLUDES }} -czf '{{ .USER_WORKING_DIR }}/{{ .BINARY_DIR }}/src.tgz' {{ .INCLUDES }}
+
+#Remove the output dirs on clean
+  clean:
+    dir: '{{ .USER_WORKING_DIR }}'
+    ignore_error: true
+    cmds:
+    - for: [ bin/, obj/ ]
+      cmd: powershell rm -Recurse -Force '{{ .ITEM }}'
