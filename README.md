@@ -2,7 +2,7 @@
 # NVault
 
 > [!IMPORTANT]
-> NVault is currently on pause, but major changes are being staged in the develop branch. I want development to be sustainable and predictable
+> NVault releases are currently on pause, but major changes are being staged in the develop branch. I want development to be sustainable and predictable
 
 If the dream comes true, NVault will be a truly commercial option to have the most enterprise-compliant and administrator-friendly solution available to use the nostr network in your company. With a rock solid, open source, and secure supply chain built on minimal, maintained, and trusted dependencies, it is designed for secure on-prem hosting. Highly scrutinized, transparent, and verifiable supply chain, with many of the bells and whistles you need to integrate secure nostr integration into your infrastructure with tools you're accustomed to. Hardware acceleration and remote signing agents may utilize existing x86 architecture or take advantage of HSM devices of many types. Remote agents will handle key isolation, clustering, enable hardware support, and delegation. A central server cluster will handle all of the routing, communication, user management for tight control over your user's interactions.
 
