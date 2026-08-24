@@ -1,27 +1,32 @@
-version: 40
+version: 53
 jobs:
-- name: Repo Sync Push
+- name: GitHub Push
   steps:
-  - !PushRepository
+  - type: PushRepository
     name: Github push sync
-    remoteUrl: https://github.com/VnUgE/nvault.git
+    remoteUrl: https://github.com/VnUgE/NVault.git
     userName: VnUgE
     passwordSecret: github-access-token
     force: true
     condition: SUCCESSFUL
     optional: false
-  - !PushRepository
-    name: Codeberg push sync
-    remoteUrl: https://codeberg.org/VnUgE/nvault.git
+  - type: PushRepository
+    name: codeberg push sync
+    remoteUrl: https://codeberg.org/vnuge/nvault.git
     userName: VnUgE
     passwordSecret: codeberg-access-token
     force: true
     condition: SUCCESSFUL
     optional: false
   triggers:
-  - !TagCreateTrigger {}
-  - !BranchUpdateTrigger {}
+  - type: TagCreateTrigger
+    projects: NVault
+  - type: BranchUpdateTrigger
+    userMatch: anyone
+    projects: NVault
   retryCondition: never
   maxRetries: 3
   retryDelay: 30
+  includeUpstreamWhenRebuild: false
+  includeDownstreamWhenRebuild: false
   timeout: 3600
