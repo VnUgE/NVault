@@ -1,28 +1,33 @@
 
 #taskfile for building the nvault-extension
 
-version: '3'
+version: '3.45'
 
 tasks:
+
+  dev-init:
+    cmds:
+    #install deps and run build
+    - cmd: pnpm install --frozen-lockfile
 
   build:
     cmds:
     #install deps and run build
-    - npm install
-    - npm run build
-    
+    - task: dev-init
+    - cmd: pnpm run build
+
   #copy artifacts to temp directory
   postbuild_success:
     cmds:
-    - powershell -Command "mkdir bin -Force"
+    - cmd: mkdir -f bin
     #tar the dist output and put it in the output dir
-    - cd dist && tar -czf '../bin/release.tgz' .
+    - cmd: cd dist && tar{{ if eq OS "Windows" }}.exe{{ endif }} -czf '../bin/release.tgz' .
 
   #clean hook
   clean:
     ignore_error: true
     cmds:
-    - cmd: powershell -Command "Remove-Item -Recurse -Force node_modules"
-    - cmd: powershell -Command "Remove-Item -Recurse -Force dist"
-    - cmd: powershell -Command "Remove-Item -Recurse -Force bin"
-    - cmd: powershell -Command "Remove-Item release.tgz"
+    - cmd: rm -rf node_modules
+    - cmd: rm -rf dist
+    - cmd: rm -rf bin
+    - cmd:  rm -rf release.tgz

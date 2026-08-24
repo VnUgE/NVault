@@ -1,0 +1,6 @@
+[tools]
+node = "26"
+pnpm = "11.23.0"
+
+[tasks.dev-init]
+run = 'task dev-init'
