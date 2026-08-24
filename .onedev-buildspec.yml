@@ -20,10 +20,8 @@ jobs:
     optional: false
   triggers:
   - type: TagCreateTrigger
-    projects: NVault
   - type: BranchUpdateTrigger
     userMatch: anyone
-    projects: NVault
   retryCondition: never
   maxRetries: 3
   retryDelay: 30
