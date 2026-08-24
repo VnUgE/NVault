@@ -96,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { includes, isEmpty } from 'lodash'
+import { includes, isEmpty } from 'lodash-es'
 import { apiCall, useConfirm, useSession, debugLog, useFormToaster, MfaMethod } from '@vnuge/vnlib.browser'
 import { computed, ref, watch } from 'vue'
 import { Dialog, DialogPanel } from '@headlessui/vue'

@@ -77,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { isNil, chunk, defaultTo, includes, map, join } from 'lodash'
+import { isNil, chunk, defaultTo, includes, map, join } from 'lodash-es'
 import { TOTP } from 'otpauth'
 import base32Encode from 'base32-encode'
 import VueQrcode from '@chenfengyuan/vue-qrcode'

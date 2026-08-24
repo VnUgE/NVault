@@ -62,7 +62,7 @@ import {  } from '@headlessui/vue'
 import { useStore } from '../../store';
 import { CreateRuleType, PermissionRequest, PrStatus } from '../../../features';
 import EvHistoryTable from './EvHistoryTable.vue';
-import { filter, slice } from 'lodash';
+import { filter, slice } from 'lodash-es';
 import AutoRules from './AutoRules.vue';
 import EventHistory from './EventHistory.vue';
 

@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import { defer, filter, isEqual } from "lodash";
+import { defer, filter, isEqual } from "lodash-es";
 import { RemovableRef, SerializerAsync, StorageLikeAsync, useStorageAsync, watchOnce, get, set } from "@vueuse/core";
 import { type MaybeRefOrGetter, type WatchSource, isProxy, toRaw, MaybeRef, shallowRef } from "vue";
 import type { Watchable } from "./types";

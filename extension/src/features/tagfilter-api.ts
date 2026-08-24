@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { TaggedNostrEvent, Watchable } from "./types";
-import { filter, isEmpty, isEqual, isRegExp } from "lodash";
+import { filter, isEmpty, isEqual, isRegExp } from "lodash-es";
 import { BgRuntime, FeatureApi, IFeatureExport, exportForegroundApi } from "./framework";
 import { AppSettings } from "./settings";
 import { get, toRefs, set } from "@vueuse/core";

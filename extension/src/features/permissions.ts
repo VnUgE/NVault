@@ -15,7 +15,7 @@
 
 import { Mutable, get, set, toRefs } from "@vueuse/core";
 import { Ref } from "vue";
-import { defaultTo, defaults, defer, filter, find, forEach, isEqual, isNil } from "lodash";
+import { defaultTo, defaults, defer, filter, find, forEach, isEqual, isNil } from "lodash-es";
 import { nanoid } from "nanoid";
 import { debugLog, useSession } from "@vnuge/vnlib.browser";
 import { type FeatureApi, type BgRuntime, type IFeatureExport, exportForegroundApi, optionsOnly } from "./framework";

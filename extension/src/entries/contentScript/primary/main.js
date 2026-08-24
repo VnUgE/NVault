@@ -15,7 +15,7 @@
 
 import { runtime } from "webextension-polyfill";
 import { createApp } from "vue";
-import { defer } from "lodash";
+import { defer } from "lodash-es";
 import { createPinia } from 'pinia';
 import { useBackgroundPiniaPlugin, identityPlugin, originPlugin, permissionsPlugin } from '../../store'
 import { onLoad } from "../util";

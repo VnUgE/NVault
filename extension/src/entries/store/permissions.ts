@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'pinia'
-import { filter, find } from 'lodash'
+import { filter, find } from 'lodash-es'
 import { PiniaPluginContext, storeToRefs } from 'pinia'
 import { computed, shallowRef, type Ref } from 'vue'
 

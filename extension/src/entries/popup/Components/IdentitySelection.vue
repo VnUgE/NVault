@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { find } from 'lodash'
+import { find } from 'lodash-es'
 import { computed } from "vue";
 import { useStore } from "../../store";
 import { useWait } from '@vnuge/vnlib.browser'

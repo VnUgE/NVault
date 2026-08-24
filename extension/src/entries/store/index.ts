@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'pinia'
-import { } from 'lodash'
+import { } from 'lodash-es'
 import { defineStore } from 'pinia'
 import { PluginConfig, EventEntry, ConfigStatus } from '../../features/'
 import { shallowRef } from 'vue'

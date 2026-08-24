@@ -47,7 +47,7 @@
 import { useStore } from '../../store';
 import { computed, shallowRef } from 'vue';
 import { apiCall, useWait } from "@vnuge/vnlib.browser";
-import { isEmpty, toNumber } from 'lodash';
+import { isEmpty, toNumber } from 'lodash-es';
 import VOtpInput from "vue3-otp-input";
 
 const { waiting } = useWait()

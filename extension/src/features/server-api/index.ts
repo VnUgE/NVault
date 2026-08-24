@@ -18,7 +18,7 @@ import { Ref } from "vue"
 import { get } from '@vueuse/core'
 import { type WebMessage, type UserProfile } from "@vnuge/vnlib.browser"
 import { initEndponts } from "./endpoints"
-import { cloneDeep } from "lodash"
+import { cloneDeep } from "lodash-es"
 import type { EncryptionRequest, EventEntry, NostrEvent, NostrPubKey, NostrRelay } from "../types"
 import type { EndpointConfig } from "../settings"
 

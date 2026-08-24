@@ -1,6 +1,6 @@
 
 import 'pinia'
-import {  } from 'lodash'
+import {  } from 'lodash-es'
 import { PiniaPluginContext } from 'pinia'
 import { computed, shallowRef } from 'vue';
 import { onWatchableChange } from '../../features';

@@ -4,7 +4,7 @@ import { storeToRefs } from "pinia";
 import { useStore } from "../../store";
 import { apiCall, configureNotifier } from "@vnuge/vnlib.browser";
 import { useClipboard, useToggle } from '@vueuse/core'
-import { map } from "lodash";
+import { map } from "lodash-es";
 import { notify } from "@kyvg/vue3-notification";
 import { runtime } from "webextension-polyfill";
 import Login from "./Login.vue";

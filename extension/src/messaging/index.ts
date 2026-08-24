@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import { isEqual } from 'lodash'
+import { isEqual } from 'lodash-es'
 import { Runtime, runtime } from 'webextension-polyfill'
 import { serializeError, isErrorLike, type ErrorObject, deserializeError } from 'serialize-error'
 import type { JsonObject } from 'type-fest'

@@ -12,7 +12,7 @@ import { storeToRefs } from "pinia";
 import { useQuery, type NostrPubKey } from '../../features/';
 import { notify } from "@kyvg/vue3-notification";
 import { useToggle } from "@vueuse/core";
-import { toSafeInteger } from "lodash";
+import { toSafeInteger } from "lodash-es";
 import { useStore } from "../store";
 import Account from "./components/Account.vue";
 import ConfirmPrompt from "../../components/ConfirmPrompt.vue";

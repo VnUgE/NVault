@@ -21,7 +21,7 @@ import { AppSettings } from "./settings";
 import { waitForChangeFn } from "./util";
 import { Endpoints } from "./server-api";
 import { useSession } from "@vnuge/vnlib.browser";
-import {  } from "lodash";
+import {  } from "lodash-es";
 
 export interface SignedNEvent extends NostrEvent {
     readonly signature: string    

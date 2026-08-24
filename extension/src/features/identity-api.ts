@@ -27,7 +27,7 @@ import { AppSettings } from "./settings";
 import { shallowRef } from "vue";
 import { useSession } from "@vnuge/vnlib.browser";
 import { set, useToggle, watchDebounced } from "@vueuse/core";
-import { isArray } from "lodash";
+import { isArray } from "lodash-es";
 import { waitForChangeFn } from "./util";
 
 export interface IdentityApi extends FeatureApi, Watchable {

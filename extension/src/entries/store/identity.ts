@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'pinia'
-import {  } from 'lodash'
+import {  } from 'lodash-es'
 import { PiniaPluginContext } from 'pinia'
 import { onWatchableChange, type NostrPubKey } from '../../features'
 import { shallowRef } from 'vue';

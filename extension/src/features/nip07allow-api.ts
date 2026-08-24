@@ -15,7 +15,7 @@
 
 import { tabs, type Tabs } from "webextension-polyfill";
 import { Watchable } from "./types";
-import { defaultTo, includes, defer } from "lodash";
+import { defaultTo, includes, defer } from "lodash-es";
 import { BgRuntime, FeatureApi, IFeatureExport, exportForegroundApi, popupAndOptionsOnly } from "./framework";
 import { AppSettings } from "./settings";
 import { set, get, toRefs, watchDebounced, watchThrottled, controlledRef } from "@vueuse/core";

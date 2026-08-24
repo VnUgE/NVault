@@ -16,7 +16,7 @@
 import { AxiosInstance } from "axios";
 import { get, useTimeoutFn, set } from "@vueuse/core";
 import { computed, shallowRef } from "vue";
-import { clone, defer, delay } from "lodash";
+import { clone, defer, delay, filter } from "lodash-es";
 import { IMfaFlowContinuiation, totpMfaProcessor, useMfaLogin, usePkiAuth, useSession, useUser,
      type IMfaSubmission, type IMfaMessage, type WebMessage 
 } from "@vnuge/vnlib.browser";

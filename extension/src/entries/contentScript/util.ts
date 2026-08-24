@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { isEqual, isNil, isEmpty } from 'lodash'
+import { isEqual, isNil, isEmpty } from 'lodash-es'
 import { apiCall } from '@vnuge/vnlib.browser'
 import { Store, storeToRefs } from 'pinia'
 import { useScriptTag, watchOnce } from "@vueuse/core"

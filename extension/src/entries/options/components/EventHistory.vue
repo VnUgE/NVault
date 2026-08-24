@@ -152,7 +152,7 @@ import { computed } from 'vue';
 import { formatTimeAgo, get, useOffsetPagination, useTimeout, useTimestamp } from '@vueuse/core';
 import { useStore } from '../../store';
 import { EventEntry, NostrEvent } from '../../../features';
-import { find, map, slice } from 'lodash';
+import { find, map, slice } from 'lodash-es';
 import { useQuery } from '../../../features/util';
 import { Dialog, DialogPanel, DialogTitle } from '@headlessui/vue'
 

@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { defaultTo } from 'lodash'
+import { defaultTo } from 'lodash-es'
 import { computed, ref } from 'vue'
 
 import {

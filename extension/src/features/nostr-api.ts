@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { cloneDeep } from "lodash";
+import { cloneDeep } from "lodash-es";
 import { Endpoints } from "./server-api";
 import { type FeatureApi, type BgRuntime, type IFeatureExport, optionsOnly, exportForegroundApi } from "./framework";
 import { type AppSettings } from "./settings";

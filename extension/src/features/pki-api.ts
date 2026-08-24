@@ -18,7 +18,7 @@ import { ArrayToHexString, Base64ToUint8Array } from "@vnuge/vnlib.browser/dist/
 import { JsonObject } from "type-fest";
 import { computed, shallowRef } from "vue";
 import { JWK, SignJWT, importJWK } from "jose";
-import { clone, isEmpty } from "lodash";
+import { clone, isEmpty } from "lodash-es";
 import { FeatureApi, BgRuntime, IFeatureExport, exportForegroundApi, optionsOnly } from "./framework";
 import { AppSettings } from "./settings";
 import { get, set, toRefs, useToggle, watchDebounced } from "@vueuse/core";

@@ -89,7 +89,7 @@
 
 <script setup lang="ts">
 
-import { find, isEqual, map } from 'lodash'
+import { find, isEqual, map } from 'lodash-es'
 import { computed, ref } from "vue";
 import {
     Popover,

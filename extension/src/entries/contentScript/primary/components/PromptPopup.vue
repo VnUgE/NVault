@@ -92,7 +92,7 @@ import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { get, set } from '@vueuse/core';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/vue'
-import { clone, first, isEqual } from 'lodash';
+import { clone, first, isEqual } from 'lodash-es';
 import { useStore } from '../../../store';
 import { CreateRuleType, type PermissionRequest } from '../../../../features' 
 import ListBox, { Option, OptionGroup } from '../../../../components/ListBox.vue';

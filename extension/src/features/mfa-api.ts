@@ -15,7 +15,7 @@
 
 import { get, set, useToggle, watchDebounced } from "@vueuse/core";
 import { computed, shallowRef } from "vue";
-import {  } from "lodash";
+import {  } from "lodash-es";
 import { useSession, useMfaConfig, MfaMethod } from "@vnuge/vnlib.browser";
 import type { TotpUpdateMessage, Watchable } from "./types";
 import type { AppSettings } from "./settings";

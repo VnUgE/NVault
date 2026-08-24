@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { storage } from "webextension-polyfill"
-import { defaultsDeep, defer, find, isArray, isEmpty, throttle } from 'lodash'
+import { defaultsDeep, defer, find, isArray, isEmpty, throttle } from 'lodash-es'
 import { type AccountRpcGetResult, configureApi, debugLog, useAppDataApi } from '@vnuge/vnlib.browser'
 import { computed, type MaybeRef, readonly, Ref, shallowRef, watch } from "vue";
 import { JsonObject } from "type-fest";

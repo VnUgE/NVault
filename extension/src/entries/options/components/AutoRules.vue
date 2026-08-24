@@ -58,7 +58,7 @@ import { formatTimeAgo, get, useOffsetPagination } from '@vueuse/core';
 import { } from '@headlessui/vue'
 import { useStore } from '../../store';
 import { storeToRefs } from 'pinia';
-import { slice } from 'lodash';
+import { slice } from 'lodash-es';
 import { type AutoAllowRule } from '../../../features'
 
 const store = useStore()

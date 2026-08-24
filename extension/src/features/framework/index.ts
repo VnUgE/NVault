@@ -17,7 +17,7 @@
 import { runtime } from "webextension-polyfill";
 import { serializeError, deserializeError } from 'serialize-error';
 import { JsonObject } from "type-fest";
-import { cloneDeep, isArray, isObjectLike, set } from "lodash";
+import { cloneDeep, isArray, isObjectLike, set } from "lodash-es";
 import { debugLog } from "@vnuge/vnlib.browser";
 import { ChannelContext, createMessageChannel } from "../../messaging";
 
